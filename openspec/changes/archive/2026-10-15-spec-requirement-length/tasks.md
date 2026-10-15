@@ -9,5 +9,5 @@
 
 ## 2. Archive
 
-- [ ] 2.1 The change is archived and `openspec/specs/` is synced; `task spec:check` passes under OpenSpec 1.14.0 and
+- [x] 2.1 The change is archived and `openspec/specs/` is synced; `task spec:check` passes under OpenSpec 1.14.0 and
       1.14.1
