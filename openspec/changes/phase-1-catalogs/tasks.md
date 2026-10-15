@@ -37,7 +37,7 @@ Each task names the outcome that proves it. Command evidence is recorded on the 
 
 ## 4. Verification
 
-- [ ] 4.1 `task verify` passes on a clean tree
+- [x] 4.1 `task verify` passes on a clean tree
 
 ## 5. Archive
 
