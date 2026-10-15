@@ -35,7 +35,7 @@ Schema.org, FOAF, SOSA, SSN, GeoSPARQL, IANA, ACTR, AGNT or cyber constant.
 | actr | none | none | none | none | none | everything (no source) | deferred |
 | agnt | none | none | none | `vocabulary/agentic` (unverified mapping) | none | everything | deferred |
 | bfo | none | none | none | `vocabulary/bfo/{bfo,hierarchy}.go` | none | all BFO terms | port (verified subset) |
-| cco | none | none | none | `vocabulary/cco/{cco,hierarchy}.go` | none | all CCO terms | new content from CCO v2.2 (SemStreams names kept) |
+| cco | none | none | none | `vocabulary/cco/{cco,hierarchy}.go` | none | all CCO terms | new content from CCO v2.2 (SemStreams names; 3 renamed to v2.2 labels) |
 | cyber | none | none | none | none | none | everything | deferred |
 | dublincore | `DcIdentifier` `standards.go:47`, `DcTitle` `:51`, `DCTermsTitle` `:60` | `dc` `prefix.go:29` | `doc.go:137` | `standards.go`: 14 constants | 3 | 11 SemStreams-only constants | use-semengine-symbol |
 | foaf | none | `foaf` `prefix.go:31` | none | `FoafName`, `FoafNick`, `FoafAccountName` | none | 3 | deferred |

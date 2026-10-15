@@ -10,8 +10,8 @@ Each task names the outcome that proves it. Command evidence is recorded on PR #
       packs
 - [x] 1.2 `docs/catalog-ownership.md` lists, per candidate, SemEngine exported constants, serializer prefixes, and
       doc mentions with `file:line` at `e602293`
-- [ ] 1.3 The ledger's DIEKM entry states the namespace's registration status and the Phase 1 DIEKM rulings
-      Hold: owner ruling Q4b (altitude terminal value predicate) on #1
+- [x] 1.3 The ledger's DIEKM entry states the namespace's registration status and the owner's DIEKM rulings
+      (Q1–Q5, Q4b, Q10 of 2026-10-15)
 - [x] 1.4 The SemStreams-pin source defects (BFO `BFO_0000062`/`BFO_0000132`, unverified relation IRIs, 22 non-CCO
       IRIs in the CCO namespace) and the #1 fixture corrections are posted on #1 for the owner (comment 6198595397)
 

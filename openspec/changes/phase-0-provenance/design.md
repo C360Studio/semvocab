@@ -39,7 +39,8 @@ terms (`History` = `BFO_0000182`), so this release fits the carried material bes
 Owner ruling Q1 (2026-10-15): CCO v2. Pinned to `v2.2` (commit `0bc7d33e`, merged TTL sha256 `a9453382…`), the
 latest release; no evidence was found that DIEKM targets another 2.x. v2 uses opaque IRIs under
 `https://www.commoncoreontologies.org/`, so no SemStreams-pin CCO IRI is admitted. The `cco` catalog is new content
-from v2.2; SemStreams' Go names are kept only as a recorded name→label mapping. CCO publishes no 1.x→2.x crosswalk.
+from v2.2; SemStreams' Go names are kept as a recorded name→label mapping, except the three terms v2.2 renamed,
+which take their v2.2 labels (Q10). CCO publishes no 1.x→2.x crosswalk.
 The mapping was derived by identical `rdfs:label` plus definition between v1.7 and v2.0, then by IRI identity from
 v2.0 to v2.2, and Phase 1 tests it against the v2.2 file. Deprecated v2.2 terms are not admitted. The BFO pin is
 BFO-2020 commit `5ed46876`, byte-identical to the BFO core v2.2 imports and axiom-identical to `release-2024-01-29`.
@@ -108,7 +109,8 @@ Checked against CCO 1.4, 1.5, 1.7 and 2.2 and BFO 2020 core; rulings Q1–Q5 of 
 - `has_decimal_value` belongs on an Information Bearing Entity, not on the MICE. The chain gains the hop MICE
   `BFO_0000084` (generically depends on) → `cco:ont00000253` (Q4). `BFO_0000058` (is concretized by) would be wrong:
   it targets a specifically dependent continuant. `has decimal value` (`ont00001769`) is deprecated in v2.2 without
-  replacement (Q4b open).
+  replacement, so the terminal value predicate is the DIEKM-local datatype property `diekm:altitudeMetersValue`
+  (domain `cco:ont00000253`, range `xsd:decimal`), as CCO's change note advises (Q4b).
 - `BFO_0000030` is not a CCO ancestor of Vehicle; it stays as a recorded DIEKM-local assertion (Q2).
 - Superclasses list the full closure (D5).
 - The DIEKM namespace stays local and unregistered (Q5).
@@ -214,19 +216,15 @@ Deferred until `processor/rule` and `pkg/rulepack` exist in SemEngine. The Phase
 
 Ruled on #1 (2026-10-15): Q1 CCO v2 (pinned v2.2); Q2 keep `BFO_0000030` as a DIEKM-local assertion; Q3
 `diekm:assignedRole` via `BFO_0000196` → `BFO_0000023`; Q4 add the Information Bearing Entity hop; Q5 the DIEKM
-namespace stays local and unregistered.
+namespace stays local and unregistered; Q4b the altitude terminal is `diekm:altitudeMetersValue`; Q10 the three
+CCO terms v2.2 renamed take their v2.2 labels as Go names (`PrescriptiveInformationContentEntity`,
+`MaterialCopyOfDocument`, `ActOfMaterialArtifactProcessing`).
 
-Open:
+Phase 1 design choices, with proposed defaults; Phase 1's change records the choice:
 
-- **Q4b altitude terminal value predicate:** `cco:ont00001769` (has decimal value) is deprecated in v2.2. Options: a
-  DIEKM-local datatype property with domain Information Bearing Entity, as CCO's change note advises (proposed);
-  `cco:ont00001763` (has altitude value, intended for geospatial coordinates, typically kilometres); or keep the
-  deprecated term.
 - **Q6 `bfo-cco-core` pack contents:** prefixes only (proposed), or more.
 - **Q7 ledger shape test:** add `TestAdmissionLedgerShape` now, or in Phase 1 (proposed).
 - **Q8 test oracle form:** vendor the release TTLs plus a test-only Turtle reader (proposed), or a generated closure
   fixture.
 - **Q9 prefix naming:** prefix `bfo` for `http://purl.obolibrary.org/obo/` would compact other OBO terms as `bfo:…`;
   `obo` would be more accurate.
-- **Q10 relabelled CCO terms:** keep SemStreams' Go names for `DirectiveInformationContentEntity`, `Document` and
-  `ActOfArtifactProcessing` (proposed; eases semsource migration), or rename to the v2.2 labels.

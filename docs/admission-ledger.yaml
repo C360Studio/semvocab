@@ -118,30 +118,31 @@ entries:
     source:
       ontology: cco-2.2
       go_name_mapping: >-
-        Go symbol names follow SemStreams vocabulary/cco/cco.go at the SemStreams pin, as names only; values are
-        v2.2 IRIs; no SemStreams IRI string is copied
+        Go symbol names follow SemStreams vocabulary/cco/cco.go at the SemStreams pin, except the three terms v2.2
+        renamed, which take their v2.2 labels (owner ruling Q10); values are v2.2 IRIs; no SemStreams IRI string is
+        copied
       admitted_classes: {InformationContentEntity: ont00000958, DescriptiveInformationContentEntity: ont00000853,
-        DirectiveInformationContentEntity: ont00000965, PlanSpecification: ont00000974, Objective: ont00000476,
+        PrescriptiveInformationContentEntity: ont00000965, PlanSpecification: ont00000974, Objective: ont00000476,
         DesignativeInformationContentEntity: ont00000686, MeasurementInformationContentEntity: ont00001163,
         Algorithm: ont00000653, Agent: ont00001017, Person: ont00001262, Organization: ont00001180,
         GroupOfAgents: ont00000300, Act: ont00000005, IntentionalAct: ont00000228, ActOfCommunication: ont00000402,
-        ActOfArtifactProcessing: ont00000908, ActOfPositionChange: ont00000584, Artifact: ont00000995,
-        InformationBearingArtifact: ont00000798, Document: ont00001298, Facility: ont00000192, Vehicle: ont00000713,
+        ActOfMaterialArtifactProcessing: ont00000908, ActOfPositionChange: ont00000584, Artifact: ont00000995,
+        InformationBearingArtifact: ont00000798, MaterialCopyOfDocument: ont00001298, Facility: ont00000192, Vehicle: ont00000713,
         Sensor: ont00000569, ActOfObservation: ont00000037, Altitude: ont00000787, Height: ont00000967,
         OneDimensionalExtent: ont00001367, SizeQuality: ont00001202, InformationBearingEntity: ont00000253,
         Animal: ont00000562, Organism: ont00000551, Transducer: ont00000736, ActOfMotion: ont00000357}
       admitted_properties: {IsAbout: ont00001808, HasAgent: ont00001833, AgentIn: ont00001787, HasInput: ont00001921,
         HasOutput: ont00001986, Prescribes: ont00001942, DesignatedBy: ont00001879, Designates: ont00001916,
         OccursAt: ont00001918, IsMeasuredBy: ont00001904}
-      relabelled_in_v2:
-        DirectiveInformationContentEntity: Prescriptive Information Content Entity
-        Document: Material Copy of a Document
-        ActOfArtifactProcessing: Act of Material Artifact Processing
+      renamed_from_semstreams: # owner ruling Q10: Go names follow the v2.2 labels
+        DirectiveInformationContentEntity: PrescriptiveInformationContentEntity (Prescriptive Information Content Entity)
+        Document: MaterialCopyOfDocument (Material Copy of a Document)
+        ActOfArtifactProcessing: ActOfMaterialArtifactProcessing (Act of Material Artifact Processing)
       hierarchy: SubClassOf, Parents, IsA, from cco-2.2 asserted named rdfs:subClassOf (crossing into bfo)
     excluded_source_symbols:
       - {symbols: [HasTextValue ont00001765], reason: "owl:deprecated in cco-2.2 without replacement"}
       - symbols: [HasDecimalValue ont00001769]
-        reason: "owl:deprecated in cco-2.2 without replacement; the DIEKM altitude terminal awaits owner ruling Q4b"
+        reason: "owl:deprecated in cco-2.2 without replacement; DIEKM uses diekm:altitudeMetersValue instead (owner ruling Q4b)"
       - reason: "not declared in cco-2.2 (nor in v1.4, v1.5, v1.7)"
         symbols: [Specification, Requirement, Rule, Identifier, Name, DescriptiveStatement, SoftwareCode, SoftwareAgent,
           IntelligentSoftwareAgent, ActOfApproval, ActOfDecisionMaking, ActOfObserving, ActOfCommandAndControl,
@@ -301,7 +302,9 @@ entries:
       cco:ont00000787, cco:ont00001904, cco:ont00001163, cco:ont00000253, bfo:BFO_0000001, bfo:BFO_0000002,
       bfo:BFO_0000003, bfo:BFO_0000004, bfo:BFO_0000015, bfo:BFO_0000023, bfo:BFO_0000030, bfo:BFO_0000040,
       bfo:BFO_0000084, bfo:BFO_0000196, rdfs:label]
-    admitted_terms: "diekm:IntelligencePlatform, diekm:IntelligenceObservation, diekm:altitudeMeters, diekm:assignedRole"
+    admitted_terms: >-
+      diekm:IntelligencePlatform, diekm:IntelligenceObservation, diekm:altitudeMeters, diekm:assignedRole,
+      diekm:altitudeMetersValue (datatype property, domain cco:ont00000253, range xsd:decimal)
     local_assertions:
       - >-
         diekm:IntelligencePlatform rdfs:subClassOf obo:BFO_0000030 (owner ruling Q2; not entailed by CCO, where
@@ -311,8 +314,8 @@ entries:
       Q2: keep BFO_0000030 as a DIEKM-local assertion
       Q3: "diekm:assignedRole projected via BFO_0000196 (bearer of) → BFO_0000023 (role); RO_0000053 → BFO_0000196"
       Q4: "Information Bearing Entity hop via BFO_0000084 (generically depends on) → cco:ont00000253"
+      Q4b: "altitude terminal value predicate is diekm:altitudeMetersValue on the Information Bearing Entity, not the deprecated cco:ont00001769"
       Q5: namespace stays local and unregistered
-    open_rulings: [Q4b altitude terminal value predicate (cco:ont00001769 is deprecated in v2.2)]
     license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio"
     test_oracle: >-
       superclass sets equal the cco-2.2 asserted closure plus the recorded local assertion and its closure; every IRI
