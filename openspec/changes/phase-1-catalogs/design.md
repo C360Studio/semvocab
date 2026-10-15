@@ -38,7 +38,15 @@ anything it does not support. It adds no third-party module. The tests check the
 
 The namespace is the OBO Foundry PURL base, shared by every OBO ontology. Naming it `bfo` would compact non-BFO OBO
 terms as `bfo:…` in serializer output. The packs therefore declare `obo`, and the issue #1 fixture's `bfo` prefix
-becomes `obo`. The Go package stays `catalog/bfo`, which names the ontology, not the prefix.
+becomes `obo`. The Go package stays `catalog/bfo`, which names the ontology, not the prefix. The owner confirmed this
+as ruling Q9 (#1, 2026-10-15).
+
+### P6. DIEKM altitude predicate is `intel.measurement.altitude-m` (Q11, owner ruling)
+
+The issue #1 fixture's `intel.measurement.altitude_m` fails SemEngine's predicate segment grammar `[a-z][a-z0-9-]*`
+(`vocabulary/predicate_contract.go:144-171`, at alpha.1 and alpha.2), so `RegisterPack` rejects the pack. Owner ruling
+Q11 (#1 comment 6201463524) names it `intel.measurement.altitude-m`. Its IRI `diekm:altitudeMeters` and `units: m`
+are unchanged. SemSPARQL#1 references to the predicate use the new name (reported there, not edited here).
 
 ## Declared costs
 

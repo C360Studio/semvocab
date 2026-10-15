@@ -22,16 +22,13 @@ Each task names the outcome that proves it. Command evidence is recorded on the 
 ## 3. Packs
 
 - [x] 3.1 `packs/bfo-cco-core.yaml` declares the `obo` and `cco` prefixes (P2, P5) and loads and registers
-- [ ] 3.2 `packs/diekm/diekm.yaml` applies rulings Q1–Q5 and Q4b, with full ancestor closures (D5) and an initial
-      `diekm.shacl.ttl`
-      Hold: owner ruling on #1 for the altitude predicate name; the fixture's `intel.measurement.altitude_m` fails
-      SemEngine's segment grammar `[a-z][a-z0-9-]*` (notes/3-packs.md)
+- [x] 3.2 `packs/diekm/diekm.yaml` applies rulings Q1–Q5 and Q4b, with full ancestor closures (D5) and an initial
+      `diekm.shacl.ttl`; the altitude predicate is `intel.measurement.altitude-m` (Q11, P6)
 - [x] 3.3 `TestPackSuperclassClosure` passes for every embedded pack, checks expanded `http(s)` IRIs in declared
       namespaces (D6), and fails when one ancestor is removed
-- [ ] 3.4 `TestDIEKMPackLoadsAndRegisters` registers the embedded YAML through `LoadPackYAML` and `RegisterPack` with
+- [x] 3.4 `TestDIEKMPackLoadsAndRegisters` registers the embedded YAML through `LoadPackYAML` and `RegisterPack` with
       `WithPrefixRegistrar(export.RegisterPrefixes)`, reads it back through the registry getters, and shows the `diekm`
       prefix compacting in Turtle
-      Hold: owner ruling on #1 for the altitude predicate name (task 3.2)
 - [x] 3.5 JSON/YAML equivalence, atomic failure (unknown field; invalid entry; state unchanged), repeated and
       conflicting registration (D8), and direct Turtle, N-Triples, and JSON-LD serialization tests pass
 
