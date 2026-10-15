@@ -13,7 +13,7 @@ PR, then SemVocab tags `v0.1.0` for SemSPARQL. The SemEngine pin is the pre-rele
 
 ## What Changes
 
-- `docs/admission-ledger.yaml`: pins (SemStreams, SemEngine, BFO 2020, CCO 1.7), one entry per candidate catalog
+- `docs/admission-ledger.yaml`: pins (SemStreams, SemEngine, BFO 2020, CCO v2.2), one entry per candidate catalog
   (17) and pack (`diekm`, `bfo-cco-core`), and phase gates.
 - `docs/catalog-ownership.md`: overlap with SemEngine `e602293` by symbol, separating exported constants, serializer
   prefixes, and doc mentions.

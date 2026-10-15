@@ -35,7 +35,7 @@ Schema.org, FOAF, SOSA, SSN, GeoSPARQL, IANA, ACTR, AGNT or cyber constant.
 | actr | none | none | none | none | none | everything (no source) | deferred |
 | agnt | none | none | none | `vocabulary/agentic` (unverified mapping) | none | everything | deferred |
 | bfo | none | none | none | `vocabulary/bfo/{bfo,hierarchy}.go` | none | all BFO terms | port (verified subset) |
-| cco | none | none | none | `vocabulary/cco/{cco,hierarchy}.go` | none | all CCO terms | port (verified subset) + CCO 1.7 additions |
+| cco | none | none | none | `vocabulary/cco/{cco,hierarchy}.go` | none | all CCO terms | new content from CCO v2.2 (SemStreams names kept) |
 | cyber | none | none | none | none | none | everything | deferred |
 | dublincore | `DcIdentifier` `standards.go:47`, `DcTitle` `:51`, `DCTermsTitle` `:60` | `dc` `prefix.go:29` | `doc.go:137` | `standards.go`: 14 constants | 3 | 11 SemStreams-only constants | use-semengine-symbol |
 | foaf | none | `foaf` `prefix.go:31` | none | `FoafName`, `FoafNick`, `FoafAccountName` | none | 3 | deferred |
@@ -54,8 +54,8 @@ Schema.org, FOAF, SOSA, SSN, GeoSPARQL, IANA, ACTR, AGNT or cyber constant.
 
 - Schema.org: SemEngine's serializer binds `https://schema.org/`, while SemEngine's own doc examples and three
   SemStreams constants use `http://schema.org/`. Any future schema catalog needs a namespace ruling and a mapping.
-- BFO and CCO: SemVocab admits only terms declared in BFO 2020 (`release-2024-01-29`) and CCO `v1.7-2024-11-03`. Its
-  hierarchy follows those releases, not the SemStreams map, where they differ (`docs/admission-ledger.yaml`,
-  `hierarchy_divergence_from_source`).
+- BFO and CCO: SemVocab admits only terms declared in BFO 2020 (`release-2024-01-29`) and CCO `v2.2`. Its hierarchy
+  follows those releases, not the SemStreams map, where they differ. CCO v2 uses opaque IRIs under
+  `https://www.commoncoreontologies.org/`, so no SemStreams CCO IRI is carried (`docs/admission-ledger.yaml`).
 - No SemVocab package copies an IRI string that SemEngine exports. The three use-semengine-symbol catalogs have no
   SemVocab API.

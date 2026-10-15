@@ -8,7 +8,7 @@ Inputs, each read at a named revision:
 - SemStreams `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`
 - SemSPARQL `origin/main` `b64f35e`: no Go code yet
 - BFO-2020 `release-2024-01-29`
-- CCO `v1.4-2023-04-07`, `v1.5-2024-02-14`, `v1.7-2024-11-03`, `v2.0-2024-11-06`
+- CCO `v1.4-2023-04-07`, `v1.5-2024-02-14`, `v1.7-2024-11-03`, `v2.0-2024-11-06`, `v2.2` (pinned)
 
 "Closure" below means the transitive closure of asserted named `rdfs:subClassOf`, without `owl:Thing`.
 `owl:equivalentClass` and restriction axioms are not evaluated.
@@ -34,38 +34,45 @@ BFO 2020 core, BFO-2020 tag `release-2024-01-29` (`044490fc`), `src/owl/bfo-core
 terms (`History` = `BFO_0000182`), so this release fits the carried material best. SemSPARQL#1's summary says
 "BFO 2.0"; that wording should become BFO 2020.
 
-### D3. CCO release (owner ruling Q1)
+### D3. CCO release
 
-Proposed: `v1.7-2024-11-03`, the last release in the `http://www.ontologyrepository.com/CommonCoreOntologies/`
-namespace used by SemStreams and #1, built on the D2 BFO core. CCO 1.4, which SemStreams cites, embeds BFO
-`2019-08-26` plus RO and conflicts with D2. CCO 2.x uses opaque `https://www.commoncoreontologies.org/ont…` IRIs,
-so adopting it is a namespace change that needs a mapping. For every term this change examined, `v1.5` and `v1.7`
-gave the same results.
+Owner ruling Q1 (2026-10-15): CCO v2. Pinned to `v2.2` (commit `0bc7d33e`, merged TTL sha256 `a9453382…`), the
+latest release; no evidence was found that DIEKM targets another 2.x. v2 uses opaque IRIs under
+`https://www.commoncoreontologies.org/`, so no SemStreams-pin CCO IRI is admitted. The `cco` catalog is new content
+from v2.2; SemStreams' Go names are kept only as a recorded name→label mapping. CCO publishes no 1.x→2.x crosswalk.
+The mapping was derived by identical `rdfs:label` plus definition between v1.7 and v2.0, then by IRI identity from
+v2.0 to v2.2, and Phase 1 tests it against the v2.2 file. Deprecated v2.2 terms are not admitted. The BFO pin is
+BFO-2020 commit `5ed46876`, byte-identical to the BFO core v2.2 imports and axiom-identical to `release-2024-01-29`.
 
 ### D4. Ports admit only release-verified terms; hierarchy follows the release
 
 The SemStreams `bfo` and `cco` packages carry IRIs absent from, or mislabelled in, the releases they cite (ledger
-`excluded_source_symbols`). A port carries the verified symbols with SemStreams' names and IRIs. Parent links come
+`excluded_source_symbols`). The `bfo` port carries the verified symbols with SemStreams' names and IRIs; `cco` keeps
+only SemStreams' names (D3). Parent links come
 from the release, and every divergence from the SemStreams map is listed in the ledger. Minting non-CCO terms in the
 CCO namespace is rejected.
 
 ### D5. Full ancestor closure in `Superclasses`
 
-SemSPARQL#1 §2.2.3 requires every pack to register the full ancestor closure, because `LookupEntityTypesByClassIRI`
+SemSPARQL#1 §2.2.3 requires each pack to register its full ancestor closure, because `LookupEntityTypesByClassIRI`
 (`vocabulary/entity_type.go:186-205`) matches only `ClassIRI` and the directly listed `Superclasses`. SemSPARQL's
-startup check only fires when a superclass is itself a registered `ClassIRI`, so it does not catch a short closure
-against unregistered BFO/CCO classes. SemVocab therefore proves the closure against the ontology release. Order is
-nearest first, then lexical among equals.
+startup check fires only when a superclass is itself a registered `ClassIRI`, so it does not catch a short closure
+over unregistered CCO/BFO classes. SemVocab therefore proves closure against the CCO v2.2 merged file, which embeds
+BFO. Order is declared parents first, then breadth-first. A DIEKM-local assertion (`IntelligencePlatform ⊑
+BFO_0000030`, ruling Q2) is listed in the ledger and its own closure is included.
 
-Closures in CCO `v1.7-2024-11-03` (v1.5 gives the same):
+Closures in CCO v2.2 (`cco:` = `https://www.commoncoreontologies.org/`, `obo:` = `http://purl.obolibrary.org/obo/`):
 
-- `cco:Vehicle`: `cco:Artifact`, `BFO_0000040`, `BFO_0000004`, `BFO_0000002`, `BFO_0000001`. CCO does not entail
-  `BFO_0000030` (object) for Vehicle; #1's fixture asserts it (Q2).
-- `cco:ActOfObservation`: `cco:IntentionalAct`, `cco:Act`, `BFO_0000015`, `BFO_0000003`, `BFO_0000001`.
-- `cco:Altitude`: `cco:Height`, `cco:OneDimensionalExtent`, `cco:SizeQuality`, `BFO_0000019`, `BFO_0000020`,
+- Vehicle `cco:ont00000713`: `cco:ont00000995` (Material Artifact), `BFO_0000040`, `BFO_0000004`, `BFO_0000002`,
+  `BFO_0000001`. `BFO_0000030` is not an ancestor; DIEKM asserts it locally, so `intel.platform` lists 7 IRIs.
+- Act of Observation `cco:ont00000037`: `cco:ont00000228` (Planned Act), `cco:ont00000005` (Act), `BFO_0000015`,
+  `BFO_0000003`, `BFO_0000001`; `intel.observation` lists 6 IRIs.
+- Altitude `cco:ont00000787`: `cco:ont00000967` (Height), `cco:ont00001367` (One Dimensional Extent),
+  `cco:ont00001202` (Size Quality), `BFO_0000019`, `BFO_0000020`, `BFO_0000002`, `BFO_0000001`.
+- Measurement Information Content Entity `cco:ont00001163`: `cco:ont00000853`, `cco:ont00000958`, `BFO_0000031`,
   `BFO_0000002`, `BFO_0000001`.
-- `cco:MeasurementInformationContentEntity`: `cco:DescriptiveInformationContentEntity`,
-  `cco:InformationContentEntity`, `BFO_0000031`, `BFO_0000002`, `BFO_0000001`.
+- Information Bearing Entity `cco:ont00000253`: `BFO_0000030`, `BFO_0000040`, `BFO_0000004`, `BFO_0000002`,
+  `BFO_0000001`.
 
 ### D6. Superclass IRIs are expanded `http(s)` IRIs
 
@@ -89,14 +96,26 @@ record this behaviour; they do not change it.
 
 ## Corrections to the issue #1 DIEKM fixture
 
-Checked against CCO 1.4, 1.5 and 1.7 and BFO 2020 core:
+Checked against CCO 1.4, 1.5, 1.7 and 2.2 and BFO 2020 core; rulings Q1–Q5 of 2026-10-15 applied:
 
-- `cco:has_role` (predicate `iri`) and `cco:AgentRole` (`node_class_iri`) are not declared in any of them (Q3).
-- `RO_0000087` and `RO_0000053` are RO terms, absent from BFO 2020 core and CCO 1.5+; BFO 2020's counterpart of
-  `RO_0000053` is `BFO_0000196` ("bearer of") (Q3).
-- `cco:has_decimal_value` has `rdfs:domain cco:InformationBearingEntity` in CCO 1.7, not the MICE node the fixture
-  attaches it to (Q4).
-- Neither entity type lists its full ancestor closure (D5).
+- CCO namespace `http://www.ontologyrepository.com/CommonCoreOntologies/` (CCO ≤1.7) becomes
+  `https://www.commoncoreontologies.org/` (CCO v2.2, Q1). Every `cco:` term becomes an opaque IRI: Vehicle →
+  `ont00000713`, ActOfObservation → `ont00000037`, Altitude → `ont00000787`, is_measured_by → `ont00001904`,
+  MeasurementInformationContentEntity → `ont00001163`.
+- `cco:has_role`, `cco:AgentRole` and `RO_0000087` exist in no CCO release checked. They are replaced by
+  `diekm:assignedRole`, projected via `BFO_0000196` (bearer of) → `BFO_0000023` (role) (Q3).
+- `RO_0000053` becomes `BFO_0000196` in the altitude chain (Q3).
+- `has_decimal_value` belongs on an Information Bearing Entity, not on the MICE. The chain gains the hop MICE
+  `BFO_0000084` (generically depends on) → `cco:ont00000253` (Q4). `BFO_0000058` (is concretized by) would be wrong:
+  it targets a specifically dependent continuant. `has decimal value` (`ont00001769`) is deprecated in v2.2 without
+  replacement (Q4b open).
+- `BFO_0000030` is not a CCO ancestor of Vehicle; it stays as a recorded DIEKM-local assertion (Q2).
+- Superclasses list the full closure (D5).
+- The DIEKM namespace stays local and unregistered (Q5).
+
+SemSPARQL#1 text that the namespace change affects (sister repository; reported to its owner, not edited here): the
+summary's "BFO 2.0", the §2.3 folding example (opaque `cco:` IRIs, `BFO_0000196`, and the third hop, which
+`TestBGPFoldingCollapsesDIEKMChains` must cover), and §3's `?s a cco:Vehicle` (now `cco:ont00000713`).
 
 ## Adopter seam inventory
 
@@ -122,8 +141,8 @@ Gate: available (`v0.1.0-alpha.1`). Scope: `catalog/bfo`, `catalog/cco` (ledger 
 Acceptance tests:
 
 - **`TestCatalogPortParity`:**
-  - Each admitted constant equals its SemStreams-pin IRI, using a fixture extracted from the pin by a recorded
-    command.
+  - Each admitted `bfo` constant equals its SemStreams-pin IRI, using a fixture extracted from the pin by a recorded
+    command. `cco` is new content: each constant's `rdfs:label` in the v2.2 file equals the ledger's recorded label.
   - Each admitted term is declared in the vendored release file, matched by sha256, with the expected `rdf:type`.
   - Each excluded source symbol is absent from the catalog.
   - It fails when one IRI is altered (paired sensitivity test).
@@ -186,25 +205,28 @@ Deferred until `processor/rule` and `pkg/rulepack` exist in SemEngine. The Phase
 
 ## Declared costs
 
-- The ontology oracles are vendored release files: CCO merged TTL about 1.45 MB, BFO core about 100 KB. They carry
+- The ontology oracles are vendored release files: CCO v2.2 merged TTL about 2.0 MB, BFO core about 100 KB. They carry
   the CC-BY-4.0 attribution and the BSD-3-Clause notice. The test-only Turtle reader is a Phase 1 design choice (Q8).
 - The SemStreams parity fixture is generated from the pin by a recorded command, not by importing the SemStreams
   module.
 
-## Open questions (owner, on #1)
+## Owner rulings and open questions
 
-- **Q1 CCO release:** `v1.7-2024-11-03` (proposed) or `v1.5-2024-02-14`. CCO 2.x is rejected for its namespace change.
-- **Q2 `intel.platform`:** keep `BFO_0000030` as a recorded DIEKM-local assertion (semsparql#1 tests depend on it),
-  or drop it.
-- **Q3 role predicate:** replace `cco:has_role`, `cco:AgentRole` and `RO_0000087` with a DIEKM-local predicate
-  projected via `BFO_0000196` → `BFO_0000023` (or a real CCO role class such as `cco:OperatorRole`), or adopt and pin
-  an RO release as a third ontology. The same choice decides whether `RO_0000053` becomes `BFO_0000196`.
-- **Q4 altitude terminal:** keep `has_decimal_value` on the MICE node, or add a hop to an InformationBearingEntity.
-- **Q5 DIEKM namespace:** register `w3id.org/c360`, or keep it local and unregistered. Either way, no certification
-  claim.
+Ruled on #1 (2026-10-15): Q1 CCO v2 (pinned v2.2); Q2 keep `BFO_0000030` as a DIEKM-local assertion; Q3
+`diekm:assignedRole` via `BFO_0000196` → `BFO_0000023`; Q4 add the Information Bearing Entity hop; Q5 the DIEKM
+namespace stays local and unregistered.
+
+Open:
+
+- **Q4b altitude terminal value predicate:** `cco:ont00001769` (has decimal value) is deprecated in v2.2. Options: a
+  DIEKM-local datatype property with domain Information Bearing Entity, as CCO's change note advises (proposed);
+  `cco:ont00001763` (has altitude value, intended for geospatial coordinates, typically kilometres); or keep the
+  deprecated term.
 - **Q6 `bfo-cco-core` pack contents:** prefixes only (proposed), or more.
 - **Q7 ledger shape test:** add `TestAdmissionLedgerShape` now, or in Phase 1 (proposed).
 - **Q8 test oracle form:** vendor the release TTLs plus a test-only Turtle reader (proposed), or a generated closure
   fixture.
-- **Q9 prefix naming:** prefix `bfo` for `http://purl.obolibrary.org/obo/` compacts RO terms as `bfo:RO_…`; `obo`
-  would be more accurate.
+- **Q9 prefix naming:** prefix `bfo` for `http://purl.obolibrary.org/obo/` would compact other OBO terms as `bfo:…`;
+  `obo` would be more accurate.
+- **Q10 relabelled CCO terms:** keep SemStreams' Go names for `DirectiveInformationContentEntity`, `Document` and
+  `ActOfArtifactProcessing` (proposed; eases semsource migration), or rename to the v2.2 labels.

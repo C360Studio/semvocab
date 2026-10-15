@@ -38,30 +38,34 @@ pins:
   ontologies:
     bfo-2020:
       repository: https://github.com/BFO-ontology/BFO-2020
-      tag: release-2024-01-29
-      commit: 044490fc5100ffed6df7d4d15cbc167698b6fdee
+      release: release-2024-01-29
+      commit: 5ed468765ea5655a0ff9a93877fd059f294a152d # untagged, one commit after the release tag; byte-identical to CCO v2.2's import
       file: src/owl/bfo-core.ttl
-      sha256: 6944e2c96a0d8709dc15ae5364792019e208061eda3f32311af4f3b8d8443a3b
+      sha256: 128f5fe1dab7ee804a3037a836813e5953c846eeeefee883a47d5db0b37a106b
       version_iri: http://purl.obolibrary.org/obo/bfo/2020/bfo-core.ttl
       namespace: http://purl.obolibrary.org/obo/
       license: CC-BY-4.0 (dc:license in file); attribution required
       note: >-
-        CCO v1.5 and v1.7 bundle src/cco-imports/bfo-core.ttl (sha256
-        128f5fe1dab7ee804a3037a836813e5953c846eeeefee883a47d5db0b37a106b), which differs from this file only in
-        skos:scopeNote annotations; class and property axioms match.
-    cco-1.7: # owner ruling pending (design Q1); v1.5-2024-02-14 is the alternative
+        Differs from tag release-2024-01-29 (044490fc, sha256 6944e2c96a0d8709dc15ae5364792019e208061eda3f32311af4f3b8d8443a3b)
+        only in skos:scopeNote link text; class and property axioms match.
+    cco-2.2:
       repository: https://github.com/CommonCoreOntology/CommonCoreOntologies
-      tag: v1.7-2024-11-03
-      commit: 7cb2875f852a23b3b7a7cac5cf0d29bda3a0bb9d
-      file: src/cco-merged/CommonCoreOntologiesMerged.ttl
-      sha256: 9adf224e0ad4a19b31e72648cafdc33bf51d4e7e3442cbb2bb7e81bc9b55fa18
-      version_iri: http://www.ontologyrepository.com/CommonCoreOntologies/Mid/2024-11-03/MergedAllCoreOntology
-      namespace: http://www.ontologyrepository.com/CommonCoreOntologies/
-      depends_on: bfo-2020
+      tag: v2.2 # tag object d846c40f6dc7ccd2bbca213f616d26e0fe1bf271, published 2026-08-14
+      commit: 0bc7d33e1bc09fd4693366119ab4e03cb0340042
+      file: src/cco-merged/CommonCoreOntologiesMerged.ttl # = release asset CommonCoreOntologiesMerged-2.2.ttl
+      sha256: a9453382b25b40781c181d6ba44981f228abb76d90d548846713adba9baadb42 # matches the release SHA256SUMS
+      version_iri: https://www.commoncoreontologies.org/2026-08-13/CommonCoreOntologiesMerged
+      namespace: https://www.commoncoreontologies.org/
+      depends_on: >-
+        bfo-2020 (bundled src/cco-imports/bfo-core.ttl, same sha256; the merged file embeds BFO with identical class
+        axioms)
       license: BSD-3-Clause, Copyright (c) 2017 CUBRC, Inc.; notice retained with vendored fixtures
+      chosen_because: "owner ruling Q1 (2026-10-15): CCO v2; v2.2 is the latest release; no evidence found that DIEKM targets another 2.x"
       divergence: >-
-        CCO v2.0+ moved to opaque IRIs under https://www.commoncoreontologies.org/ont… ; v1.7 is the last release in
-        the namespace SemStreams and issue #1 use. Adopting 2.x is a namespace change needing an explicit mapping.
+        Opaque IRIs differ from the 1.x namespace (http://www.ontologyrepository.com/CommonCoreOntologies/) used by
+        the SemStreams pin and by issue #1 and semsparql#1 text. No 1.x IRI is admitted. CCO publishes no 1.x→2.x
+        crosswalk; the mapping in the cco entry was derived by identical rdfs:label + definition between v1.7 and
+        v2.0, then by IRI identity from v2.0 to v2.2.
 
 phase_gates:
   phase-1: {requires: "SemEngine RegisterPack/LoadPackYAML/WithPrefixRegistrar at v0.1.0-alpha.1", status: available}
@@ -108,39 +112,45 @@ entries:
       equals the asserted named rdfs:subClassOf closure. IRI parity with the SemStreams pin for admitted symbols.
 
   - catalog: cco
-    disposition: port
+    disposition: new-content
     phase: 1
     semengine_overlap: none
     source:
-      semstreams_files: [vocabulary/cco/cco.go, vocabulary/cco/hierarchy.go]
-      symbols_admitted_classes: [Namespace, InformationContentEntity, DescriptiveInformationContentEntity,
-        DirectiveInformationContentEntity, PlanSpecification, Objective, DesignativeInformationContentEntity,
-        MeasurementInformationContentEntity, Algorithm, Agent, Person, Organization, GroupOfAgents, Act,
-        IntentionalAct, ActOfCommunication, ActOfArtifactProcessing, ActOfPositionChange, Artifact,
-        InformationBearingArtifact, Document, Facility, Vehicle, Sensor]
-      symbols_admitted_properties: [IsAbout, HasTextValue, HasAgent, AgentIn, HasInput, HasOutput, Prescribes,
-        DesignatedBy, Designates, OccursAt]
-      hierarchy: SubClassOf, Parents, IsA, with parents from cco-1.7 (crossing into bfo)
-      external_additions:
-        ontology: cco-1.7
-        terms_for_diekm: [ActOfObservation, Altitude, Height, OneDimensionalExtent, SizeQuality, is_measured_by,
-          has_decimal_value]
-        terms_for_closure: [Animal, Organism, Transducer, ActOfMotion]
-    admitted_terms: the symbols and additions above (all verified as declared in cco-1.7)
+      ontology: cco-2.2
+      go_name_mapping: >-
+        Go symbol names follow SemStreams vocabulary/cco/cco.go at the SemStreams pin, as names only; values are
+        v2.2 IRIs; no SemStreams IRI string is copied
+      admitted_classes: {InformationContentEntity: ont00000958, DescriptiveInformationContentEntity: ont00000853,
+        DirectiveInformationContentEntity: ont00000965, PlanSpecification: ont00000974, Objective: ont00000476,
+        DesignativeInformationContentEntity: ont00000686, MeasurementInformationContentEntity: ont00001163,
+        Algorithm: ont00000653, Agent: ont00001017, Person: ont00001262, Organization: ont00001180,
+        GroupOfAgents: ont00000300, Act: ont00000005, IntentionalAct: ont00000228, ActOfCommunication: ont00000402,
+        ActOfArtifactProcessing: ont00000908, ActOfPositionChange: ont00000584, Artifact: ont00000995,
+        InformationBearingArtifact: ont00000798, Document: ont00001298, Facility: ont00000192, Vehicle: ont00000713,
+        Sensor: ont00000569, ActOfObservation: ont00000037, Altitude: ont00000787, Height: ont00000967,
+        OneDimensionalExtent: ont00001367, SizeQuality: ont00001202, InformationBearingEntity: ont00000253,
+        Animal: ont00000562, Organism: ont00000551, Transducer: ont00000736, ActOfMotion: ont00000357}
+      admitted_properties: {IsAbout: ont00001808, HasAgent: ont00001833, AgentIn: ont00001787, HasInput: ont00001921,
+        HasOutput: ont00001986, Prescribes: ont00001942, DesignatedBy: ont00001879, Designates: ont00001916,
+        OccursAt: ont00001918, IsMeasuredBy: ont00001904}
+      relabelled_in_v2:
+        DirectiveInformationContentEntity: Prescriptive Information Content Entity
+        Document: Material Copy of a Document
+        ActOfArtifactProcessing: Act of Material Artifact Processing
+      hierarchy: SubClassOf, Parents, IsA, from cco-2.2 asserted named rdfs:subClassOf (crossing into bfo)
     excluded_source_symbols:
-      - reason: >-
-          absent from CCO v1.4, v1.5 and v1.7 (SemStreams hierarchy.go calls some 'semstreams extensions over CCO
-          proper'); minting them in the CCO namespace would misrepresent CCO
+      - {symbols: [HasTextValue ont00001765], reason: "owl:deprecated in cco-2.2 without replacement"}
+      - symbols: [HasDecimalValue ont00001769]
+        reason: "owl:deprecated in cco-2.2 without replacement; the DIEKM altitude terminal awaits owner ruling Q4b"
+      - reason: "not declared in cco-2.2 (nor in v1.4, v1.5, v1.7)"
         symbols: [Specification, Requirement, Rule, Identifier, Name, DescriptiveStatement, SoftwareCode, SoftwareAgent,
           IntelligentSoftwareAgent, ActOfApproval, ActOfDecisionMaking, ActOfObserving, ActOfCommandAndControl,
           IsPrescribedBy, HasRole, MeasuresQuality, StartsAt, EndsAt, HasDuration, CreatedBy, ModifiedBy, AuthoredBy]
-    hierarchy_divergence_from_source: >-
-      cco-1.7 parents: Person→Animal, Organization→GroupOfAgents, GroupOfAgents→BFO_0000027, Sensor→Transducer,
-      ActOfPositionChange→ActOfMotion; SemStreams collapses these
-    license: "SemStreams MIT (C360); CCO BSD-3-Clause (CUBRC), retain notice"
+    license: "CCO BSD-3-Clause (CUBRC), retain notice; Go names credit SemStreams (MIT, C360)"
     test_oracle: >-
-      cco-1.7 merged TTL at the recorded sha256 (with bfo-2020): declarations, rdf:type, and asserted named
-      subClassOf closure. IRI parity with the SemStreams pin for admitted symbols.
+      cco-2.2 merged TTL at the recorded sha256: each admitted IRI declared with the expected rdf:type and not
+      owl:deprecated; rdfs:label equals the recorded label; Parents equals the asserted named subClassOf closure; the
+      name mapping is checked by label against the recorded table
 
   - catalog: dublincore
     disposition: use-semengine-symbol
@@ -284,21 +294,35 @@ entries:
     namespace:
       iri: https://w3id.org/c360/diekm#
       authority: C360 (local)
-      registered: false # https://w3id.org/c360/diekm returned 404; no c360/ in perma-id/w3id.org, checked 2026-10-15
+      registered: false # owner ruling Q5: stays local; https://w3id.org/c360/diekm returned 404, no c360/ in perma-id/w3id.org (2026-10-15)
       statement: "A C360-local vocabulary. It is not an externally registered or certified ontology, and its IRIs do not dereference."
-    references: [bfo-2020, cco-1.7]
-    admitted_terms: "diekm:IntelligencePlatform, diekm:IntelligenceObservation, diekm:altitudeMeters; further terms need a ledger change"
-    open_rulings: [Q2 platform superclass, Q3 role predicate, Q4 altitude terminal]
+    references: [bfo-2020, cco-2.2]
+    referenced_terms_verified: [cco:ont00000713, cco:ont00000995, cco:ont00000037, cco:ont00000228, cco:ont00000005,
+      cco:ont00000787, cco:ont00001904, cco:ont00001163, cco:ont00000253, bfo:BFO_0000001, bfo:BFO_0000002,
+      bfo:BFO_0000003, bfo:BFO_0000004, bfo:BFO_0000015, bfo:BFO_0000023, bfo:BFO_0000030, bfo:BFO_0000040,
+      bfo:BFO_0000084, bfo:BFO_0000196, rdfs:label]
+    admitted_terms: "diekm:IntelligencePlatform, diekm:IntelligenceObservation, diekm:altitudeMeters, diekm:assignedRole"
+    local_assertions:
+      - >-
+        diekm:IntelligencePlatform rdfs:subClassOf obo:BFO_0000030 (owner ruling Q2; not entailed by CCO, where
+        Vehicle ⊑ Material Artifact ⊑ BFO_0000040)
+    rulings:
+      Q1: CCO v2 (pinned v2.2)
+      Q2: keep BFO_0000030 as a DIEKM-local assertion
+      Q3: "diekm:assignedRole projected via BFO_0000196 (bearer of) → BFO_0000023 (role); RO_0000053 → BFO_0000196"
+      Q4: "Information Bearing Entity hop via BFO_0000084 (generically depends on) → cco:ont00000253"
+      Q5: namespace stays local and unregistered
+    open_rulings: [Q4b altitude terminal value predicate (cco:ont00001769 is deprecated in v2.2)]
     license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio"
     test_oracle: >-
-      superclass sets equal the bfo-2020/cco-1.7 asserted closure (plus any recorded DIEKM-local assertion); the pack
-      loads and registers through SemEngine v0.1.0-alpha.1
+      superclass sets equal the cco-2.2 asserted closure plus the recorded local assertion and its closure; every IRI
+      declared in cco-2.2 (or diekm/rdfs); the pack loads and registers through SemEngine v0.1.0-alpha.1
 
   - pack: bfo-cco-core
     disposition: new-content
     phase: 1
     files: [packs/bfo-cco-core.yaml]
-    contents: "prefixes for bfo-2020 and cco-1.7 namespaces (owner ruling Q6 on anything further)"
-    references: [bfo-2020, cco-1.7]
+    contents: "prefixes for bfo-2020 and cco-2.2 namespaces (owner ruling Q6 on anything further)"
+    references: [bfo-2020, cco-2.2]
     license: MIT (SemVocab); references CC-BY-4.0 / BSD-3-Clause ontologies
     test_oracle: "loads and registers through SemEngine v0.1.0-alpha.1; namespaces equal the ontology pins"
