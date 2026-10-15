@@ -118,26 +118,61 @@ entries:
     source:
       ontology: cco-2.2
       go_name_mapping: >-
-        Go symbol names follow SemStreams vocabulary/cco/cco.go at the SemStreams pin, except the three terms v2.2
-        renamed, which take their v2.2 labels (owner ruling Q10); values are v2.2 IRIs; no SemStreams IRI string is
-        copied
-      admitted_classes: {InformationContentEntity: ont00000958, DescriptiveInformationContentEntity: ont00000853,
-        PrescriptiveInformationContentEntity: ont00000965, PlanSpecification: ont00000974, Objective: ont00000476,
-        DesignativeInformationContentEntity: ont00000686, MeasurementInformationContentEntity: ont00001163,
-        Algorithm: ont00000653, Agent: ont00001017, Person: ont00001262, Organization: ont00001180,
-        GroupOfAgents: ont00000300, Act: ont00000005, IntentionalAct: ont00000228, ActOfCommunication: ont00000402,
-        ActOfMaterialArtifactProcessing: ont00000908, ActOfPositionChange: ont00000584, Artifact: ont00000995,
-        InformationBearingArtifact: ont00000798, MaterialCopyOfDocument: ont00001298, Facility: ont00000192, Vehicle: ont00000713,
-        Sensor: ont00000569, ActOfObservation: ont00000037, Altitude: ont00000787, Height: ont00000967,
-        OneDimensionalExtent: ont00001367, SizeQuality: ont00001202, InformationBearingEntity: ont00000253,
-        Animal: ont00000562, Organism: ont00000551, Transducer: ont00000736, ActOfMotion: ont00000357}
-      admitted_properties: {IsAbout: ont00001808, HasAgent: ont00001833, AgentIn: ont00001787, HasInput: ont00001921,
-        HasOutput: ont00001986, Prescribes: ont00001942, DesignatedBy: ont00001879, Designates: ont00001916,
-        OccursAt: ont00001918, IsMeasuredBy: ont00001904}
+        Go symbol names follow SemStreams vocabulary/cco/cco.go at the SemStreams pin, except where v2.2 relabelled a
+        term since SemStreams' CCO 1.4 base: those take their v2.2 rdfs:label (owner ruling Q10). Values are v2.2
+        IRIs; no SemStreams IRI string is copied. Each entry records the v2.2 rdfs:label the Phase 1 oracle checks.
+      admitted_classes: # Go name: [v2.2 IRI local name, v2.2 rdfs:label]
+        InformationContentEntity: [ont00000958, "Information Content Entity"]
+        DescriptiveInformationContentEntity: [ont00000853, "Descriptive Information Content Entity"]
+        PrescriptiveInformationContentEntity: [ont00000965, "Prescriptive Information Content Entity"]
+        Plan: [ont00000974, "Plan"]
+        Objective: [ont00000476, "Objective"]
+        DesignativeInformationContentEntity: [ont00000686, "Designative Information Content Entity"]
+        MeasurementInformationContentEntity: [ont00001163, "Measurement Information Content Entity"]
+        Algorithm: [ont00000653, "Algorithm"]
+        Agent: [ont00001017, "Agent"]
+        Person: [ont00001262, "Person"]
+        Organization: [ont00001180, "Organization"]
+        GroupOfAgents: [ont00000300, "Group of Agents"]
+        Act: [ont00000005, "Act"]
+        PlannedAct: [ont00000228, "Planned Act"]
+        ActOfCommunication: [ont00000402, "Act of Communication"]
+        ActOfMaterialArtifactProcessing: [ont00000908, "Act of Material Artifact Processing"]
+        ActOfPositionChange: [ont00000584, "Act of Position Change"]
+        MaterialArtifact: [ont00000995, "Material Artifact"]
+        InformationBearingArtifact: [ont00000798, "Information Bearing Artifact"]
+        MaterialCopyOfDocument: [ont00001298, "Material Copy of a Document"]
+        Facility: [ont00000192, "Facility"]
+        Vehicle: [ont00000713, "Vehicle"]
+        Sensor: [ont00000569, "Sensor"]
+        ActOfObservation: [ont00000037, "Act of Observation"]
+        Altitude: [ont00000787, "Altitude"]
+        Height: [ont00000967, "Height"]
+        OneDimensionalExtent: [ont00001367, "One Dimensional Extent"]
+        SizeQuality: [ont00001202, "Size Quality"]
+        InformationBearingEntity: [ont00000253, "Information Bearing Entity"]
+        Animal: [ont00000562, "Animal"]
+        Organism: [ont00000551, "Organism"]
+        Transducer: [ont00000736, "Transducer"]
+        ActOfMotion: [ont00000357, "Act of Motion"]
+      admitted_properties: # Go name: [v2.2 IRI local name, v2.2 rdfs:label]
+        IsAbout: [ont00001808, "is about"]
+        HasAgent: [ont00001833, "has agent"]
+        AgentIn: [ont00001787, "agent in"]
+        HasInput: [ont00001921, "has input"]
+        HasOutput: [ont00001986, "has output"]
+        Prescribes: [ont00001942, "prescribes"]
+        DesignatedBy: [ont00001879, "designated by"]
+        Designates: [ont00001916, "designates"]
+        OccursAt: [ont00001918, "occurs at"]
+        IsMeasuredBy: [ont00001904, "is measured by"]
       renamed_from_semstreams: # owner ruling Q10: Go names follow the v2.2 labels
-        DirectiveInformationContentEntity: PrescriptiveInformationContentEntity (Prescriptive Information Content Entity)
-        Document: MaterialCopyOfDocument (Material Copy of a Document)
-        ActOfArtifactProcessing: ActOfMaterialArtifactProcessing (Act of Material Artifact Processing)
+        DirectiveInformationContentEntity: PrescriptiveInformationContentEntity
+        Document: MaterialCopyOfDocument
+        ActOfArtifactProcessing: ActOfMaterialArtifactProcessing
+        PlanSpecification: Plan
+        IntentionalAct: PlannedAct
+        Artifact: MaterialArtifact
       hierarchy: SubClassOf, Parents, IsA, from cco-2.2 asserted named rdfs:subClassOf (crossing into bfo)
     excluded_source_symbols:
       - {symbols: [HasTextValue ont00001765], reason: "owl:deprecated in cco-2.2 without replacement"}
@@ -186,7 +221,7 @@ entries:
       registered at relationships.go:9-11; prefix prov at export/prefix.go:32
     deferred_terms:
       semstreams: >-
-        standards.go: 44 further Prov* constants (classes, derivation, generation, association, influence, qualified,
+        standards.go: 43 further Prov* constants (classes, derivation, generation, association, influence, qualified,
         time, location, value)
       reason: no consumer caller
     license: n/a

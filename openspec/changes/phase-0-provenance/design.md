@@ -39,8 +39,9 @@ terms (`History` = `BFO_0000182`), so this release fits the carried material bes
 Owner ruling Q1 (2026-10-15): CCO v2. Pinned to `v2.2` (commit `0bc7d33e`, merged TTL sha256 `a9453382…`), the
 latest release; no evidence was found that DIEKM targets another 2.x. v2 uses opaque IRIs under
 `https://www.commoncoreontologies.org/`, so no SemStreams-pin CCO IRI is admitted. The `cco` catalog is new content
-from v2.2; SemStreams' Go names are kept as a recorded name→label mapping, except the three terms v2.2 renamed,
-which take their v2.2 labels (Q10). CCO publishes no 1.x→2.x crosswalk.
+from v2.2; SemStreams' Go names are kept, except the six terms whose v2.2 `rdfs:label` differs from SemStreams'
+name, which take the v2.2 label (Q10). The ledger records each term's v2.2 IRI and `rdfs:label`, the table the Phase
+1 oracle checks. CCO publishes no 1.x→2.x crosswalk.
 The mapping was derived by identical `rdfs:label` plus definition between v1.7 and v2.0, then by IRI identity from
 v2.0 to v2.2, and Phase 1 tests it against the v2.2 file. Deprecated v2.2 terms are not admitted. The BFO pin is
 BFO-2020 commit `5ed46876`, byte-identical to the BFO core v2.2 imports and axiom-identical to `release-2024-01-29`.
@@ -216,9 +217,10 @@ Deferred until `processor/rule` and `pkg/rulepack` exist in SemEngine. The Phase
 
 Ruled on #1 (2026-10-15): Q1 CCO v2 (pinned v2.2); Q2 keep `BFO_0000030` as a DIEKM-local assertion; Q3
 `diekm:assignedRole` via `BFO_0000196` → `BFO_0000023`; Q4 add the Information Bearing Entity hop; Q5 the DIEKM
-namespace stays local and unregistered; Q4b the altitude terminal is `diekm:altitudeMetersValue`; Q10 the three
-CCO terms v2.2 renamed take their v2.2 labels as Go names (`PrescriptiveInformationContentEntity`,
-`MaterialCopyOfDocument`, `ActOfMaterialArtifactProcessing`).
+namespace stays local and unregistered; Q4b the altitude terminal is `diekm:altitudeMetersValue`; Q10 CCO terms whose
+v2.2 label differs from SemStreams' name take the v2.2 label as Go name (`PrescriptiveInformationContentEntity`,
+`MaterialCopyOfDocument`, `ActOfMaterialArtifactProcessing`, and, applying the same rule after review,
+`Plan`, `PlannedAct`, `MaterialArtifact`).
 
 Phase 1 design choices, with proposed defaults; Phase 1's change records the choice:
 

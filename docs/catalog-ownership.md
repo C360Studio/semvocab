@@ -35,14 +35,14 @@ Schema.org, FOAF, SOSA, SSN, GeoSPARQL, IANA, ACTR, AGNT or cyber constant.
 | actr | none | none | none | none | none | everything (no source) | deferred |
 | agnt | none | none | none | `vocabulary/agentic` (unverified mapping) | none | everything | deferred |
 | bfo | none | none | none | `vocabulary/bfo/{bfo,hierarchy}.go` | none | all BFO terms | port (verified subset) |
-| cco | none | none | none | `vocabulary/cco/{cco,hierarchy}.go` | none | all CCO terms | new content from CCO v2.2 (SemStreams names; 3 renamed to v2.2 labels) |
+| cco | none | none | none | `vocabulary/cco/{cco,hierarchy}.go` | none | all CCO terms | new content from CCO v2.2 (SemStreams names; 6 renamed to v2.2 labels) |
 | cyber | none | none | none | none | none | everything | deferred |
 | dublincore | `DcIdentifier` `standards.go:47`, `DcTitle` `:51`, `DCTermsTitle` `:60` | `dc` `prefix.go:29` | `doc.go:137` | `standards.go`: 14 constants | 3 | 11 SemStreams-only constants | use-semengine-symbol |
 | foaf | none | `foaf` `prefix.go:31` | none | `FoafName`, `FoafNick`, `FoafAccountName` | none | 3 | deferred |
 | geosparql | none (`geo.location.*` dotted, no IRI) | none | none | none | none | everything | deferred |
 | iana | none | none | none | none | none | everything | deferred |
 | owl | none | `owl` `prefix.go:26` | `predicates.go:296` | 7 `Owl*` | none | 7 | deferred |
-| prov | `ProvNamespace` `:69`, `ProvWasAttributedTo` `:77`, `ProvHadMember` `:86`, `ProvGeneratedAtTime` `:94` | `prov` `prefix.go:32` | none | 48 `Prov*` | 4 | 44 | use-semengine-symbol |
+| prov | `ProvNamespace` `:69`, `ProvWasAttributedTo` `:77`, `ProvHadMember` `:86`, `ProvGeneratedAtTime` `:94` | `prov` `prefix.go:32` | none | 47 `Prov*` | 4 | 43 | use-semengine-symbol |
 | rdf | none (unexported `rdfNamespace` `object.go:26`) | `rdf` `prefix.go:25` | none | none | none | everything | deferred |
 | rdfs | none | `rdfs` `prefix.go:28` | none | `RdfsLabel`, `RdfsComment`, `RdfsSeeAlso` | none | 3 | deferred |
 | schema | none | `schema` = `https://schema.org/` `prefix.go:30` | `http://schema.org/batteryLevel` `doc.go:62,89,127`, `registry.go:170,300` | 7 `Schema*`, mixed http/https | none | 7 | deferred |
