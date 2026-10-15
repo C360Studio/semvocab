@@ -52,7 +52,8 @@ reviewer runs on a weaker model tier than the developer.
 
 On Gemini (Antigravity), role subagents are registered with `define_subagent` pointing at the matching
 `.agents/contracts/semvocab-*.md` contract and invoked with `invoke_subagent`; `Model` defaults to `"inherit"` unless
-`"pro"` or `"flash"` is explicitly requested.
+`"pro"` or `"flash"` is explicitly requested. Antigravity can also host Claude models; for `implemented-by:` and
+`reviewed-by:` the agent is the model family, not the tool (`.agents/protocol.md`, "Cross-agent review").
 
 The table does not rank one platform's models against another's; across agents the pairing is the owner's decision.
 For a code pull request the reviewer of record is another agent's reviewer from the table above; a documents-only pull

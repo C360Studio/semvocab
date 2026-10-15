@@ -90,7 +90,10 @@ contract, a newly introduced defect, a copied SemEngine constant, or an unproved
 - **Cross-agent review:** on a code pull request the implementation review, and the re-review of a fix that changes
   code, are done by an agent that wrote none of the commits under review, as the pull request's `implemented-by:` line
   records. It works in every direction: Codex's `semvocab-reviewer` reviews what Claude or Gemini sessions implement,
-  and so on. A **documents-only** pull request changes only Markdown files or files under `openspec/`, and none under
+  and so on. The agent named is the **model family** that did the work (`claude`, `codex`, `gemini`), not the service
+  or IDE it ran in: a Claude model running in Antigravity is `claude`, and a review by a different model counts as
+  cross-agent even when both ran in the same tool (owner ruling of 2026-10-15, #1 comment 6193894438). A
+  **documents-only** pull request changes only Markdown files or files under `openspec/`, and none under
   `.claude/agents/` or `.agents/contracts/`; it keeps any agent's reviewer. Any other changed file (a `.go` file,
   `go.mod`, a script, `Taskfile.yml`, the CI workflow, a pack YAML or Turtle file, `.claude/agents/*`,
   `.codex/agents/*`, `.agents/contracts/*`) makes it a code pull request. If multiple agents wrote commits, the owner
