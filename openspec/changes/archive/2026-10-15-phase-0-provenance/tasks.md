@@ -22,4 +22,4 @@ Each task names the outcome that proves it. Command evidence is recorded on PR #
 
 ## 3. Archive
 
-- [ ] 3.1 `openspec archive phase-0-provenance` moves the spec to `openspec/specs/` as the last content commit
+- [x] 3.1 `openspec archive phase-0-provenance` moves the spec to `openspec/specs/` as the last content commit
