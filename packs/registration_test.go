@@ -5,7 +5,8 @@ package packs_test
 // therefore asserts the registry state it causes rather than restoring it.
 // Test-local entries use a key unique to the invocation (uniqueKey), so a
 // repeated run never sees an earlier run's entries; the embedded bfo-cco-core
-// pack is idempotent to re-register.
+// and diekm packs are idempotent to re-register, and no test leaves a DIEKM
+// entry different from the pack once it finishes.
 
 import (
 	"bytes"
@@ -26,10 +27,12 @@ import (
 	"github.com/c360studio/semvocab/catalog/cco"
 	"github.com/c360studio/semvocab/internal/turtle"
 	"github.com/c360studio/semvocab/packs"
+	"github.com/c360studio/semvocab/packs/diekm"
 )
 
 const (
 	testNS     = "http://example.org/semvocab-test#"
+	diekmNS    = "https://w3id.org/c360/diekm#"
 	xsdNS      = "http://www.w3.org/2001/XMLSchema#"
 	platformID = "acme.edge.sensor.intel.platform.p1"
 	observeID  = "acme.edge.sensor.intel.observation.o1"
@@ -64,7 +67,7 @@ func observe(t *testing.T, namespaces ...string) registryState {
 		s.entityTypes[k] = *vocabulary.GetEntityTypeMetadata(k)
 	}
 	var probe []message.Triple
-	for _, ns := range append([]string{bfo.Namespace, cco.Namespace}, namespaces...) {
+	for _, ns := range append([]string{bfo.Namespace, cco.Namespace, diekmNS}, namespaces...) {
 		probe = append(probe, message.Triple{Subject: platformID, Predicate: ns + "probe", Object: "x"})
 	}
 	out, err := export.SerializeToString(probe, export.Turtle)
@@ -86,6 +89,18 @@ func assertUnchanged(t *testing.T, before, after registryState) {
 	if before.prefixes != after.prefixes {
 		t.Errorf("serializer prefixes changed:\nbefore:\n%s\nafter:\n%s", before.prefixes, after.prefixes)
 	}
+}
+
+func diekmSpec(t *testing.T) vocabulary.PackSpec {
+	t.Helper()
+	spec, err := diekm.Spec()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if spec.EntityTypes[0].DomainType != "intel.platform" {
+		t.Fatalf("seed expects intel.platform first, got %s", spec.EntityTypes[0].DomainType)
+	}
+	return spec
 }
 
 func registerWithPrefixes(spec vocabulary.PackSpec) error {
@@ -151,6 +166,7 @@ func TestPackRepeatedRegistration(t *testing.T) {
 	key := uniqueKey("repeat")
 	for _, register := range []func() error{
 		func() error { return packs.RegisterBFOCCOCore() },
+		func() error { return diekm.Register() },
 		func() error { return registerWithPrefixes(localPack(key, testNS+key, cco.Vehicle)) },
 	} {
 		if err := register(); err != nil {
@@ -189,6 +205,43 @@ func TestPackConflictingRegistration(t *testing.T) {
 		assertUnchanged(t, before, observe(t, testNS, "http://example.org/not-obo/"))
 	})
 
+	t.Run("diekm prefix rebinding fails atomically", func(t *testing.T) {
+		if err := diekm.Register(); err != nil {
+			t.Fatal(err)
+		}
+		spec := diekmSpec(t)
+		spec.Prefixes[slices.IndexFunc(spec.Prefixes, func(p vocabulary.PrefixSpec) bool { return p.Prefix == "diekm" })].Namespace = "https://example.org/other-diekm#"
+		spec.EntityTypes[0].Description = "rebound"
+		before := observe(t, "https://example.org/other-diekm#")
+		err := registerWithPrefixes(spec)
+		if err == nil || !strings.Contains(err.Error(), `prefix "diekm" already bound`) {
+			t.Fatalf("RegisterPack = %v, want the diekm rebinding refused", err)
+		}
+		assertUnchanged(t, before, observe(t, "https://example.org/other-diekm#"))
+	})
+
+	t.Run("diekm scalar last writer wins", func(t *testing.T) {
+		if err := diekm.Register(); err != nil {
+			t.Fatal(err)
+		}
+		original := vocabulary.GetEntityTypeMetadata("intel.platform")
+		spec := diekmSpec(t)
+		spec.EntityTypes[0].Description = "overwritten"
+		if err := registerWithPrefixes(spec); err != nil {
+			t.Fatalf("conflicting description: RegisterPack = %v, want success (D8)", err)
+		}
+		if got := vocabulary.GetEntityTypeMetadata("intel.platform"); got.Description != "overwritten" {
+			t.Errorf("description after conflicting registration = %q, want the later value", got.Description)
+		}
+		// Re-registering the pack is again last writer: the DIEKM value returns.
+		if err := diekm.Register(); err != nil {
+			t.Fatal(err)
+		}
+		if got := vocabulary.GetEntityTypeMetadata("intel.platform"); !reflect.DeepEqual(got, original) {
+			t.Errorf("after re-registering diekm: %+v, want %+v", got, original)
+		}
+	})
+
 	t.Run("class IRI last writer wins, superclasses union", func(t *testing.T) {
 		key := uniqueKey("conflict")
 		first, second := testNS+key+"-a", testNS+key+"-b"
@@ -225,6 +278,15 @@ func TestPackAtomicFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	diekmYAML, err := os.ReadFile("diekm/diekm.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The DIEKM cases change intel.platform's description in a pack that then
+	// fails; with DIEKM registered first, a leak would show as a changed entry.
+	if err := diekm.Register(); err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
 		name    string
 		attempt func(key string) error
@@ -234,6 +296,24 @@ func TestPackAtomicFailure(t *testing.T) {
 			_, err := vocabulary.LoadPackYAML(bytes.NewReader(append(yamlData, []byte("unexpected_field: 1\n")...)))
 			return err
 		}, "unexpected_field"},
+		{"diekm: unknown YAML field", func(string) error {
+			_, err := vocabulary.LoadPackYAML(bytes.NewReader(append(diekmYAML, []byte("unexpected_field: 1\n")...)))
+			return err
+		}, "unexpected_field"},
+		{"diekm: invalid predicate after changed entries", func(key string) error {
+			spec := diekmSpec(t)
+			spec.EntityTypes[0].Description = "leaked " + key
+			spec.Prefixes = append(spec.Prefixes, vocabulary.PrefixSpec{Prefix: "semvocabatomic", Namespace: atomicNS})
+			spec.Predicates = append(spec.Predicates, vocabulary.PredicateSpec{Name: "intel.measurement.altitude_m"})
+			return registerWithPrefixes(spec)
+		}, "segment_character"},
+		{"diekm: projection without a terminal value predicate", func(key string) error {
+			spec := diekmSpec(t)
+			spec.EntityTypes[0].Description = "leaked " + key
+			steps := spec.Predicates[1].Projection.Steps
+			steps[len(steps)-1].ValuePredicateIRI = ""
+			return registerWithPrefixes(spec)
+		}, "requires value_predicate_iri"},
 		{"unknown JSON field", func(string) error {
 			_, err := vocabulary.LoadPackJSON(strings.NewReader(`{"name": "x", "unexpected_field": 1}`))
 			return err
@@ -389,11 +469,14 @@ func graphFromJSONLD(t *testing.T, src string) []string {
 }
 
 // TestDirectSerialization serializes direct triples (no projection expansion)
-// with SemEngine's exporter after registering bfo-cco-core, parses each
+// with SemEngine's exporter after registering bfo-cco-core and diekm, parses each
 // format independently, and compares the graphs. It is not a projection or
 // SHACL conformance test.
 func TestDirectSerialization(t *testing.T) {
 	if err := packs.RegisterBFOCCOCore(); err != nil {
+		t.Fatal(err)
+	}
+	if err := diekm.Register(); err != nil {
 		t.Fatal(err)
 	}
 	triples := []message.Triple{
@@ -403,6 +486,9 @@ func TestDirectSerialization(t *testing.T) {
 		{Subject: platformID, Predicate: testNS + "count", Object: 42},
 		{Subject: platformID, Predicate: testNS + "active", Object: true},
 		{Subject: observeID, Predicate: cco.IsAbout, Object: platformID, Datatype: message.EntityReferenceDatatype},
+		// DIEKM's dotted predicates resolve to their registered IRIs and datatypes.
+		{Subject: platformID, Predicate: "intel.role.assigned", Object: "pilot"},
+		{Subject: platformID, Predicate: "intel.measurement.altitude-m", Object: 980.25},
 	}
 	s1, s2 := export.SubjectIRI(platformID, ""), export.SubjectIRI(observeID, "")
 	want := []string{
@@ -412,6 +498,8 @@ func TestDirectSerialization(t *testing.T) {
 		s1 + " " + testNS + "count " + term(turtle.Literal, "42", xsdNS+"integer"),
 		s1 + " " + testNS + "active " + term(turtle.Literal, "true", xsdNS+"boolean"),
 		s2 + " " + cco.IsAbout + " " + term(turtle.IRI, s1, ""),
+		s1 + " " + diekmNS + "assignedRole " + term(turtle.Literal, "pilot", xsdNS+"string"),
+		s1 + " " + diekmNS + "altitudeMeters " + term(turtle.Literal, "980.25", xsdNS+"double"),
 	}
 	slices.Sort(want)
 
@@ -431,8 +519,9 @@ func TestDirectSerialization(t *testing.T) {
 			if got := tc.parse(t, out); !slices.Equal(got, want) {
 				t.Errorf("parsed graph differs\n got: %q\nwant: %q\noutput:\n%s", got, want, out)
 			}
-			if tc.format == export.Turtle && (!strings.Contains(out, "obo:BFO_0000056") || !strings.Contains(out, "cco:ont00001808")) {
-				t.Errorf("Turtle does not compact obo/cco IRIs:\n%s", out)
+			if tc.format == export.Turtle && (!strings.Contains(out, "obo:BFO_0000056") ||
+				!strings.Contains(out, "cco:ont00001808") || !strings.Contains(out, "diekm:altitudeMeters")) {
+				t.Errorf("Turtle does not compact obo/cco/diekm IRIs:\n%s", out)
 			}
 		})
 	}

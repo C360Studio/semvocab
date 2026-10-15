@@ -53,7 +53,7 @@
       }
     },
     {
-      "name": "intel.measurement.altitude_m",
+      "name": "intel.measurement.altitude-m",
       "description": "Altitude measurement in meters",
       "data_type": "float",
       "units": "m",

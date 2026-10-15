@@ -8,7 +8,9 @@
 # breadth-first. intel.platform also carries the DIEKM-local assertion
 # IntelligencePlatform rdfs:subClassOf BFO_0000030 (object), which CCO does not
 # entail (ruling Q2). This file is the issue #1 fixture with the Phase 0
-# design's corrections applied (rulings Q1-Q5, Q4b; prefix obo per design P5).
+# design's corrections applied (rulings Q1-Q5, Q4b; prefix obo per design P5
+# and ruling Q9), and the altitude predicate named intel.measurement.altitude-m
+# (ruling Q11; the fixture's altitude_m fails SemEngine's segment grammar).
 name: diekm
 version: "1.0.0"
 prefixes:
@@ -59,7 +61,7 @@ predicates:
   # Rulings Q3, Q4, Q4b: entity bearer of an Altitude, measured by a Measurement
   # Information Content Entity, which generically depends on an Information
   # Bearing Entity carrying the value as diekm:altitudeMetersValue.
-  - name: intel.measurement.altitude_m
+  - name: intel.measurement.altitude-m
     description: "Altitude measurement in meters"
     data_type: float
     units: "m"

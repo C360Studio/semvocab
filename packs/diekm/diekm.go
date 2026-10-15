@@ -1,6 +1,6 @@
 // Package diekm is the DIEKM vocabulary pack: the intel.platform and
 // intel.observation entity types and the intel.role.assigned and
-// intel.measurement.altitude_m predicates with their ontology projections,
+// intel.measurement.altitude-m predicates with their ontology projections,
 // over BFO 2020 and CCO v2.2. diekm.yaml is the pack and diekm.shacl.ttl its
 // initial SHACL shapes; both are embedded.
 //
@@ -9,12 +9,12 @@
 // dereference. Provenance and the owner rulings the pack applies are recorded
 // in docs/admission-ledger.yaml (pack "diekm").
 //
-// The pack does not yet pass SemEngine's validation: the predicate name
-// intel.measurement.altitude_m, carried from the semvocab#1 fixture, breaks
-// SemEngine's lower-kebab segment grammar ([a-z][a-z0-9-]*), so
-// vocabulary.RegisterPack rejects the pack. This package therefore exports no
-// registration function until the name is ruled on (semvocab#1). Importing it
-// registers nothing.
+// The altitude predicate is intel.measurement.altitude-m (owner ruling Q11 on
+// semvocab#1); the issue fixture's altitude_m breaks SemEngine's predicate
+// segment grammar [a-z][a-z0-9-]*.
+//
+// Importing this package registers nothing; a composition root calls
+// Register.
 package diekm
 
 import (
@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/c360studio/semengine/vocabulary"
+	"github.com/c360studio/semengine/vocabulary/export"
 )
 
 var (
@@ -33,14 +34,32 @@ var (
 )
 
 // Spec decodes the embedded pack with SemEngine's strict YAML loader. It
-// registers nothing and does not validate: (*vocabulary.PackSpec).Validate
-// currently fails on the pack (see the package comment).
+// registers nothing.
 func Spec() (vocabulary.PackSpec, error) {
 	spec, err := vocabulary.LoadPackYAML(bytes.NewReader(packYAML))
 	if err != nil {
 		return vocabulary.PackSpec{}, fmt.Errorf("diekm: %w", err)
 	}
 	return spec, nil
+}
+
+// Register registers the DIEKM pack through vocabulary.RegisterPack with
+// vocabulary.WithPrefixRegistrar(export.RegisterPrefixes), followed by opts; a
+// later WithPrefixRegistrar in opts replaces that default. On error,
+// RegisterPack leaves SemEngine's registries and serializer prefixes
+// unchanged. Registering it again leaves state equal; a conflicting later
+// registration follows RegisterPack (scalar fields last-writer-wins,
+// superclasses unioned), and rebinding one of its prefixes fails.
+func Register(opts ...vocabulary.PackOption) error {
+	spec, err := Spec()
+	if err != nil {
+		return err
+	}
+	all := append([]vocabulary.PackOption{vocabulary.WithPrefixRegistrar(export.RegisterPrefixes)}, opts...)
+	if err := vocabulary.RegisterPack(spec, all...); err != nil {
+		return fmt.Errorf("diekm: register: %w", err)
+	}
+	return nil
 }
 
 // Shapes returns a copy of the embedded SHACL shapes (Turtle). Phase 2 of
