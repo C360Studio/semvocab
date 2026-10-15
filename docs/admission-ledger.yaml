@@ -1,0 +1,366 @@
+# SemVocab admission ledger (issue #1, Phase 0).
+# One entry per candidate catalog or pack. Every admitted term names a source at an exact revision.
+# Field meanings are in `fields:` below; disposition values are in `dispositions:`.
+schema_version: 1
+
+fields:
+  disposition: one value from `dispositions`
+  semengine_overlap: SemEngine symbols at the pin, as file:line; empty when none
+  source: where admitted terms come from (pinned SemStreams path+symbols, or external release)
+  admitted_terms: the exact terms admitted; nothing outside this list may be added without a ledger change
+  excluded_source_symbols: source symbols deliberately not admitted, each with a reason
+  license: license and attribution obligation of the source
+  test_oracle: the independent fixture the tests compare against
+  deferral_reason: why a deferred entry is deferred (required when disposition is deferred)
+  phase: the issue #1 phase that delivers the entry
+
+dispositions:
+  use-semengine-symbol: consumers use SemEngine's exported symbol directly; SemVocab adds no API
+  thin-reexport: SemVocab references SemEngine's symbol (no copied IRI string), with equality tests
+  new-content: terms absent from SemEngine and SemStreams, from a named external release
+  port: carried from the SemStreams pin, restricted to terms verified in the named release
+  extraction: carried from shared SemStreams files (standards.go, iris.go), restricted likewise
+  deferred: not delivered in Phases 0-3; reason recorded
+
+pins:
+  semstreams:
+    repository: https://github.com/C360Studio/semstreams
+    revision: 8b99efe9c66a4faa4fa509f9f62cc6bad8392128
+    license: MIT, Copyright (c) 2025 C360 (LICENSE at revision)
+  semengine:
+    module: github.com/c360studio/semengine
+    version: v0.1.0-alpha.1
+    revision: e60229334b8d8da3c0350e17802e2ea9631f91c8
+    includes: ["7e2724a feat(vocabulary): port vocabulary/export and add ontology pack & projection metadata seams (#235)"]
+    excludes: ["semengine#256 / PR #261 (Stage 1.1 pure validation, export.SubjectIRI, blank-node export): open"]
+    license: MIT, Copyright (c) 2025 C360
+    go_mod: added in Phase 1 (an unused require fails task tidy:check in Phase 0)
+  ontologies:
+    bfo-2020:
+      repository: https://github.com/BFO-ontology/BFO-2020
+      release: release-2024-01-29
+      commit: 5ed468765ea5655a0ff9a93877fd059f294a152d # untagged, one commit after the release tag; byte-identical to CCO v2.2's import
+      file: src/owl/bfo-core.ttl
+      sha256: 128f5fe1dab7ee804a3037a836813e5953c846eeeefee883a47d5db0b37a106b
+      version_iri: http://purl.obolibrary.org/obo/bfo/2020/bfo-core.ttl
+      namespace: http://purl.obolibrary.org/obo/
+      license: CC-BY-4.0 (dc:license in file); attribution required
+      note: >-
+        Differs from tag release-2024-01-29 (044490fc, sha256 6944e2c96a0d8709dc15ae5364792019e208061eda3f32311af4f3b8d8443a3b)
+        only in skos:scopeNote link text; class and property axioms match.
+    cco-2.2:
+      repository: https://github.com/CommonCoreOntology/CommonCoreOntologies
+      tag: v2.2 # tag object d846c40f6dc7ccd2bbca213f616d26e0fe1bf271, published 2026-08-14
+      commit: 0bc7d33e1bc09fd4693366119ab4e03cb0340042
+      file: src/cco-merged/CommonCoreOntologiesMerged.ttl # = release asset CommonCoreOntologiesMerged-2.2.ttl
+      sha256: a9453382b25b40781c181d6ba44981f228abb76d90d548846713adba9baadb42 # matches the release SHA256SUMS
+      version_iri: https://www.commoncoreontologies.org/2026-08-13/CommonCoreOntologiesMerged
+      namespace: https://www.commoncoreontologies.org/
+      depends_on: >-
+        bfo-2020 (bundled src/cco-imports/bfo-core.ttl, same sha256; the merged file embeds BFO with identical class
+        axioms)
+      license: BSD-3-Clause, Copyright (c) 2017 CUBRC, Inc.; notice retained with vendored fixtures
+      chosen_because: "owner ruling Q1 (2026-10-15): CCO v2; v2.2 is the latest release; no evidence found that DIEKM targets another 2.x"
+      divergence: >-
+        Opaque IRIs differ from the 1.x namespace (http://www.ontologyrepository.com/CommonCoreOntologies/) used by
+        the SemStreams pin and by issue #1 and semsparql#1 text. No 1.x IRI is admitted. CCO publishes no 1.x→2.x
+        crosswalk; the mapping in the cco entry was derived by identical rdfs:label + definition between v1.7 and
+        v2.0, then by IRI identity from v2.0 to v2.2.
+
+phase_gates:
+  phase-1: {requires: "SemEngine RegisterPack/LoadPackYAML/WithPrefixRegistrar at v0.1.0-alpha.1", status: available}
+  phase-2: {requires: "semengine#256 merged and tagged (PR #261, draft)", status: open}
+  phase-3: {requires: "semsparql#1 tasks 3.3 and 4.2 merged and tagged; semengine#256 merged", status: open}
+  phase-4: {requires: "processor/rule and pkg/rulepack in SemEngine", status: deferred}
+
+entries:
+  - catalog: bfo
+    disposition: port
+    phase: 1
+    semengine_overlap: none (no BFO symbol, no `bfo`/`obo` serializer prefix at e602293)
+    source:
+      semstreams_files: [vocabulary/bfo/bfo.go, vocabulary/bfo/hierarchy.go]
+      symbols_admitted_classes: [Namespace, Entity, Continuant, Occurrent, IndependentContinuant,
+        SpecificallyDependentContinuant, GenericallyDependentContinuant, MaterialEntity, Object, ObjectAggregate,
+        FiatObjectPart, Site, SpatialRegion, OneDimensionalSpatialRegion, TwoDimensionalSpatialRegion,
+        ThreeDimensionalSpatialRegion, Quality, RealizableEntity, Role, Disposition, Function, Process,
+        ProcessBoundary, SpatiotemporalRegion, TemporalRegion, ZeroDimensionalTemporalRegion,
+        OneDimensionalTemporalRegion, History]
+      symbols_admitted_relations: [OccursIn, ParticipatesIn, HasParticipant, RealizedIn, Realizes, LocatedIn,
+        LocationOf, ExistsAt, TemporalPartOf, HasTemporalPart]
+      hierarchy: SubClassOf, Parents, IsA, with parents taken from bfo-2020, not from the SemStreams map
+      external_additions: {ontology: bfo-2020, terms: [BFO_0000141 immaterial entity]}
+    admitted_terms: the symbols above plus BFO_0000141 (all verified as declared in bfo-2020)
+    excluded_source_symbols:
+      - symbols: [PartOf BFO_0000050, HasPart BFO_0000051]
+        reason: "not in bfo-2020 core (BFO 2.0/RO 'part of'); BFO 2020 uses BFO_0000176/BFO_0000178"
+      - symbols: [BearerOf BFO_0000053, InheresIn BFO_0000052]
+        reason: >-
+          not found in bfo-2020 core, the CCO 1.4 BFO import, or the CCO 1.4 RO import; BFO 2020 uses
+          BFO_0000196/BFO_0000197
+      - symbols: [OccupiesSpatialRegion BFO_0000083, ContainedIn BFO_0000170, Contains BFO_0000169, AdjacentTo BFO_0000068]
+        reason: "not in bfo-2020 core"
+      - symbols: [PrecedesTemporally BFO_0000062]
+        reason: "BFO_0000062 is 'preceded by' in bfo-2020 (the inverse); 'precedes' is BFO_0000063; source defect"
+      - symbols: [OccupiesTemporalRegion BFO_0000132]
+        reason: "BFO_0000132 is 'occurrent part of' in bfo-2020; 'occupies temporal region' is BFO_0000199; source defect"
+    hierarchy_divergence_from_source: >-
+      SemStreams maps Site and SpatialRegion directly to IndependentContinuant; bfo-2020 places them under BFO_0000141
+    license: "SemStreams MIT (C360); BFO CC-BY-4.0, attribute BFO-2020"
+    test_oracle: >-
+      bfo-2020 bfo-core.ttl at the recorded sha256: each admitted IRI declared with the expected rdf:type; Parents
+      equals the asserted named rdfs:subClassOf closure. IRI parity with the SemStreams pin for admitted symbols.
+
+  - catalog: cco
+    disposition: new-content
+    phase: 1
+    semengine_overlap: none
+    source:
+      ontology: cco-2.2
+      go_name_mapping: >-
+        Go symbol names follow SemStreams vocabulary/cco/cco.go at the SemStreams pin, except where v2.2 relabelled a
+        term since SemStreams' CCO 1.4 base: those take their v2.2 rdfs:label (owner ruling Q10). Values are v2.2
+        IRIs; no SemStreams IRI string is copied. Each entry records the v2.2 rdfs:label the Phase 1 oracle checks.
+      admitted_classes: # Go name: [v2.2 IRI local name, v2.2 rdfs:label]
+        InformationContentEntity: [ont00000958, "Information Content Entity"]
+        DescriptiveInformationContentEntity: [ont00000853, "Descriptive Information Content Entity"]
+        PrescriptiveInformationContentEntity: [ont00000965, "Prescriptive Information Content Entity"]
+        Plan: [ont00000974, "Plan"]
+        Objective: [ont00000476, "Objective"]
+        DesignativeInformationContentEntity: [ont00000686, "Designative Information Content Entity"]
+        MeasurementInformationContentEntity: [ont00001163, "Measurement Information Content Entity"]
+        Algorithm: [ont00000653, "Algorithm"]
+        Agent: [ont00001017, "Agent"]
+        Person: [ont00001262, "Person"]
+        Organization: [ont00001180, "Organization"]
+        GroupOfAgents: [ont00000300, "Group of Agents"]
+        Act: [ont00000005, "Act"]
+        PlannedAct: [ont00000228, "Planned Act"]
+        ActOfCommunication: [ont00000402, "Act of Communication"]
+        ActOfMaterialArtifactProcessing: [ont00000908, "Act of Material Artifact Processing"]
+        ActOfPositionChange: [ont00000584, "Act of Position Change"]
+        MaterialArtifact: [ont00000995, "Material Artifact"]
+        InformationBearingArtifact: [ont00000798, "Information Bearing Artifact"]
+        MaterialCopyOfDocument: [ont00001298, "Material Copy of a Document"]
+        Facility: [ont00000192, "Facility"]
+        Vehicle: [ont00000713, "Vehicle"]
+        Sensor: [ont00000569, "Sensor"]
+        ActOfObservation: [ont00000037, "Act of Observation"]
+        Altitude: [ont00000787, "Altitude"]
+        Height: [ont00000967, "Height"]
+        OneDimensionalExtent: [ont00001367, "One Dimensional Extent"]
+        SizeQuality: [ont00001202, "Size Quality"]
+        InformationBearingEntity: [ont00000253, "Information Bearing Entity"]
+        Animal: [ont00000562, "Animal"]
+        Organism: [ont00000551, "Organism"]
+        Transducer: [ont00000736, "Transducer"]
+        ActOfMotion: [ont00000357, "Act of Motion"]
+      admitted_properties: # Go name: [v2.2 IRI local name, v2.2 rdfs:label]
+        IsAbout: [ont00001808, "is about"]
+        HasAgent: [ont00001833, "has agent"]
+        AgentIn: [ont00001787, "agent in"]
+        HasInput: [ont00001921, "has input"]
+        HasOutput: [ont00001986, "has output"]
+        Prescribes: [ont00001942, "prescribes"]
+        DesignatedBy: [ont00001879, "designated by"]
+        Designates: [ont00001916, "designates"]
+        OccursAt: [ont00001918, "occurs at"]
+        IsMeasuredBy: [ont00001904, "is measured by"]
+      renamed_from_semstreams: # owner ruling Q10: Go names follow the v2.2 labels
+        DirectiveInformationContentEntity: PrescriptiveInformationContentEntity
+        Document: MaterialCopyOfDocument
+        ActOfArtifactProcessing: ActOfMaterialArtifactProcessing
+        PlanSpecification: Plan
+        IntentionalAct: PlannedAct
+        Artifact: MaterialArtifact
+      hierarchy: SubClassOf, Parents, IsA, from cco-2.2 asserted named rdfs:subClassOf (crossing into bfo)
+    excluded_source_symbols:
+      - {symbols: [HasTextValue ont00001765], reason: "owl:deprecated in cco-2.2 without replacement"}
+      - symbols: [HasDecimalValue ont00001769]
+        reason: "owl:deprecated in cco-2.2 without replacement; DIEKM uses diekm:altitudeMetersValue instead (owner ruling Q4b)"
+      - reason: "not declared in cco-2.2 (nor in v1.4, v1.5, v1.7)"
+        symbols: [Specification, Requirement, Rule, Identifier, Name, DescriptiveStatement, SoftwareCode, SoftwareAgent,
+          IntelligentSoftwareAgent, ActOfApproval, ActOfDecisionMaking, ActOfObserving, ActOfCommandAndControl,
+          IsPrescribedBy, HasRole, MeasuresQuality, StartsAt, EndsAt, HasDuration, CreatedBy, ModifiedBy, AuthoredBy]
+    license: "CCO BSD-3-Clause (CUBRC), retain notice; Go names credit SemStreams (MIT, C360)"
+    test_oracle: >-
+      cco-2.2 merged TTL at the recorded sha256: each admitted IRI declared with the expected rdf:type and not
+      owl:deprecated; rdfs:label equals the recorded label; Parents equals the asserted named subClassOf closure; the
+      name mapping is checked by label against the recorded table
+
+  - catalog: dublincore
+    disposition: use-semengine-symbol
+    phase: 0
+    semengine_overlap: >-
+      vocabulary/standards.go:47 DcIdentifier, :51 DcTitle, :60 DCTermsTitle; registered at labels.go:17-21;
+      export prefix dc at export/prefix.go:29
+    source: none admitted
+    deferred_terms:
+      semstreams: >-
+        vocabulary/standards.go DcAlternative, DcSource, DCTermsCreator, DCTermsIdentifier, DcReferences,
+        DcIsReferencedBy, DcRequires, DcIsRequiredBy, DcReplaces, DcIsReplacedBy, DcRelation
+      reason: no consumer caller
+    license: n/a
+    test_oracle: n/a (no SemVocab API)
+
+  - catalog: skos
+    disposition: use-semengine-symbol
+    phase: 0
+    semengine_overlap: >-
+      standards.go:24 SkosNotation, :29 SkosBroader, :34 SkosNarrower, :39 SkosRelated; registered at
+      hierarchy.go:21-70; prefix skos at export/prefix.go:27
+    deferred_terms: {semstreams: "standards.go SkosPrefLabel, SkosAltLabel, SkosHiddenLabel", reason: no consumer caller}
+    license: n/a
+    test_oracle: n/a
+
+  - catalog: prov
+    disposition: use-semengine-symbol
+    phase: 0
+    semengine_overlap: >-
+      standards.go:69 ProvNamespace, :77 ProvWasAttributedTo, :86 ProvHadMember, :94 ProvGeneratedAtTime;
+      registered at relationships.go:9-11; prefix prov at export/prefix.go:32
+    deferred_terms:
+      semstreams: >-
+        standards.go: 43 further Prov* constants (classes, derivation, generation, association, influence, qualified,
+        time, location, value)
+      reason: no consumer caller
+    license: n/a
+    test_oracle: n/a
+
+  - catalog: owl
+    disposition: deferred
+    phase: null
+    semengine_overlap: "no exported constant; serializer prefix owl at export/prefix.go:26; doc mention predicates.go:296"
+    source_available: >-
+      SemStreams standards.go OwlSameAs, OwlEquivalentClass, OwlEquivalentProperty, OwlInverseOf,
+      OwlSymmetricProperty, OwlTransitiveProperty, OwlReflexiveProperty (extraction candidate)
+    deferral_reason: "no consumer caller; packs use OWL IRIs as YAML strings only"
+
+  - catalog: rdfs
+    disposition: deferred
+    phase: null
+    semengine_overlap: "no exported constant; serializer prefix rdfs at export/prefix.go:28"
+    source_available: "SemStreams standards.go RdfsLabel, RdfsComment, RdfsSeeAlso (extraction candidate)"
+    deferral_reason: "no consumer caller; diekm.yaml references rdfs:label as a YAML IRI string"
+
+  - catalog: rdf
+    disposition: deferred
+    phase: null
+    semengine_overlap: >-
+      no exported constant; serializer prefix rdf at export/prefix.go:25; unexported rdfNamespace at
+      export/object.go:26
+    source_available: none at the SemStreams pin
+    deferral_reason: "no source and no consumer caller; semsparql#1 §2.2.3 recognises rdf:type by its IRI string itself"
+
+  - catalog: schema
+    disposition: deferred
+    phase: null
+    semengine_overlap: >-
+      no exported constant; serializer prefix schema = https://schema.org/ at export/prefix.go:30; doc mentions of
+      http://schema.org/batteryLevel at doc.go:62,89,127 and registry.go:170,300
+    source_available: >-
+      SemStreams standards.go SchemaName, SchemaAlternateName, SchemaIdentifier, SchemaSameAs (https) and
+      SchemaAbout, SchemaIsPartOf, SchemaHasPart (http)
+    deferral_reason: >-
+      no consumer caller; the source mixes http:// and https:// schema.org namespaces and SemEngine's prefix is
+      https://, so an extraction needs a namespace ruling first
+
+  - catalog: foaf
+    disposition: deferred
+    phase: null
+    semengine_overlap: "serializer prefix foaf at export/prefix.go:31 only"
+    source_available: "SemStreams standards.go FoafName, FoafNick, FoafAccountName"
+    deferral_reason: no consumer caller
+
+  - catalog: sosa
+    disposition: deferred
+    phase: null
+    semengine_overlap: "serializer prefix sosa at export/prefix.go:34 only"
+    source_available: "none in code at the SemStreams pin (vocabulary/README.md:365-366 doc example only)"
+    deferral_reason: "no pinned source and no consumer; a future entry needs the W3C SOSA/SSN release and a consumer"
+
+  - catalog: ssn
+    disposition: deferred
+    phase: null
+    semengine_overlap: "serializer prefix ssn at export/prefix.go:33 only"
+    source_available: "none in code (vocabulary/README.md:364 doc example only)"
+    deferral_reason: same as sosa
+
+  - catalog: geosparql
+    disposition: deferred
+    phase: null
+    semengine_overlap: "none; SemEngine's geo.location.{latitude,longitude,altitude} (predicates.go:32-36) are dotted predicates with no IRI"
+    source_available: none
+    deferral_reason: "no source, no consumer; OGC GeoSPARQL release not chosen"
+
+  - catalog: iana
+    disposition: deferred
+    phase: null
+    semengine_overlap: none
+    source_available: none
+    deferral_reason: "no source; issue #1 does not name which IANA registry is meant"
+
+  - catalog: actr
+    disposition: deferred
+    phase: null
+    semengine_overlap: none
+    source_available: "none; no file, symbol, or mention at the SemStreams pin"
+    deferral_reason: "no evidenced source or meaning; needs the owner to name the ontology"
+
+  - catalog: agnt
+    disposition: deferred
+    phase: null
+    semengine_overlap: none
+    source_available: >-
+      unverified mapping: nearest evidenced material is SemStreams vocabulary/agentic (iris.go: 6 *Namespace and 39
+      Iri* constants under https://w3id.org/agent-ontology/…; predicates.go; register.go)
+    deferral_reason: "the name 'agnt' has no source; agentic's ontology release/version is unverified; no consumer caller"
+
+  - catalog: cyber
+    disposition: deferred
+    phase: null
+    semengine_overlap: none
+    source_available: none at the SemStreams pin
+    deferral_reason: "no source and no named external ontology"
+
+  - pack: diekm
+    disposition: new-content
+    phase: 1
+    files: [packs/diekm/diekm.yaml, packs/diekm/diekm.shacl.ttl]
+    namespace:
+      iri: https://w3id.org/c360/diekm#
+      authority: C360 (local)
+      registered: false # owner ruling Q5: stays local; https://w3id.org/c360/diekm returned 404, no c360/ in perma-id/w3id.org (2026-10-15)
+      statement: "A C360-local vocabulary. It is not an externally registered or certified ontology, and its IRIs do not dereference."
+    references: [bfo-2020, cco-2.2]
+    referenced_terms_verified: [cco:ont00000713, cco:ont00000995, cco:ont00000037, cco:ont00000228, cco:ont00000005,
+      cco:ont00000787, cco:ont00001904, cco:ont00001163, cco:ont00000253, bfo:BFO_0000001, bfo:BFO_0000002,
+      bfo:BFO_0000003, bfo:BFO_0000004, bfo:BFO_0000015, bfo:BFO_0000023, bfo:BFO_0000030, bfo:BFO_0000040,
+      bfo:BFO_0000084, bfo:BFO_0000196, rdfs:label]
+    admitted_terms: >-
+      diekm:IntelligencePlatform, diekm:IntelligenceObservation, diekm:altitudeMeters, diekm:assignedRole,
+      diekm:altitudeMetersValue (datatype property, domain cco:ont00000253, range xsd:decimal)
+    local_assertions:
+      - >-
+        diekm:IntelligencePlatform rdfs:subClassOf obo:BFO_0000030 (owner ruling Q2; not entailed by CCO, where
+        Vehicle ⊑ Material Artifact ⊑ BFO_0000040)
+    rulings:
+      Q1: CCO v2 (pinned v2.2)
+      Q2: keep BFO_0000030 as a DIEKM-local assertion
+      Q3: "diekm:assignedRole projected via BFO_0000196 (bearer of) → BFO_0000023 (role); RO_0000053 → BFO_0000196"
+      Q4: "Information Bearing Entity hop via BFO_0000084 (generically depends on) → cco:ont00000253"
+      Q4b: "altitude terminal value predicate is diekm:altitudeMetersValue on the Information Bearing Entity, not the deprecated cco:ont00001769"
+      Q5: namespace stays local and unregistered
+    license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio"
+    test_oracle: >-
+      superclass sets equal the cco-2.2 asserted closure plus the recorded local assertion and its closure; every IRI
+      declared in cco-2.2 (or diekm/rdfs); the pack loads and registers through SemEngine v0.1.0-alpha.1
+
+  - pack: bfo-cco-core
+    disposition: new-content
+    phase: 1
+    files: [packs/bfo-cco-core.yaml]
+    contents: "prefixes for bfo-2020 and cco-2.2 namespaces (owner ruling Q6 on anything further)"
+    references: [bfo-2020, cco-2.2]
+    license: MIT (SemVocab); references CC-BY-4.0 / BSD-3-Clause ontologies
+    test_oracle: "loads and registers through SemEngine v0.1.0-alpha.1; namespaces equal the ontology pins"
