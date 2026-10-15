@@ -17,8 +17,8 @@ Each task names the outcome that proves it. Command evidence is recorded on PR #
 
 ## 2. Verification
 
-- [ ] 2.1 `task spec:check` and `task docs:check` pass
-- [ ] 2.2 `task verify` passes on a clean tree
+- [x] 2.1 `task spec:check` and `task docs:check` pass
+- [x] 2.2 `task verify` passes on a clean tree
 
 ## 3. Archive
 
