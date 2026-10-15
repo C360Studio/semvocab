@@ -1,0 +1,12 @@
+# bfo-cco-core: the OBO (BFO 2020) and CCO v2.2 prefixes, and nothing else
+# (design P2 of openspec/changes/phase-1-catalogs). Registering it lets the
+# SemEngine serializer compact BFO and CCO IRIs. Prefix "obo" names the OBO
+# Foundry PURL base, which BFO shares with every OBO ontology (design P5).
+# Namespaces equal the ontology pins in docs/admission-ledger.yaml.
+name: bfo-cco-core
+version: "1.0.0"
+prefixes:
+  - prefix: obo
+    namespace: "http://purl.obolibrary.org/obo/"
+  - prefix: cco
+    namespace: "https://www.commoncoreontologies.org/"

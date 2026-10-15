@@ -1,0 +1,80 @@
+{
+  "name": "diekm",
+  "version": "1.0.0",
+  "prefixes": [
+    {"prefix": "obo", "namespace": "http://purl.obolibrary.org/obo/"},
+    {"prefix": "cco", "namespace": "https://www.commoncoreontologies.org/"},
+    {"prefix": "diekm", "namespace": "https://w3id.org/c360/diekm#"},
+    {"prefix": "rdfs", "namespace": "http://www.w3.org/2000/01/rdf-schema#"}
+  ],
+  "entity_types": [
+    {
+      "domain_type": "intel.platform",
+      "class_iri": "https://w3id.org/c360/diekm#IntelligencePlatform",
+      "superclasses": [
+        "https://www.commoncoreontologies.org/ont00000713",
+        "http://purl.obolibrary.org/obo/BFO_0000030",
+        "https://www.commoncoreontologies.org/ont00000995",
+        "http://purl.obolibrary.org/obo/BFO_0000040",
+        "http://purl.obolibrary.org/obo/BFO_0000004",
+        "http://purl.obolibrary.org/obo/BFO_0000002",
+        "http://purl.obolibrary.org/obo/BFO_0000001"
+      ],
+      "description": "Defense or intelligence collection platform"
+    },
+    {
+      "domain_type": "intel.observation",
+      "class_iri": "https://w3id.org/c360/diekm#IntelligenceObservation",
+      "superclasses": [
+        "https://www.commoncoreontologies.org/ont00000037",
+        "https://www.commoncoreontologies.org/ont00000228",
+        "https://www.commoncoreontologies.org/ont00000005",
+        "http://purl.obolibrary.org/obo/BFO_0000015",
+        "http://purl.obolibrary.org/obo/BFO_0000003",
+        "http://purl.obolibrary.org/obo/BFO_0000001"
+      ],
+      "description": "Observation act recorded by an intelligence platform"
+    }
+  ],
+  "predicates": [
+    {
+      "name": "intel.role.assigned",
+      "description": "Assigned role, projected as bearer of (BFO_0000196) a role (BFO_0000023) whose rdfs:label is the value",
+      "data_type": "string",
+      "iri": "https://w3id.org/c360/diekm#assignedRole",
+      "projection": {
+        "steps": [
+          {
+            "predicate_iri": "http://purl.obolibrary.org/obo/BFO_0000196",
+            "node_class_iri": "http://purl.obolibrary.org/obo/BFO_0000023",
+            "value_predicate_iri": "http://www.w3.org/2000/01/rdf-schema#label"
+          }
+        ]
+      }
+    },
+    {
+      "name": "intel.measurement.altitude_m",
+      "description": "Altitude measurement in meters",
+      "data_type": "float",
+      "units": "m",
+      "iri": "https://w3id.org/c360/diekm#altitudeMeters",
+      "projection": {
+        "steps": [
+          {
+            "predicate_iri": "http://purl.obolibrary.org/obo/BFO_0000196",
+            "node_class_iri": "https://www.commoncoreontologies.org/ont00000787"
+          },
+          {
+            "predicate_iri": "https://www.commoncoreontologies.org/ont00001904",
+            "node_class_iri": "https://www.commoncoreontologies.org/ont00001163"
+          },
+          {
+            "predicate_iri": "http://purl.obolibrary.org/obo/BFO_0000084",
+            "node_class_iri": "https://www.commoncoreontologies.org/ont00000253",
+            "value_predicate_iri": "https://w3id.org/c360/diekm#altitudeMetersValue"
+          }
+        ]
+      }
+    }
+  ]
+}

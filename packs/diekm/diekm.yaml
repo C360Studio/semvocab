@@ -1,0 +1,75 @@
+# DIEKM vocabulary pack. https://w3id.org/c360/diekm# is a C360-local
+# vocabulary: it is not an externally registered or certified ontology, and its
+# IRIs do not dereference (owner ruling Q5 on semvocab#1).
+#
+# Terms reference BFO 2020 (prefix obo) and CCO v2.2 (prefix cco), pinned in
+# docs/admission-ledger.yaml. Superclasses list the full ancestor closure in
+# the CCO v2.2 merged file (design D5): declared parents first, then
+# breadth-first. intel.platform also carries the DIEKM-local assertion
+# IntelligencePlatform rdfs:subClassOf BFO_0000030 (object), which CCO does not
+# entail (ruling Q2). This file is the issue #1 fixture with the Phase 0
+# design's corrections applied (rulings Q1-Q5, Q4b; prefix obo per design P5).
+name: diekm
+version: "1.0.0"
+prefixes:
+  - prefix: obo
+    namespace: "http://purl.obolibrary.org/obo/"
+  - prefix: cco
+    namespace: "https://www.commoncoreontologies.org/"
+  - prefix: diekm
+    namespace: "https://w3id.org/c360/diekm#"
+  # rdfs is declared because a projection step uses rdfs:label; SemEngine's
+  # serializer already binds it to the same namespace, so registering it again
+  # is a no-op there.
+  - prefix: rdfs
+    namespace: "http://www.w3.org/2000/01/rdf-schema#"
+entity_types:
+  - domain_type: intel.platform
+    class_iri: "https://w3id.org/c360/diekm#IntelligencePlatform"
+    superclasses:
+      - "https://www.commoncoreontologies.org/ont00000713" # Vehicle (declared parent)
+      - "http://purl.obolibrary.org/obo/BFO_0000030" # object (DIEKM-local assertion, Q2)
+      - "https://www.commoncoreontologies.org/ont00000995" # Material Artifact
+      - "http://purl.obolibrary.org/obo/BFO_0000040" # material entity
+      - "http://purl.obolibrary.org/obo/BFO_0000004" # independent continuant
+      - "http://purl.obolibrary.org/obo/BFO_0000002" # continuant
+      - "http://purl.obolibrary.org/obo/BFO_0000001" # entity
+    description: "Defense or intelligence collection platform"
+  - domain_type: intel.observation
+    class_iri: "https://w3id.org/c360/diekm#IntelligenceObservation"
+    superclasses:
+      - "https://www.commoncoreontologies.org/ont00000037" # Act of Observation (declared parent)
+      - "https://www.commoncoreontologies.org/ont00000228" # Planned Act
+      - "https://www.commoncoreontologies.org/ont00000005" # Act
+      - "http://purl.obolibrary.org/obo/BFO_0000015" # process
+      - "http://purl.obolibrary.org/obo/BFO_0000003" # occurrent
+      - "http://purl.obolibrary.org/obo/BFO_0000001" # entity
+    description: "Observation act recorded by an intelligence platform"
+predicates:
+  # Ruling Q3: the role is a BFO role the entity is bearer of; its label is the value.
+  - name: intel.role.assigned
+    description: "Assigned role, projected as bearer of (BFO_0000196) a role (BFO_0000023) whose rdfs:label is the value"
+    data_type: string
+    iri: "https://w3id.org/c360/diekm#assignedRole"
+    projection:
+      steps:
+        - predicate_iri: "http://purl.obolibrary.org/obo/BFO_0000196" # bearer of
+          node_class_iri: "http://purl.obolibrary.org/obo/BFO_0000023" # role
+          value_predicate_iri: "http://www.w3.org/2000/01/rdf-schema#label"
+  # Rulings Q3, Q4, Q4b: entity bearer of an Altitude, measured by a Measurement
+  # Information Content Entity, which generically depends on an Information
+  # Bearing Entity carrying the value as diekm:altitudeMetersValue.
+  - name: intel.measurement.altitude_m
+    description: "Altitude measurement in meters"
+    data_type: float
+    units: "m"
+    iri: "https://w3id.org/c360/diekm#altitudeMeters"
+    projection:
+      steps:
+        - predicate_iri: "http://purl.obolibrary.org/obo/BFO_0000196" # bearer of
+          node_class_iri: "https://www.commoncoreontologies.org/ont00000787" # Altitude
+        - predicate_iri: "https://www.commoncoreontologies.org/ont00001904" # is measured by
+          node_class_iri: "https://www.commoncoreontologies.org/ont00001163" # Measurement Information Content Entity
+        - predicate_iri: "http://purl.obolibrary.org/obo/BFO_0000084" # generically depends on
+          node_class_iri: "https://www.commoncoreontologies.org/ont00000253" # Information Bearing Entity
+          value_predicate_iri: "https://w3id.org/c360/diekm#altitudeMetersValue"

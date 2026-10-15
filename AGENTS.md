@@ -18,8 +18,9 @@ SemEngine's hot ingest or query paths.
 
 The bootstrap scope, phases, and acceptance criteria are issue #1 (`gh issue view 1`); read it before scoping work.
 Material ported from SemStreams comes from the frozen pin `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`, the same pin
-SemEngine extracts from. The Go code in the tree today is the repository contract tests under `internal/harness`;
-do not describe planned packages (`catalog/`, `packs/`, `shacl/`) as present.
+SemEngine extracts from. The Go code in the tree today is the `catalog/bfo` and `catalog/cco` catalogs, the `packs`
+and `packs/diekm` packs, test and fixture helpers under `internal/`, and the repository contract tests under
+`internal/harness`; do not describe the planned `shacl/` package as present.
 
 ## Commands
 

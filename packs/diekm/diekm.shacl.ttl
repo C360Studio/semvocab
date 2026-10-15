@@ -1,0 +1,31 @@
+# Initial SHACL shapes for the DIEKM pack (semvocab#1 Phase 1). They describe
+# the direct (unprojected) form of the pack's predicates as SemEngine's
+# serializer writes it: data_type float is exported as xsd:double, string as
+# xsd:string. Phase 2 compiles shapes in a bounded profile; these use only
+# sh:targetClass, sh:path with a single predicate IRI, sh:datatype, and
+# sh:maxCount. No sh:rule.
+#
+# https://w3id.org/c360/diekm# is a C360-local vocabulary, not an externally
+# registered or certified ontology; its IRIs do not dereference.
+
+@prefix diekm: <https://w3id.org/c360/diekm#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+diekm:IntelligencePlatformShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass diekm:IntelligencePlatform ;
+    sh:property [
+        sh:path diekm:altitudeMeters ;
+        sh:datatype xsd:double ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path diekm:assignedRole ;
+        sh:datatype xsd:string
+    ] .
+
+diekm:IntelligenceObservationShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass diekm:IntelligenceObservation .
