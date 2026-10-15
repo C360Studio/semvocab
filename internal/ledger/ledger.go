@@ -1,0 +1,219 @@
+// Package ledger decodes docs/admission-ledger.yaml for tests. The ledger is
+// the single table of admitted terms (design P3 of phase-1-catalogs): the
+// catalog and pack tests read their expected term lists from it instead of
+// restating them. Decoding is strict, so a field the types below do not name
+// fails with the field's name. Production code must not import this package.
+package ledger
+
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Ledger is the decoded admission ledger.
+type Ledger struct {
+	SchemaVersion int                  `yaml:"schema_version"`
+	Fields        map[string]string    `yaml:"fields"`
+	Dispositions  map[string]string    `yaml:"dispositions"`
+	Pins          Pins                 `yaml:"pins"`
+	PhaseGates    map[string]PhaseGate `yaml:"phase_gates"`
+	Entries       []Entry              `yaml:"entries"`
+}
+
+// Pins records the exact revisions every admitted term traces to.
+type Pins struct {
+	SemStreams struct {
+		Repository string `yaml:"repository"`
+		Revision   string `yaml:"revision"`
+		License    string `yaml:"license"`
+	} `yaml:"semstreams"`
+	SemEngine struct {
+		Module   string   `yaml:"module"`
+		Version  string   `yaml:"version"`
+		Revision string   `yaml:"revision"`
+		Includes []string `yaml:"includes"`
+		Excludes []string `yaml:"excludes"`
+		License  string   `yaml:"license"`
+		GoMod    string   `yaml:"go_mod"`
+	} `yaml:"semengine"`
+	Ontologies map[string]Ontology `yaml:"ontologies"`
+}
+
+// Ontology is one pinned external ontology release.
+type Ontology struct {
+	Repository    string `yaml:"repository"`
+	Release       string `yaml:"release"`
+	Tag           string `yaml:"tag"`
+	Commit        string `yaml:"commit"`
+	File          string `yaml:"file"`
+	SHA256        string `yaml:"sha256"`
+	VersionIRI    string `yaml:"version_iri"`
+	Namespace     string `yaml:"namespace"`
+	DependsOn     string `yaml:"depends_on"`
+	License       string `yaml:"license"`
+	ChosenBecause string `yaml:"chosen_because"`
+	Divergence    string `yaml:"divergence"`
+	Note          string `yaml:"note"`
+}
+
+// PhaseGate is the dependency gate of one issue #1 phase.
+type PhaseGate struct {
+	Requires string `yaml:"requires"`
+	Status   string `yaml:"status"`
+}
+
+// Entry is one candidate catalog or pack.
+type Entry struct {
+	Catalog                       string            `yaml:"catalog"`
+	Pack                          string            `yaml:"pack"`
+	Disposition                   string            `yaml:"disposition"`
+	Phase                         *int              `yaml:"phase"`
+	SemEngineOverlap              string            `yaml:"semengine_overlap"`
+	Source                        yaml.Node         `yaml:"source"`
+	SourceAvailable               string            `yaml:"source_available"`
+	AdmittedTerms                 string            `yaml:"admitted_terms"`
+	ExcludedSourceSymbols         []Exclusion       `yaml:"excluded_source_symbols"`
+	HierarchyDivergenceFromSource string            `yaml:"hierarchy_divergence_from_source"`
+	DeferredTerms                 map[string]string `yaml:"deferred_terms"`
+	DeferralReason                string            `yaml:"deferral_reason"`
+	License                       string            `yaml:"license"`
+	TestOracle                    string            `yaml:"test_oracle"`
+	Files                         []string          `yaml:"files"`
+	Namespace                     PackNamespace     `yaml:"namespace"`
+	References                    []string          `yaml:"references"`
+	ReferencedTermsVerified       []string          `yaml:"referenced_terms_verified"`
+	LocalAssertions               []string          `yaml:"local_assertions"`
+	Rulings                       map[string]string `yaml:"rulings"`
+	Contents                      string            `yaml:"contents"`
+}
+
+// Name is the entry's catalog or pack name.
+func (e Entry) Name() string {
+	if e.Catalog != "" {
+		return e.Catalog
+	}
+	return e.Pack
+}
+
+// Exclusion is a group of source symbols deliberately not admitted.
+type Exclusion struct {
+	Symbols []string `yaml:"symbols"`
+	Reason  string   `yaml:"reason"`
+}
+
+// PackNamespace is a pack's own namespace record.
+type PackNamespace struct {
+	IRI        string `yaml:"iri"`
+	Authority  string `yaml:"authority"`
+	Registered bool   `yaml:"registered"`
+	Statement  string `yaml:"statement"`
+}
+
+// BFOSource is the source block of the bfo entry.
+type BFOSource struct {
+	SemStreamsFiles          []string `yaml:"semstreams_files"`
+	SymbolsAdmittedClasses   []string `yaml:"symbols_admitted_classes"`
+	SymbolsAdmittedRelations []string `yaml:"symbols_admitted_relations"`
+	Hierarchy                string   `yaml:"hierarchy"`
+	ExternalAdditions        struct {
+		Ontology string   `yaml:"ontology"`
+		Terms    []string `yaml:"terms"`
+	} `yaml:"external_additions"`
+}
+
+// CCOSource is the source block of the cco entry. Admitted maps take a Go
+// name to [v2.2 IRI local name, v2.2 rdfs:label].
+type CCOSource struct {
+	Ontology              string               `yaml:"ontology"`
+	GoNameMapping         string               `yaml:"go_name_mapping"`
+	AdmittedClasses       map[string][2]string `yaml:"admitted_classes"`
+	AdmittedProperties    map[string][2]string `yaml:"admitted_properties"`
+	RenamedFromSemStreams map[string]string    `yaml:"renamed_from_semstreams"`
+	Hierarchy             string               `yaml:"hierarchy"`
+}
+
+// Path is the absolute path of docs/admission-ledger.yaml in this checkout.
+func Path() string {
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(file), "..", "..", "docs", "admission-ledger.yaml")
+}
+
+// Load reads and strictly decodes the ledger at Path.
+func Load() (Ledger, error) {
+	data, err := os.ReadFile(Path())
+	if err != nil {
+		return Ledger{}, fmt.Errorf("read ledger: %w", err)
+	}
+	return Decode(data)
+}
+
+// Decode strictly decodes ledger YAML, rejecting unknown fields.
+func Decode(data []byte) (Ledger, error) {
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.KnownFields(true)
+	var l Ledger
+	if err := dec.Decode(&l); err != nil {
+		return Ledger{}, fmt.Errorf("decode ledger: %w", err)
+	}
+	return l, nil
+}
+
+// Entry returns the entry named name (catalog or pack).
+func (l Ledger) Entry(name string) (Entry, error) {
+	for _, e := range l.Entries {
+		if e.Name() == name {
+			return e, nil
+		}
+	}
+	return Entry{}, fmt.Errorf("ledger has no entry %q", name)
+}
+
+// BFO decodes the bfo entry's source block.
+func (l Ledger) BFO() (BFOSource, error) {
+	var s BFOSource
+	return s, l.decodeSource("bfo", &s)
+}
+
+// CCO decodes the cco entry's source block.
+func (l Ledger) CCO() (CCOSource, error) {
+	var s CCOSource
+	return s, l.decodeSource("cco", &s)
+}
+
+func (l Ledger) decodeSource(name string, out any) error {
+	e, err := l.Entry(name)
+	if err != nil {
+		return err
+	}
+	// Re-encode the node so the strict decoder applies to the source block too.
+	raw, err := yaml.Marshal(&e.Source)
+	if err != nil {
+		return fmt.Errorf("ledger %s source: %w", name, err)
+	}
+	dec := yaml.NewDecoder(bytes.NewReader(raw))
+	dec.KnownFields(true)
+	if err := dec.Decode(out); err != nil {
+		return fmt.Errorf("ledger %s source: %w", name, err)
+	}
+	return nil
+}
+
+// Excluded returns every excluded source symbol of the named entry, with any
+// IRI suffix removed ("PartOf BFO_0000050" yields "PartOf").
+func (e Entry) Excluded() []string {
+	var out []string
+	for _, x := range e.ExcludedSourceSymbols {
+		for _, s := range x.Symbols {
+			if f := strings.Fields(s); len(f) > 0 {
+				out = append(out, f[0])
+			}
+		}
+	}
+	return out
+}

@@ -1,0 +1,22 @@
+bfo-core.ttl is "BFO 2020" (Basic Formal Ontology implemented in OWL 2),
+vendored unmodified as a test oracle.
+
+Source:  https://github.com/BFO-ontology/BFO-2020
+Commit:  5ed468765ea5655a0ff9a93877fd059f294a152d
+File:    src/owl/bfo-core.ttl
+sha256:  128f5fe1dab7ee804a3037a836813e5953c846eeeefee883a47d5db0b37a106b
+Version: http://purl.obolibrary.org/obo/bfo/2020/bfo-core.ttl
+
+License: Creative Commons Attribution 4.0 International (CC BY 4.0),
+         https://creativecommons.org/licenses/by/4.0/, as declared by the
+         file's own dc:license. The repository carries no separate LICENSE
+         file at this commit.
+
+Attribution: BFO 2020, by the BFO contributors named in the file's
+dc11:contributor annotations (Alan Ruttenberg, Albert Goldfain, Barry Smith,
+Bill Duncan, Bjoern Peters, Chris Mungall, David Osumi-Sutherland, Fabian
+Neuhaus, James A. Overton, Janna Hastings, Jie Zheng, John Beverley, Jonathan
+Bona, Larry Hunter, Leonard Jacuzzo, Ludger Jansen, Mark Jensen, Mark Ressler,
+Mathias Brochhausen, Mauricio Almeida, Melanie Courtot, Neil Otte, Pierre
+Grenon, Randall Dipert, Robert Rovetto, Ron Rudnicki, Stefan Schulz, Thomas
+Bittner, Werner Ceusters, Yongqun "Oliver" He). No changes were made.

@@ -1,0 +1,12 @@
+CommonCoreOntologiesMerged.ttl is the Common Core Ontologies (CCO) v2.2 merged
+release file, vendored unmodified as a test oracle.
+
+Source:  https://github.com/CommonCoreOntology/CommonCoreOntologies
+Tag:     v2.2 (commit 0bc7d33e1bc09fd4693366119ab4e03cb0340042)
+File:    src/cco-merged/CommonCoreOntologiesMerged.ttl
+         (= release asset CommonCoreOntologiesMerged-2.2.ttl)
+sha256:  a9453382b25b40781c181d6ba44981f228abb76d90d548846713adba9baadb42
+License: BSD 3-Clause, Copyright (c) 2017, CUBRC, INC. The full license text,
+         fetched from LICENSE at the same commit, is in ./LICENSE.
+
+The merged file embeds BFO 2020 (CC-BY-4.0); see ../bfo-2020/NOTICE.
