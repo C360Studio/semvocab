@@ -38,4 +38,4 @@ Each task names the outcome that proves it. Command evidence is recorded on the 
 
 ## 5. Archive
 
-- [ ] 5.1 `openspec archive phase-1-catalogs` syncs the specs as the last content commit
+- [x] 5.1 `openspec archive phase-1-catalogs` syncs the specs as the last content commit
