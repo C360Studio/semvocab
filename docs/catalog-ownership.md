@@ -1,8 +1,10 @@
 # Catalog ownership against SemEngine
 
 SemEngine is the source of truth for the standard constants and generic vocabulary behaviour it exports. This table
-records, for SemEngine `v0.1.0-alpha.1` (`e60229334b8d8da3c0350e17802e2ea9631f91c8`), what each candidate catalog
-overlaps. Dispositions and sources are in `docs/admission-ledger.yaml`.
+records, for SemEngine `v0.1.0-alpha.2` (`11da4721c2233a8e2b5b1d6236a97a44e06abbb6`), what each candidate catalog
+overlaps. Dispositions and sources are in `docs/admission-ledger.yaml`. The citations were first taken at
+`v0.1.0-alpha.1` (`e60229334b8d8da3c0350e17802e2ea9631f91c8`); every cited line is unchanged at alpha.2, which adds
+`(*PackSpec).Validate`, `ProjectionSpec.Validate`, and `export.SubjectIRI` and no IRI constant.
 
 Three kinds of evidence are kept apart:
 
@@ -20,8 +22,8 @@ Three kinds of evidence are kept apart:
 | `vocabulary/predicates.go` | dotted predicates (`geo.location.*` `:32-36`, `graph.rel.contains` `:45`, `hierarchy.*` `:59-101`), data types (`:158-173`); no IRIs except a doc mention at `:296` |
 | `vocabulary/labels.go` | `init` registers `DCTermsTitle` with `DcTitle` (`:17-21`); no new constant |
 | `vocabulary/relationships.go` | `init` registers `GraphRelContains` with `ProvHadMember` (`:9-11`); no new constant |
-| `vocabulary/pack.go` | `PrefixSpec`, `PredicateSpec`, `EntityTypeSpec`, `PackSpec`, `LoadPackJSON/YAML`, `RegisterPack`, `WithPrefixRegistrar`; no IRIs |
-| `vocabulary/projection.go` | `ProjectionStep`, `ProjectionSpec`, `WithProjection`; no IRIs |
+| `vocabulary/pack.go` | `PrefixSpec`, `PredicateSpec`, `EntityTypeSpec`, `PackSpec` (with `Validate`), `LoadPackJSON/YAML`, `RegisterPack`, `WithPrefixRegistrar`; no IRIs |
+| `vocabulary/projection.go` | `ProjectionStep`, `ProjectionSpec` (with `Validate`), `WithProjection`; no IRIs |
 | `vocabulary/export/prefix.go` | `Register`, `RegisterPrefixes`; built-in prefixes rdf, owl, skos, rdfs, dc, schema, foaf, prov, ssn, sosa, xsd, ss (`:25-36`) |
 
 `vocabulary/export/object.go:17-26` holds unexported `xsd*` and `rdfNamespace` constants, which are serializer

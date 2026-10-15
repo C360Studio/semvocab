@@ -29,12 +29,15 @@ pins:
     license: MIT, Copyright (c) 2025 C360 (LICENSE at revision)
   semengine:
     module: github.com/c360studio/semengine
-    version: v0.1.0-alpha.1
-    revision: e60229334b8d8da3c0350e17802e2ea9631f91c8
-    includes: ["7e2724a feat(vocabulary): port vocabulary/export and add ontology pack & projection metadata seams (#235)"]
-    excludes: ["semengine#256 / PR #261 (Stage 1.1 pure validation, export.SubjectIRI, blank-node export): open"]
+    version: v0.1.0-alpha.2
+    revision: 11da4721c2233a8e2b5b1d6236a97a44e06abbb6
+    includes:
+      - "7e2724a feat(vocabulary): port vocabulary/export and add ontology pack & projection metadata seams (#235)"
+      - "67fa136 feat(graph-ingest): fixed-position wildcard pattern on graph.ingest.query.prefix (#263; closes semengine#259)"
+      - "11da472 feat(vocabulary): Stage 1.1 pure PackSpec/ProjectionSpec validation, export.SubjectIRI, blank-node/IRI-predicate export (#261; closes semengine#256)"
+    excludes: []
     license: MIT, Copyright (c) 2025 C360
-    go_mod: added in Phase 1 (an unused require fails task tidy:check in Phase 0)
+    go_mod: "required in go.mod since Phase 1 (phase-1-catalogs); alpha.2 = alpha.1 (e60229334b8d8da3c0350e17802e2ea9631f91c8) plus #263 and #261"
   ontologies:
     bfo-2020:
       repository: https://github.com/BFO-ontology/BFO-2020
@@ -69,7 +72,7 @@ pins:
 
 phase_gates:
   phase-1: {requires: "SemEngine RegisterPack/LoadPackYAML/WithPrefixRegistrar at v0.1.0-alpha.1", status: available}
-  phase-2: {requires: "semengine#256 merged and tagged (PR #261, draft)", status: open}
+  phase-2: {requires: "semengine#256 merged and tagged (PR #261, merged in v0.1.0-alpha.2, pinned)", status: available}
   phase-3: {requires: "semsparql#1 tasks 3.3 and 4.2 merged and tagged; semengine#256 merged", status: open}
   phase-4: {requires: "processor/rule and pkg/rulepack in SemEngine", status: deferred}
 
@@ -77,7 +80,7 @@ entries:
   - catalog: bfo
     disposition: port
     phase: 1
-    semengine_overlap: none (no BFO symbol, no `bfo`/`obo` serializer prefix at e602293)
+    semengine_overlap: none (no BFO symbol, no `bfo`/`obo` serializer prefix at e602293 or 11da472)
     source:
       semstreams_files: [vocabulary/bfo/bfo.go, vocabulary/bfo/hierarchy.go]
       symbols_admitted_classes: [Namespace, Entity, Continuant, Occurrent, IndependentContinuant,
@@ -334,9 +337,9 @@ entries:
       statement: "A C360-local vocabulary. It is not an externally registered or certified ontology, and its IRIs do not dereference."
     references: [bfo-2020, cco-2.2]
     referenced_terms_verified: [cco:ont00000713, cco:ont00000995, cco:ont00000037, cco:ont00000228, cco:ont00000005,
-      cco:ont00000787, cco:ont00001904, cco:ont00001163, cco:ont00000253, bfo:BFO_0000001, bfo:BFO_0000002,
-      bfo:BFO_0000003, bfo:BFO_0000004, bfo:BFO_0000015, bfo:BFO_0000023, bfo:BFO_0000030, bfo:BFO_0000040,
-      bfo:BFO_0000084, bfo:BFO_0000196, rdfs:label]
+      cco:ont00000787, cco:ont00001904, cco:ont00001163, cco:ont00000253, obo:BFO_0000001, obo:BFO_0000002,
+      obo:BFO_0000003, obo:BFO_0000004, obo:BFO_0000015, obo:BFO_0000023, obo:BFO_0000030, obo:BFO_0000040,
+      obo:BFO_0000084, obo:BFO_0000196, rdfs:label]
     admitted_terms: >-
       diekm:IntelligencePlatform, diekm:IntelligenceObservation, diekm:altitudeMeters, diekm:assignedRole,
       diekm:altitudeMetersValue (datatype property, domain cco:ont00000253, range xsd:decimal)
@@ -354,7 +357,7 @@ entries:
     license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio"
     test_oracle: >-
       superclass sets equal the cco-2.2 asserted closure plus the recorded local assertion and its closure; every IRI
-      declared in cco-2.2 (or diekm/rdfs); the pack loads and registers through SemEngine v0.1.0-alpha.1
+      declared in cco-2.2 (or diekm/rdfs); the pack loads and registers through SemEngine v0.1.0-alpha.2
 
   - pack: bfo-cco-core
     disposition: new-content
@@ -363,4 +366,4 @@ entries:
     contents: "prefixes for bfo-2020 and cco-2.2 namespaces (owner ruling Q6 on anything further)"
     references: [bfo-2020, cco-2.2]
     license: MIT (SemVocab); references CC-BY-4.0 / BSD-3-Clause ontologies
-    test_oracle: "loads and registers through SemEngine v0.1.0-alpha.1; namespaces equal the ontology pins"
+    test_oracle: "loads and registers through SemEngine v0.1.0-alpha.2; namespaces equal the ontology pins"

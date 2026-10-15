@@ -15,7 +15,7 @@ file path, sha256, version IRI, namespace, and license.
 #### Scenario: Reading the SemEngine pin
 
 - **WHEN** a reader looks up `pins.semengine` in the ledger
-- **THEN** it names `v0.1.0-alpha.1` and `e60229334b8d8da3c0350e17802e2ea9631f91c8`, and lists semengine#256 as not
+- **THEN** it names `v0.1.0-alpha.2` and `11da4721c2233a8e2b5b1d6236a97a44e06abbb6`, and lists semengine#256 as
   included
 
 ### Requirement: One disposition per candidate
@@ -70,4 +70,4 @@ The ledger SHALL record each issue #1 phase's dependency gate and its status at 
 #### Scenario: Phase 2 gate
 
 - **WHEN** a reader looks up `phase_gates.phase-2`
-- **THEN** it names semengine#256 merged and tagged, with status `open`
+- **THEN** it names semengine#256 merged and tagged, with status `available`

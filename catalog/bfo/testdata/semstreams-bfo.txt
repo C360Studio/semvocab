@@ -1,0 +1,82 @@
+# SemStreams-pin parity fixture for catalog/bfo. Generated; do not edit.
+# Command: scripts/gen-semstreams-fixture.sh <semstreams clone>
+# Source: github.com/C360Studio/semstreams at 8b99efe9c66a4faa4fa509f9f62cc6bad8392128
+#   vocabulary/bfo/bfo.go sha256 fd1e12d98309aaf098b27fc1a9a5ada45f0d98a02d4c08aaee6159667bf5d79a
+#   vocabulary/bfo/hierarchy.go sha256 1634ffbdb59f05834d76e2e3ad4e124749dd284514c75cfde688d4def48677cc
+# Lines: "const <Name> <value>" for every exported string constant;
+#        "subclass <Child> <Parent>" for every SubClassOf entry, in source order.
+pin 8b99efe9c66a4faa4fa509f9f62cc6bad8392128
+const AdjacentTo http://purl.obolibrary.org/obo/BFO_0000068
+const BearerOf http://purl.obolibrary.org/obo/BFO_0000053
+const ContainedIn http://purl.obolibrary.org/obo/BFO_0000170
+const Contains http://purl.obolibrary.org/obo/BFO_0000169
+const Continuant http://purl.obolibrary.org/obo/BFO_0000002
+const Disposition http://purl.obolibrary.org/obo/BFO_0000016
+const Entity http://purl.obolibrary.org/obo/BFO_0000001
+const ExistsAt http://purl.obolibrary.org/obo/BFO_0000108
+const FiatObjectPart http://purl.obolibrary.org/obo/BFO_0000024
+const Function http://purl.obolibrary.org/obo/BFO_0000034
+const GenericallyDependentContinuant http://purl.obolibrary.org/obo/BFO_0000031
+const HasPart http://purl.obolibrary.org/obo/BFO_0000051
+const HasParticipant http://purl.obolibrary.org/obo/BFO_0000057
+const HasTemporalPart http://purl.obolibrary.org/obo/BFO_0000121
+const History http://purl.obolibrary.org/obo/BFO_0000182
+const IndependentContinuant http://purl.obolibrary.org/obo/BFO_0000004
+const InheresIn http://purl.obolibrary.org/obo/BFO_0000052
+const LocatedIn http://purl.obolibrary.org/obo/BFO_0000171
+const LocationOf http://purl.obolibrary.org/obo/BFO_0000124
+const MaterialEntity http://purl.obolibrary.org/obo/BFO_0000040
+const Namespace http://purl.obolibrary.org/obo/
+const Object http://purl.obolibrary.org/obo/BFO_0000030
+const ObjectAggregate http://purl.obolibrary.org/obo/BFO_0000027
+const OccupiesSpatialRegion http://purl.obolibrary.org/obo/BFO_0000083
+const OccupiesTemporalRegion http://purl.obolibrary.org/obo/BFO_0000132
+const Occurrent http://purl.obolibrary.org/obo/BFO_0000003
+const OccursIn http://purl.obolibrary.org/obo/BFO_0000066
+const OneDimensionalSpatialRegion http://purl.obolibrary.org/obo/BFO_0000026
+const OneDimensionalTemporalRegion http://purl.obolibrary.org/obo/BFO_0000038
+const PartOf http://purl.obolibrary.org/obo/BFO_0000050
+const ParticipatesIn http://purl.obolibrary.org/obo/BFO_0000056
+const PrecedesTemporally http://purl.obolibrary.org/obo/BFO_0000062
+const Process http://purl.obolibrary.org/obo/BFO_0000015
+const ProcessBoundary http://purl.obolibrary.org/obo/BFO_0000035
+const Quality http://purl.obolibrary.org/obo/BFO_0000019
+const RealizableEntity http://purl.obolibrary.org/obo/BFO_0000017
+const RealizedIn http://purl.obolibrary.org/obo/BFO_0000054
+const Realizes http://purl.obolibrary.org/obo/BFO_0000055
+const Role http://purl.obolibrary.org/obo/BFO_0000023
+const Site http://purl.obolibrary.org/obo/BFO_0000029
+const SpatialRegion http://purl.obolibrary.org/obo/BFO_0000006
+const SpatiotemporalRegion http://purl.obolibrary.org/obo/BFO_0000011
+const SpecificallyDependentContinuant http://purl.obolibrary.org/obo/BFO_0000020
+const TemporalPartOf http://purl.obolibrary.org/obo/BFO_0000139
+const TemporalRegion http://purl.obolibrary.org/obo/BFO_0000008
+const ThreeDimensionalSpatialRegion http://purl.obolibrary.org/obo/BFO_0000028
+const TwoDimensionalSpatialRegion http://purl.obolibrary.org/obo/BFO_0000009
+const ZeroDimensionalTemporalRegion http://purl.obolibrary.org/obo/BFO_0000148
+subclass Continuant Entity
+subclass Occurrent Entity
+subclass IndependentContinuant Continuant
+subclass SpecificallyDependentContinuant Continuant
+subclass GenericallyDependentContinuant Continuant
+subclass MaterialEntity IndependentContinuant
+subclass Object MaterialEntity
+subclass ObjectAggregate MaterialEntity
+subclass FiatObjectPart MaterialEntity
+subclass Site IndependentContinuant
+subclass SpatialRegion IndependentContinuant
+subclass OneDimensionalSpatialRegion SpatialRegion
+subclass TwoDimensionalSpatialRegion SpatialRegion
+subclass ThreeDimensionalSpatialRegion SpatialRegion
+subclass Quality SpecificallyDependentContinuant
+subclass RealizableEntity SpecificallyDependentContinuant
+subclass Role RealizableEntity
+subclass Disposition RealizableEntity
+subclass Function Disposition
+subclass Process Occurrent
+subclass ProcessBoundary Occurrent
+subclass SpatiotemporalRegion Occurrent
+subclass TemporalRegion Occurrent
+subclass ZeroDimensionalTemporalRegion TemporalRegion
+subclass OneDimensionalTemporalRegion TemporalRegion
+subclass History Process
