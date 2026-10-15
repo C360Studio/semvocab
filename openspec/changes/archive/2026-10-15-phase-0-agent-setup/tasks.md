@@ -28,4 +28,4 @@ Each task names the outcome that proves it. Command evidence is recorded on PR #
 
 ## 4. Archive
 
-- [ ] 4.1 `openspec archive phase-0-agent-setup` moves the specs to `openspec/specs/` as the last content commit
+- [x] 4.1 `openspec archive phase-0-agent-setup` moves the specs to `openspec/specs/` as the last content commit
