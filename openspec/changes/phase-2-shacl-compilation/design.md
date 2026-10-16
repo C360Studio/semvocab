@@ -510,3 +510,10 @@ Raised by the developer during task 3.1: the size cap as first written in D2 con
 - **Q30 W3C bound coverage:** keep the declared variant of task 6.3 that re-runs `property/minExclusive-001`,
   `maxExclusive-001`, and `maxInclusive-001` with `sh:datatype xsd:integer` added, compared against the case files'
   results minus the datatype results the addition causes. The strict runs stay listed as excluded under D8.
+
+### Ruling Q31 (owner, 2026-10-16, after the group 6 review)
+
+- **Q31 Invalid UTF-8 (#15):** a candidate string value that is not valid UTF-8 is an input error, as nil, NaN, and
+  infinity are (D9). Export replaces malformed bytes with U+FFFD (`vocabulary/export/object.go:415-435`), which would
+  make two distinct native values one exported term; the validator refuses rather than validate a value the caller
+  never sent. Rejected: normalizing to U+FFFD before counting and constraint checks.
