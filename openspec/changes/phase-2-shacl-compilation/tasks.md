@@ -60,7 +60,7 @@ to `design.md` in this change.
       mapping row is changed.
 - [x] 6.3 The W3C supported-component cases pass through the reviewed adapter, and their expected results come from
       the vendored files
-- [ ] 6.4 The #1 state cases pass: reconcile `{A,B}` to `{B,C}`; append to `{A,B,C}`; mixed cardinalities do not
+- [x] 6.4 The #1 state cases pass: reconcile `{A,B}` to `{B,C}`; append to `{A,B,C}`; mixed cardinalities do not
       choose the mode; birth missing a required value fails; a rebuilt partial update passes; an append past the
       stored maximum fails; the stale-append case shows the revision boundary
 

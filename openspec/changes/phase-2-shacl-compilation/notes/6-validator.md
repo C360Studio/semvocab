@@ -218,3 +218,40 @@ and is raised on the pull request.
   - `sh:minExclusive` inclusive, `sh:maxExclusive` inclusive, `sh:maxInclusive` exclusive: the matching variant
     fails each time;
   - the adapter passing `rdf:type` triples through as data: nine cases fail.
+
+## 6.4 Issue #1's state cases (design D13)
+
+- **Candidate model.** `shacl/state_test.go` builds candidates with a test-only model of SemEngine's write modes
+  (`pkg/projection/contract/contract.go:22-31`): a reconcile replaces its group's set in the stored state, and an
+  append adds to it. The model reads each group's mode from the bundle's compiled contract, so the mode under test is
+  the mapping's (design D7). SemVocab exports no candidate helper (D13).
+- **No import of `pkg/projection`.** The revision boundary's premise, that `ReconcileMutation` carries
+  `ExpectedRevision` and `AppendMutation` carries none (`pkg/projection/mutation_types.go:46-67`), is cited, not
+  asserted by reflection. Importing `pkg/projection` would pull its NATS dependencies into the module's test graph
+  and change `go.mod`, for a check of a type's fields.
+- **Cases**, each over one shape with `ex:p` (`xsd:string`, `sh:maxCount 2`) and `ex:q` (`xsd:integer`, unbounded):
+  - `TestReconcileVersusAppend`: stored `{A,B}`; a reconcile of `{B,C}` gives `{B,C}`, which conforms; an append of
+    `{C}` gives `{A,B,C}`, which fails `sh:maxCount`.
+  - `TestMixedCardinalitiesDoNotChooseTheMode`: one group holds `ex:p` and the unbounded `ex:q`. Compiled with
+    `reconcile` and with `append`, the group keeps the mapping's mode, and validation reports the maximum either way.
+  - `TestBirthMissingRequiredValue`: with `sh:minCount 1` on `ex:p` and `ex:p` as the birth predicate, a birth
+    candidate without it fails `sh:minCount`, and one with it conforms.
+  - `TestRebuiltPartialUpdate`: a reconcile of the `counts` group (`ex:q`) on stored `{p: A, q: 1}` gives a candidate
+    that keeps the stored required `ex:p` and conforms; the patch alone fails `sh:minCount`.
+  - `TestAppendPastStoredMaximum`: stored `{A,B}` at the maximum; appending `C` fails, `C` alone conforms, and
+    appending the stored `B` again adds no term and conforms.
+  - `TestStaleAppendRevisionBoundary`: two writers read `{A}` and append `B` and `C`; each candidate conforms alone.
+    Both appends can land, because an append is not revision-fenced at the pin, and the persisted `{A,B,C}` fails.
+    Rebuilding the second writer's candidate from a re-read of the persisted state fails too, which is the rule
+    `ValidateCandidateState`'s doc comment states and task 8.1's document will repeat.
+
+### Evidence (6.4)
+
+The validator was written in task 6.1, so fail-before is shown by seeded product changes, each reverted:
+
+- every compiled group's mode forced to `reconcile`: `TestReconcileVersusAppend`,
+  `TestMixedCardinalitiesDoNotChooseTheMode`, `TestAppendPastStoredMaximum`, and `TestStaleAppendRevisionBoundary`
+  fail;
+- `sh:maxCount` off: the same four fail;
+- `sh:minCount` off: `TestBirthMissingRequiredValue` and `TestRebuiltPartialUpdate` fail;
+- every triple counted, not every distinct term: `TestAppendPastStoredMaximum` fails.
