@@ -2,12 +2,29 @@ package turtle
 
 import "strings"
 
-// isAbsolute reports whether iri has a scheme: a non-empty prefix before the
-// first ':' that holds none of '/', '?', '#'.
-func isAbsolute(iri string) bool {
+// hasScheme reports whether iri splits with a scheme under RFC 3986
+// Appendix B: a non-empty prefix before the first ':' that holds none of
+// '/', '?', '#'.
+func hasScheme(iri string) bool {
 	colon := strings.IndexByte(iri, ':')
 	return colon > 0 && !strings.ContainsAny(iri[:colon], "/?#")
 }
+
+// validScheme reports whether that prefix is an RFC 3986 §3.1 scheme:
+// ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ).
+func validScheme(iri string) bool {
+	colon := strings.IndexByte(iri, ':')
+	for i, c := range iri[:colon] {
+		alpha := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+		if !alpha && (i == 0 || !(c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.')) {
+			return false
+		}
+	}
+	return true
+}
+
+// isAbsolute reports whether iri has a valid RFC 3986 scheme.
+func isAbsolute(iri string) bool { return hasScheme(iri) && validScheme(iri) }
 
 // ref holds the five components of RFC 3986 §3, split by the regular
 // expression of Appendix B. A has* flag tells an empty component from an

@@ -71,7 +71,7 @@ func TestDecodeMapping(t *testing.T) {
 
 func TestDecodeMappingRefuses(t *testing.T) {
 	jsonTests := []struct{ name, src, want string }{
-		{"empty", ``, "EOF"},
+		{"empty", ``, "no document"},
 		{"unknown top field", `{"bogus": []}`, `unknown field "bogus"`},
 		{"unknown group field", `{"contracts": [{"groups": [{"bogus": 1}]}]}`, `unknown field "bogus"`},
 		{"trailing value", `{} []`, "trailing data"},

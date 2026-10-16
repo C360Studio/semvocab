@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 )
@@ -119,13 +121,36 @@ func decodeJSON(r io.Reader, out any) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(out); err != nil {
-		return err
+		return locateJSONError(err, data)
 	}
+	end := dec.InputOffset()
 	var extra json.RawMessage
 	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
-		return errors.New("trailing data after the document")
+		rest := data[end:]
+		return fmt.Errorf("byte offset %d: trailing data after the document",
+			end+int64(len(rest)-len(bytes.TrimLeft(rest, " \t\r\n"))))
 	}
 	return nil
+}
+
+// locateJSONError adds the byte offset to the encoding/json errors that do
+// not name a field: a syntax error, a value of the wrong type (whose field
+// is named when there is one), and input that ends early. Empty input is no
+// document, as in YAML.
+func locateJSONError(err error, data []byte) error {
+	var syntax *json.SyntaxError
+	var typ *json.UnmarshalTypeError
+	switch {
+	case errors.Is(err, io.EOF):
+		return errEmpty
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		return fmt.Errorf("byte offset %d: the input ends inside the document", len(data))
+	case errors.As(err, &syntax):
+		return fmt.Errorf("byte offset %d: %w", syntax.Offset, err)
+	case errors.As(err, &typ):
+		return fmt.Errorf("byte offset %d: %w", typ.Offset, err)
+	}
+	return err
 }
 
 // errJSONSyntax marks a token-stream error in scanJSON; the struct decode
@@ -185,12 +210,12 @@ func decodeYAML(r io.Reader, out any) error {
 		if errors.Is(err, io.EOF) {
 			return errEmpty
 		}
-		return err
+		return locateYAMLError(err, data)
 	}
 	var extra yaml.Node
 	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
 		if err != nil {
-			return err
+			return locateYAMLError(err, data)
 		}
 		return fmt.Errorf("line %d: trailing document", extra.Line)
 	}
@@ -198,9 +223,47 @@ func decodeYAML(r io.Reader, out any) error {
 	// without error (probe P3).
 	var doc yaml.Node
 	if err := yaml.Unmarshal(data, &doc); err != nil {
-		return err
+		return locateYAMLError(err, data)
 	}
 	return checkStringTags(&doc, "")
+}
+
+// locateYAMLError places the yaml.v3 errors that carry no line
+// (gopkg.in/yaml.v3 v3.0.1). Its reader refuses invalid UTF-8 and characters
+// YAML 1.2 does not allow (§5.1, c-printable) with no position
+// (readerc.go:214, :379); they get the byte offset of the first such byte.
+// Its parser and scanner drop the line when the error's marks are on the
+// first line, which it counts from 0 (decode.go:112-137); those get line 1.
+// The decoder's own errors name their construct (an anchor, an alias, a
+// merge key, a tag) and pass through.
+func locateYAMLError(err error, data []byte) error {
+	msg := err.Error()
+	if yamlLineNumber.MatchString(msg) || yamlDecoderError.MatchString(msg) {
+		return err
+	}
+	for i := 0; i < len(data); {
+		r, n := utf8.DecodeRune(data[i:])
+		if r == utf8.RuneError && n == 1 || !yamlPrintable(r) {
+			return fmt.Errorf("byte offset %d: %w", i, err)
+		}
+		i += n
+	}
+	return fmt.Errorf("line 1: %w", err)
+}
+
+// yamlLineNumber matches the line yaml.v3 puts in an error ("line 3: ").
+var yamlLineNumber = regexp.MustCompile(`\bline \d+: `)
+
+// yamlDecoderError matches the errors yaml.v3's decoder raises without a
+// line (decode.go:87, :218, :490, :519, :536, :576, :738, :845, :956).
+var yamlDecoderError = regexp.MustCompile(`^yaml: (attempted to go past the end of stream|unknown anchor '.*' referenced|` +
+	`document contains excessive aliasing|cannot decode node with unknown kind|anchor '.*' value contains itself|` +
+	`!!binary value contains invalid base64 data|invalid array:|invalid map key:|map merge requires)`)
+
+// yamlPrintable is YAML 1.2's c-printable, the set yaml.v3's reader checks.
+func yamlPrintable(r rune) bool {
+	return r == 0x09 || r == 0x0A || r == 0x0D || r >= 0x20 && r <= 0x7E || r == 0x85 ||
+		r >= 0xA0 && r <= 0xD7FF || r >= 0xE000 && r <= 0xFFFD || r >= 0x10000 && r <= 0x10FFFF
 }
 
 // checkStringTags walks a YAML document and fails on a scalar that is not

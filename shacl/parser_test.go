@@ -369,7 +369,7 @@ func TestDecodeShapesRefuses(t *testing.T) {
 	const node = `"id": "http://example.org/S"`
 	const prop = `"path": "http://example.org/p"`
 	jsonTests := []struct{ name, src, want string }{
-		{"empty", ``, "EOF"},
+		{"empty", ``, "no document"},
 		{"unknown top field", `{"node_shapes": [], "bogus": 1}`, `unknown field "bogus"`},
 		{"unknown node field", `{"node_shapes": [{` + node + `, "bogus": 1}]}`, `unknown field "bogus"`},
 		{"unknown property field", `{"node_shapes": [{` + node + `, "properties": [{` + prop + `, "bogus": 1}]}]}`, `unknown field "bogus"`},

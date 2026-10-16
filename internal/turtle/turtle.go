@@ -34,7 +34,6 @@
 package turtle
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -118,7 +117,7 @@ func Parse(r io.Reader, opts ...Option) ([]Triple, error) {
 		return nil, fmt.Errorf("turtle: read: %w", err)
 	}
 	if !utf8.Valid(src) {
-		return nil, errors.New("turtle: input is not valid UTF-8")
+		return nil, fmt.Errorf("turtle: input is not valid UTF-8 at byte offset %d", invalidUTF8(src))
 	}
 	p := &parser{src: string(src), prefixes: map[string]string{}, base: cfg.base}
 	for {
@@ -130,6 +129,19 @@ func Parse(r io.Reader, opts ...Option) ([]Triple, error) {
 			return nil, err
 		}
 	}
+}
+
+// invalidUTF8 is the offset of the first byte that does not start a valid
+// UTF-8 sequence.
+func invalidUTF8(src []byte) int {
+	for i := 0; i < len(src); {
+		r, n := utf8.DecodeRune(src[i:])
+		if r == utf8.RuneError && n == 1 {
+			return i
+		}
+		i += n
+	}
+	return len(src)
 }
 
 type parser struct {
@@ -470,6 +482,11 @@ func (p *parser) iriRef() (string, error) {
 		if r <= 0x20 || strings.ContainsRune("<\"{}|^`\\", r) {
 			return "", p.errorf("unsupported character %q in IRI", r)
 		}
+	}
+	// A scheme-shaped prefix that is not a valid scheme is neither an
+	// absolute IRI nor a relative reference (RFC 3986 §3.1, §4.2).
+	if hasScheme(iri) && !validScheme(iri) {
+		return "", p.errorf("IRI <%s> has an invalid scheme (RFC 3986 §3.1)", iri)
 	}
 	if !isAbsolute(iri) {
 		if p.base == "" {
