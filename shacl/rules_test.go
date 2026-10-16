@@ -1,8 +1,10 @@
 package shacl
 
 import (
+	"errors"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/c360studio/semengine/pkg/projection/contract"
@@ -368,6 +370,63 @@ func TestContracts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := compile(t, tt.contracts...)
 			requireIssue(t, err, "contracts", tt.msg)
+		})
+	}
+}
+
+// entityIDPack declares test.link.target (path ex:t) as entity_id, the
+// predicate kind ruling Q17 restricts to cardinality constraints.
+func entityIDPack() (vocabulary.PackSpec, Mapping) {
+	p := testPack()
+	p.Predicates = append(p.Predicates, vocabulary.PredicateSpec{Name: "test.link.target", IRI: ex + "t",
+		DataType: vocabulary.DataTypeEntityID})
+	m := testMapping()
+	m.Predicates = append(m.Predicates, PredicateBinding{PathIRI: ex + "t", Name: "test.link.target"})
+	m.Contracts[0].Birth = []string{"test.link.target"}
+	return p, m
+}
+
+// TestEntityIDCardinalityOnly is issue #13 (ruling Q17, design D8): on a
+// path mapped to an entity_id predicate, every constraint other than
+// sh:minCount and sh:maxCount fails, one issue per construct naming shape
+// and path, whether or not sh:datatype is given. Cardinality alone, with
+// severity and messages, compiles.
+func TestEntityIDCardinalityOnly(t *testing.T) {
+	pack, m := entityIDPack()
+	compile := func(constraints string) (*Bundle, error) {
+		set, err := ParseTurtle(strings.NewReader(prefix +
+			`ex:S sh:targetClass ex:C ; sh:property [ sh:path ex:t ; ` + constraints + ` ] .`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return Compile(pack, set, m)
+	}
+	if _, err := compile(`sh:minCount 1 ; sh:maxCount 2 ; sh:severity sh:Warning ; sh:message "m"`); err != nil {
+		t.Fatalf("cardinality only: %v", err)
+	}
+	for construct, constraints := range map[string]string{
+		"pattern":      `sh:pattern "^urn:"`,
+		"in":           `sh:in ( "a" )`,
+		"minInclusive": `sh:minInclusive 1`,
+		"maxInclusive": `sh:maxInclusive 1`,
+		"minExclusive": `sh:minExclusive 1`,
+		"maxExclusive": `sh:maxExclusive 1`,
+		"datatype":     `sh:datatype xsd:string`,
+	} {
+		t.Run(construct, func(t *testing.T) {
+			b, err := compile(`sh:minCount 1 ; ` + constraints)
+			if b != nil {
+				t.Error("a bundle was returned")
+			}
+			is := requireIssue(t, err, sh+construct, "entity_id", "cardinality", "Q17")
+			if is.Shape != ex+"S" || is.Path != ex+"t" {
+				t.Errorf("issue = %+v, want shape ex:S and path ex:t", is)
+			}
+			var ce *CompileError
+			errors.As(err, &ce)
+			if len(ce.Issues) != 1 {
+				t.Errorf("want exactly one issue, got:\n%v", err)
+			}
 		})
 	}
 }

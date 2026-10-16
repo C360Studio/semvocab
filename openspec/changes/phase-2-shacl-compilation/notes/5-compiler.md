@@ -78,8 +78,18 @@ below are the ones the design leaves open.
   compares with nothing. Validation reports the violation.
 - **`sh:in`** needs `sh:datatype xsd:string` on the same property shape: a missing datatype fails as well as another
   one.
-- **`sh:pattern` without `sh:datatype`** is accepted: D4 places no datatype requirement on it. What string a
-  non-string value is matched against is group 6's question.
+- **Entity references (ruling Q17).** On a path mapped to a pack predicate whose `data_type` is `entity_id`, every
+  constraint other than `sh:minCount` and `sh:maxCount` fails: `sh:datatype`, the four bounds, `sh:pattern`, and
+  `sh:in`, each named with its shape and path. The check follows the mapped pack predicate, not `sh:datatype`, and
+  it replaces the other checks on those constructs, so each gets exactly one issue (the datatype-conflict check
+  skips such paths). `sh:severity` and `sh:message` stay accepted: they constrain no value. The first version
+  accepted `sh:pattern` there whenever `sh:datatype` was absent (issue #13, from Codex's review of `feae567`).
+- **`sh:pattern` on other predicates without `sh:datatype`** is accepted: outside Q17, D4 and D10 place no datatype
+  requirement on it. What string a non-string value is matched against is group 6's question.
+- **The same class elsewhere.** Swept for other datatype-specific rules checked only when `sh:datatype` is present.
+  Bounds (D8) require `sh:datatype` `xsd:integer` or `xsd:double` and fail without it; `sh:in` (D11) requires
+  `sh:datatype xsd:string` and fails without it. A shape datatype that disagrees with the pack `data_type` fails in
+  the fill (D5). Q17 was the only gap.
 
 ## 5.4 The regex subset
 
@@ -208,3 +218,8 @@ The grammar is XSD 1.0 Second Edition Appendix F with F&O 3.1 §5.6.1's changes,
 - **5.9:** `TestSHACLCompilerOutputsValidPackAndContracts` and `TestCompileIgnoresRegistrations`. Seeded, each
   reverted: Compile calling `vocabulary.RegisterEntityType("seed.leak")` fails the first ("the entity-type registry
   changed"); Compile adding `LookupEntityTypesByClassIRI` results to a class's closure fails the second.
+- **Issue #13:** `TestEntityIDCardinalityOnly` compiles, through `ParseTurtle` and `Compile`, a property on an
+  `entity_id` predicate with each of `sh:pattern`, `sh:in`, the four bounds, and `sh:datatype`. Each must fail with
+  exactly one issue naming the construct, shape, and path; cardinality with severity and message must compile.
+  Fail-before at `feae567`: the pattern case returned a bundle, and the other six had no Q17 issue (bounds and
+  `sh:in` failed for a missing datatype, `sh:datatype` as a pack conflict).

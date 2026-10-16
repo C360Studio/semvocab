@@ -232,11 +232,15 @@ type mappingIndex struct {
 	classTypes map[string][]string // class IRI → domain types
 	predicate  map[string]string   // path IRI → dotted predicate
 	mapped     map[string]bool     // every domain type a row lists
+	entityID   map[string]bool     // path IRI → mapped to an entity_id pack predicate
 	ignored    []string            // closed_ignored_predicates
 }
 
 func (c *compiler) indexMapping(pack vocabulary.PackSpec, m Mapping) mappingIndex {
-	idx := mappingIndex{classTypes: map[string][]string{}, predicate: map[string]string{}, mapped: map[string]bool{}}
+	idx := mappingIndex{
+		classTypes: map[string][]string{}, predicate: map[string]string{}, mapped: map[string]bool{},
+		entityID: map[string]bool{},
+	}
 	packTypes := map[string]vocabulary.EntityTypeSpec{}
 	for _, et := range pack.EntityTypes {
 		packTypes[et.DomainType] = et
@@ -290,6 +294,7 @@ func (c *compiler) indexMapping(pack vocabulary.PackSpec, m Mapping) mappingInde
 			continue
 		}
 		idx.predicate[row.PathIRI] = row.Name
+		idx.entityID[row.PathIRI] = packPreds[row.Name].DataType == vocabulary.DataTypeEntityID
 		switch p, ok := packPreds[row.Name]; {
 		case !ok:
 			c.add("", row.PathIRI, "predicates", "path %s maps to %s, which the pack does not declare", row.PathIRI, row.Name)
@@ -412,6 +417,14 @@ func (c *compiler) compileProperty(ns NodeShape, p PropertyShape, idx mappingInd
 		}
 	}
 
+	// Entity references take cardinality only (ruling Q17, design D8): the
+	// check follows the mapped pack predicate, not sh:datatype, and replaces
+	// every other check on those constructs, so each gets one issue.
+	if idx.entityID[p.Path] {
+		c.entityIDConstraints(shape, p)
+		return cp
+	}
+
 	// Datatype (design D8).
 	if p.Datatype != "" {
 		if _, ok := datatypeTable[p.Datatype]; !ok {
@@ -462,6 +475,24 @@ func (c *compiler) compileProperty(ns NodeShape, p PropertyShape, idx mappingInd
 		cp.In = &in
 	}
 	return cp
+}
+
+// entityIDConstraints reports each non-cardinality constraint on a property
+// shape whose path maps to an entity_id predicate.
+func (c *compiler) entityIDConstraints(shape string, p PropertyShape) {
+	for _, k := range []struct {
+		name    string
+		present bool
+	}{
+		{"datatype", p.Datatype != ""}, {"minInclusive", p.MinInclusive != nil}, {"maxInclusive", p.MaxInclusive != nil},
+		{"minExclusive", p.MinExclusive != nil}, {"maxExclusive", p.MaxExclusive != nil},
+		{"pattern", p.Pattern != nil}, {"in", p.In != nil},
+	} {
+		if k.present {
+			c.add(shape, p.Path, shNS+k.name,
+				"the path maps to an entity_id predicate, which takes cardinality constraints only (ruling Q17)")
+		}
+	}
 }
 
 // bound checks one numeric bound: its property needs an sh:datatype of
@@ -552,7 +583,8 @@ func (c *compiler) fillDatatypes(pack vocabulary.PackSpec, shapes ShapeSet, idx 
 	for _, ns := range shapes.NodeShapes {
 		for _, p := range ns.Properties {
 			name, ok := idx.predicate[p.Path]
-			if _, known := datatypeTable[p.Datatype]; !ok || !known {
+			// An entity_id path's sh:datatype is already its Q17 issue.
+			if _, known := datatypeTable[p.Datatype]; !ok || !known || idx.entityID[p.Path] {
 				continue
 			}
 			implied[name] = append(implied[name], use{propShape(ns, p), p.Path, p.Datatype})
