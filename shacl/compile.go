@@ -179,8 +179,12 @@ func (c *compiler) add(shape, path, construct, format string, args ...any) {
 // in a *CompileError, and then returns no bundle. It neither reads nor writes
 // SemEngine's registries: the checks it borrows are SemEngine's pure ones,
 // (*PackSpec).Validate (vocabulary/pack.go:180-186), contract.ValidateShape
-// (pkg/projection/contract/contract.go:63-69), and ValidateEntityIDPattern
-// (pkg/types/entity_id.go:158-163), all at v0.1.0-alpha.2.
+// (pkg/projection/contract/contract.go:63-69), which checks the entity
+// pattern with ValidateEntityIDPattern (:75) and predicates with
+// IsValidPredicate (:134), and IsValidPredicate for
+// closed_ignored_predicates, all at v0.1.0-alpha.2. Validate and
+// IsValidPredicate fill SemEngine's predicate-parse memo
+// (vocabulary/predicate_contract.go:85-142), which is not a registry.
 func Compile(pack vocabulary.PackSpec, shapes ShapeSet, m Mapping) (*Bundle, error) {
 	c := &compiler{}
 	for _, r := range shapes.rejections {
