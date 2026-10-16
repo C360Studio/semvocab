@@ -1,8 +1,9 @@
 // Package diekm is the DIEKM vocabulary pack: the intel.platform and
 // intel.observation entity types and the intel.role.assigned and
 // intel.measurement.altitude-m predicates with their ontology projections,
-// over BFO 2020 and CCO v2.2. diekm.yaml is the pack and diekm.shacl.ttl its
-// initial SHACL shapes; both are embedded.
+// over BFO 2020 and CCO v2.2. diekm.yaml is the pack, diekm.shacl.ttl its
+// initial SHACL shapes, and diekm.mapping.yaml the mapping that binds the
+// shapes to the pack for the shacl compiler; all three are embedded.
 //
 // https://w3id.org/c360/diekm# is a C360-local vocabulary. It is not an
 // externally registered or certified ontology, and its IRIs do not
@@ -19,7 +20,7 @@ package diekm
 
 import (
 	"bytes"
-	_ "embed" // embeds diekm.yaml and diekm.shacl.ttl
+	_ "embed" // embeds diekm.yaml, diekm.shacl.ttl, and diekm.mapping.yaml
 	"fmt"
 
 	"github.com/c360studio/semengine/vocabulary"
@@ -31,6 +32,8 @@ var (
 	packYAML []byte
 	//go:embed diekm.shacl.ttl
 	shapesTurtle []byte
+	//go:embed diekm.mapping.yaml
+	mappingYAML []byte
 )
 
 // Spec decodes the embedded pack with SemEngine's strict YAML loader. It
@@ -62,8 +65,16 @@ func Register(opts ...vocabulary.PackOption) error {
 	return nil
 }
 
-// Shapes returns a copy of the embedded SHACL shapes (Turtle). Phase 2 of
-// semvocab#1 compiles them; nothing in SemVocab evaluates them yet.
+// Shapes returns a copy of the embedded SHACL shapes (Turtle), which
+// shacl.ParseTurtle reads and shacl.Compile compiles with Mapping.
 func Shapes() []byte {
 	return bytes.Clone(shapesTurtle)
+}
+
+// Mapping returns a copy of the embedded mapping document (YAML) that binds
+// Shapes to Spec: decode it with shacl.DecodeMappingYAML and pass it to
+// shacl.Compile with Spec and the parsed Shapes. Owner ruling Q23 on
+// semvocab#1 fixes the intel.platform contract it declares.
+func Mapping() []byte {
+	return bytes.Clone(mappingYAML)
 }

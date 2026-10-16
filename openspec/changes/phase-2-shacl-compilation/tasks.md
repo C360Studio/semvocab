@@ -41,14 +41,14 @@ to `design.md` in this change.
       state. The #1 cases pass: omitted maximum, `maxCount 0`, `maxCount 1`, invalid bounds, empty and typed
       enumeration.
 - [x] 5.4 The regex subset compiler accepts and rejects as D10 states, and agrees with the W3C pattern cases.
-- [ ] 5.5 Closed shapes follow D12, including the `rdf:type` rule.
-- [ ] 5.6 Mapping rules follow D5 and D6: explicit bindings, `iri` agreement, closure-checked targeting, datatype
+- [x] 5.5 Closed shapes follow D12, including the `rdf:type` rule.
+- [x] 5.6 Mapping rules follow D5 and D6: explicit bindings, `iri` agreement, closure-checked targeting, datatype
       fill and conflict. Several shapes on one class keep all constraints. Conflicting mappings fail.
-- [ ] 5.7 Contracts follow D7: pattern, explicit modes and birth, conflicting modes fail, every constrained predicate
+- [x] 5.7 Contracts follow D7: pattern, explicit modes and birth, conflicting modes fail, every constrained predicate
       in the contract, sorted names, the `Unwritable()` list. Each contract passes `ValidateShape`.
-- [ ] 5.8 `packs/diekm/diekm.mapping.yaml` binds the DIEKM shapes. The DIEKM bundle compiles, and its pattern matches
+- [x] 5.8 `packs/diekm/diekm.mapping.yaml` binds the DIEKM shapes. The DIEKM bundle compiles, and its pattern matches
       `acme.edge.sensor.intel.platform.p1` and rejects `acme.edge.intel.other.platform.p1`.
-- [ ] 5.9 `TestSHACLCompilerOutputsValidPackAndContracts` passes. The compiled pack passes `(*PackSpec).Validate`.
+- [x] 5.9 `TestSHACLCompilerOutputsValidPackAndContracts` passes. The compiled pack passes `(*PackSpec).Validate`.
       Global registry and prefix state are asserted unchanged after a successful and a failed compile. An unrelated
       registration between two compiles leaves the bundles equal (D14)
 

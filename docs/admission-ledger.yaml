@@ -432,7 +432,7 @@ entries:
   - pack: diekm
     disposition: new-content
     phase: 1
-    files: [packs/diekm/diekm.yaml, packs/diekm/diekm.shacl.ttl]
+    files: [packs/diekm/diekm.yaml, packs/diekm/diekm.shacl.ttl, packs/diekm/diekm.mapping.yaml]
     namespace:
       iri: https://w3id.org/c360/diekm#
       authority: C360 (local)
@@ -457,6 +457,7 @@ entries:
       Q4: "Information Bearing Entity hop via BFO_0000084 (generically depends on) → cco:ont00000253"
       Q4b: "altitude terminal value predicate is diekm:altitudeMetersValue on the Information Bearing Entity, not the deprecated cco:ont00001769"
       Q5: namespace stays local and unregistered
+      Q23: "diekm.mapping.yaml: intel.platform contract with groups measurement and role, both reconcile, no birth predicates"
     license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio"
     test_oracle: >-
       superclass sets equal the cco-2.2 asserted closure plus the recorded local assertion and its closure; every IRI

@@ -101,6 +101,74 @@ The grammar is XSD 1.0 Second Edition Appendix F with F&O 3.1 §5.6.1's changes,
 - **Anchors.** Go's `$` without the `m` flag matches only at the end of the text, which is F&O's string mode
   ("`$` matches the end of the entire string", §5.6.1.1). The test checks that `a$` does not match `"bra\n"`.
 
+## 5.5 Closed shapes
+
+- The allowed set of a closed shape is the dotted predicates its own paths map to, the `sh:ignoredProperties` IRIs
+  that have a `predicates` row, and every `closed_ignored_predicates` entry. An ignored IRI with no row (`rdf:type`,
+  or any IRI the pack does not map) allows nothing in native state, because no native predicate stands for it.
+- `closed_ignored_predicates` entries must pass SemEngine's `IsValidPredicate`. They need not be in the pack: they
+  name native predicates a closed shape tolerates, which another pack may declare.
+- `sh:ignoredProperties` on a shape that is not closed is accepted and has no effect, as in SHACL §4.8.1.
+- The `rdf:type` rule's message cites the W3C case it follows. The test also compiles the vendored
+  `core/node/closed-001` with no adapter and requires the rule to reject it. Task 6.3's adapter cannot run that case
+  as a passing case for this reason; that is design D12's declared consequence.
+
+## 5.6 Mapping rules
+
+- **Duplicates.** A `class_iri` or `path_iri` with two rows fails, whether or not the rows agree ("conflicting
+  mappings"). A domain type listed twice for one class fails.
+- **Unused rows.** A `predicates` or `entity_types` row that no shape uses is accepted. It drops no constraint, and
+  an unused `predicates` row can still serve `sh:ignoredProperties`. Rows are still checked against the pack:
+  every `predicates` row must name a pack predicate whose `iri` equals the path, and every `entity_types` row must
+  list exactly its class's closure.
+- **Mapped entity types** are every domain type any `entity_types` row lists, targeted or not. They are the types
+  `Unwritable()` draws from.
+- **Datatype fill.** Only shape datatypes in the D8 table take part; another datatype is already an issue. A
+  conflict between two shapes is reported on the later shape in document order (sorted by node shape IRI, then
+  path), naming the first. A conflict with the base pack is reported on every disagreeing shape.
+- **The compiled pack** is a deep copy of the base pack (prefixes, predicates with their projection steps, entity
+  types with their superclasses), so neither the caller's pack nor the bundle can be changed through the other.
+  `Pack()` returns a further copy.
+
+## 5.7 Contracts
+
+- **Groups.** An unnamed group takes the category of its predicates when they all share one, and fails otherwise.
+  Two declarations of one group name with one mode are merged; with different modes they fail. A predicate listed
+  twice in one group counts once. A predicate in two different groups fails, as does one in birth and in a group.
+  These are the conditions `ValidateShape` would reject (`contract.go:96-127`), reported with their names first.
+- **Bindings.** A contract binding for a domain type no `entity_types` row lists fails, because its contract would
+  otherwise be dropped. Two bindings for one domain type fail. Two contracts with the same name fail: SemEngine's
+  `ValidateContracts` requires unique names (`contract.go:144-149`), though the compiler does not call it,
+  because it calls `Validate`, which reads the registry (`:151`, `:130-133`).
+- **Unwritable.** A mapped type with no binding and no constrained predicate, and a type whose binding declares no
+  predicate, are both unwritable. A type with constrained predicates and no binding fails by ruling Q19.
+- **Declared predicates.** Each contract predicate must be declared in the compiled pack, which replaces
+  `Contract.Validate`'s registry lookup (`contract.go:130-133`).
+
+## 5.8 DIEKM
+
+- `packs/diekm/diekm.mapping.yaml` is embedded and returned by `diekm.Mapping()`, a copy of the bytes, like
+  `Shapes()`. It returns bytes rather than a `shacl.Mapping` because `shacl`'s own tests import `packs/diekm`, so
+  `packs/diekm` importing `shacl` would make an import cycle in those tests. The caller is
+  `TestDIEKMBundle` and `TestSHACLCompilerOutputsValidPackAndContracts`; a consumer compiles DIEKM with `Spec()`,
+  `Shapes()`, and `Mapping()`.
+- The contract has no explicit name, so it is named `intel.platform` (D7). The groups are named explicitly though
+  their defaults would be the same, so the file reads as ruling Q23 does.
+- The ledger's `diekm` entry lists the new file and ruling Q23.
+
+## 5.9 Registry state
+
+- The tests are in the external test package `shacl_test` (`shacl/diekm_test.go`), so they use only the exported
+  API. They share the shacl test binary, whose other tests never touch the registries.
+- **Observed state.** Every registered predicate and entity type with its metadata, and the Turtle output for a probe
+  triple in the DIEKM namespace, which shows whether the `diekm` prefix compacts. This is the observation
+  `packs/registration_test.go` already uses.
+- **The failed compile** drops the first `predicates` row, so the altitude path is unmapped.
+- **The unrelated pack** in `TestCompileIgnoresRegistrations` has names unique to each call, because `test:repeat`
+  runs the test five times in one process. It reuses DIEKM's class IRI and altitude path IRI, so a compiler that
+  consulted `LookupEntityTypesByClassIRI` or `LookupByIRI` would see it. The test asserts that the predicate, the
+  entity type, and the prefix took effect before the second compile.
+
 ## Evidence
 
 - **5.1:** `TestProfileClassifiesEveryTerm` and `TestProfileClassifiesEveryTermSensitivity`. Fail-before: with
@@ -127,3 +195,16 @@ The grammar is XSD 1.0 Second Edition Appendix F with F&O 3.1 §5.6.1's changes,
   - the category-name check off: `\p{Cs}`, `\p{Greek}`, and `\P{Latin}` are accepted and the test fails;
   - the class-subtraction check off: the error names `-`, not `-[`, and the test fails;
   - the repetition limit off: RE2's own error does not name the count, and the test fails.
+- **5.5:** `TestClosedShapes`. Seeded, each reverted: the `rdf:type` check off, and the allowed set without
+  `closed_ignored_predicates`; the test fails on each.
+- **5.6:** `TestMappingRules` (explicit bindings, `iri` agreement, conflicting mappings, closure-checked targeting,
+  datatype fill and conflict, several shapes on one class, the pack copy). Seeded, each reverted: the "does not list"
+  closure check off, the `iri` check off, and the two-shape datatype conflict off; the test fails on each.
+- **5.7:** `TestContracts`. Seeded, each reverted: the Q19 check off, the mode-conflict check off, contracts left
+  unsorted, and `Unwritable()` always empty; the test fails on each.
+- **5.8:** `TestDIEKMBundle`, which also checks that the DIEKM shapes in Turtle, JSON, and YAML compile to equal
+  bundles. Seeded, each reverted: the pattern built as `*.*.<domain>.<type>.*.*`, and the role group's mode changed to
+  `append` in the mapping file; the test fails on each.
+- **5.9:** `TestSHACLCompilerOutputsValidPackAndContracts` and `TestCompileIgnoresRegistrations`. Seeded, each
+  reverted: Compile calling `vocabulary.RegisterEntityType("seed.leak")` fails the first ("the entity-type registry
+  changed"); Compile adding `LookupEntityTypesByClassIRI` results to a class's closure fails the second.
