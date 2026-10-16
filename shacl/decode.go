@@ -56,8 +56,8 @@ var nonStringKeys = map[string]bool{"min_count": true, "max_count": true, "close
 
 // DecodeShapesJSON decodes SemVocab's JSON shape form. It refuses unknown
 // fields, a trailing value, any null, a repeated object key, a numeric bound
-// or other non-string where a string belongs, relative IRIs, a blank-node node shape, a property shape
-// with no path, and a node shape listed twice.
+// or other non-string where a string belongs, relative IRIs, a blank-node
+// node shape, a property shape with no path, and a node shape listed twice.
 func DecodeShapesJSON(r io.Reader) (ShapeSet, error) {
 	var w wireShapeSet
 	if err := decodeJSON(r, &w); err != nil {
@@ -66,10 +66,12 @@ func DecodeShapesJSON(r io.Reader) (ShapeSet, error) {
 	return w.build()
 }
 
-// DecodeShapesYAML decodes SemVocab's YAML shape form with the same rules as
-// DecodeShapesJSON. It also refuses a trailing document, a duplicate key, and
-// any scalar not tagged !!str where a string belongs, such as an unquoted
-// bound (ruling Q28).
+// DecodeShapesYAML decodes SemVocab's YAML shape form. It applies the same
+// rules as DecodeShapesJSON except for null: a null is refused wherever a
+// string belongs, as is any scalar not tagged !!str, such as an unquoted bound
+// (ruling Q28), but a null on min_count, max_count, or closed decodes to the
+// field's zero value, the same as leaving the field out. It also refuses a
+// trailing document and a duplicate key.
 func DecodeShapesYAML(r io.Reader) (ShapeSet, error) {
 	var w wireShapeSet
 	if err := decodeYAML(r, &w); err != nil {
