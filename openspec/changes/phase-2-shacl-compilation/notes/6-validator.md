@@ -36,12 +36,15 @@ are the ones the design leaves open.
   does not declare, or declares with no `data_type`, is typed by observation, as export types an undeclared
   predicate (`object.go:98-106`). So the type-independent errors (nil, NaN, infinity, an unsupported Go type) are
   raised for every triple, targeted or not, which fails closed.
-- **Hints on a predicate with no `data_type`.** D9 accepts a hint only when it names the datatype the predicate's
-  `data_type` exports as, or `@id` on an `entity_id` predicate. With no `data_type` in the bundle there is no such
-  datatype, so every hint there is an input error, including `@id` on another pack's entity reference. That reading
-  is the design's text and fails closed. It means a consumer must pass only the bundle's predicates when its entity
-  state carries hinted triples from other packs, which loses those predicates for closed shapes. This is raised on
-  the pull request as an open question.
+- **Hints on predicates the bundle does not declare (ruling Q29).** The first version refused every hint on a
+  predicate with no `data_type` in the bundle, which made a consumer filter out other packs' hinted triples and lose
+  them for closed shapes. Ruling Q29 (design D9) answers it: on a predicate the bundle's pack does not declare, a
+  hinted triple is accepted, and its term is the one export writes for that hint (`object.go:125-143`). `@id` on a
+  blank-node label or a valid entity ID gives that blank node or IRI, and otherwise falls back to observation; any
+  other hint gives the `%v` lexical form with the expanded hint as datatype, ill-typed or not (`"x"^^xsd:integer`).
+  No shape constrains such a predicate, so only a closed shape sees the term, as a disallowed value. On a predicate
+  the pack declares, including one declared with no `data_type`, the rule in 6.2 is unchanged: a hint there with no
+  datatype to name is an input error.
 - **Distinct terms.** Values are grouped per predicate and deduplicated by term (kind, value, datatype). `int(5)`,
   `float64(5)`, and `uint8(5)` on an `int` predicate are one term, `"5"^^xsd:integer`, as export writes them.
 - **Constraints.** Every property shape of every applicable node shape runs, then each closed shape:
@@ -109,8 +112,8 @@ are the ones the design leaves open.
   is an IRI). The validator accepts a hint only when the hinted term export writes equals the unhinted term, so a
   hint confirms the value's term and never changes it; otherwise it is an input error naming both terms. This keeps
   every accepted term well formed, which is why `sh:datatype` needs no lexical check, and keeps hinted and unhinted
-  triples for one value one term. It refuses the well-typed `"2"^^xsd:double` as well; that is raised on the pull
-  request as an open question. `@id` on an `entity_id` predicate always gives the unhinted term, because export's
+  triples for one value one term. It refuses the well-typed `"2"^^xsd:double` as well. Ruling Q29 keeps this rule
+  for declared predicates. `@id` on an `entity_id` predicate always gives the unhinted term, because export's
   `@id` branch (`object.go:126-136`) and its `entity_id` branch (`:160-168`) agree for every value.
 - **Type-independent errors.** nil, a NaN or infinite `float32` or `float64`, and a Go type outside export's
   observation cases (`string`, `bool`, the integer and float types, `time.Time`) are input errors on every
@@ -134,11 +137,14 @@ are the ones the design leaves open.
 - **Comparison.** Each row is serialized with `export.SerializeToString(…, export.NTriples)`, read back with
   `internal/turtle`, rendered in N-Triples syntax by the test's own renderer, and compared with the validator's
   `Value`.
-- **`TestValueTermsAgreeWithExport`**: 79 rows both accept, covering every P5 row both accept: each `data_type`'s
+- **`TestValueTermsAgreeWithExport`**: 90 rows both accept, covering every P5 row both accept: each `data_type`'s
   Go types, the fall back to the observed type, the 2^53 limit in both signs and 2^54, negative zero, `float32`
   widening, `%g` exponents, time zones and nanoseconds, JSON validity, entity-ID, `http`/`https`/`urn` IRI and
   blank-node strings, the strings export leaves plain (`http://`, a space, `ftp://`, `_:b.`, `_:`, a five-part ID),
-  escapes, and the confirming hints, both as `xsd:` names and as full IRIs.
+  escapes, and the confirming hints, both as `xsd:` names and as full IRIs. Eleven of the rows are ruling Q29's, on
+  `undeclared.value.x`, which neither pack declares (the test asserts it is unregistered): `@id` on an entity ID, a
+  blank-node label, a non-ID string, and an integer; `xsd:integer` as a name and as an IRI; the ill-typed
+  `"x"^^xsd:integer`; `xsd:double`, `xsd:string` on an entity ID, `rdf:JSON`; and no hint.
 - **`TestValueTermDifferencesFromExport`**: 21 rows where the validator returns an input error. It asserts what
   export writes for each: nothing for nil, NaN, and infinities; the `%v` form as a plain string for a struct, a
   slice, a map, a `time.Duration`, and a `*time.Time`; and the hint verbatim for each refused hint.
@@ -196,12 +202,12 @@ The test lists each one with its reason and requires the adapter to find that re
 | `node/closed-001` | the closed shape does not ignore `rdf:type`; Compile rejects it by design D12 |
 | `property/datatype-002`, focus `ex:InvalidInstance1` | its value `"A"@en` is language-tagged, and no Go value exports as `rdf:langString`. The case's other three focus nodes run |
 
-**A declared variant for the bounds.** Without it, no W3C case would check a bound. The three property-level bound
-cases run a second time with `sh:datatype xsd:integer` added to each property shape that has a bound and no
-datatype. Their results are compared with the case file's, leaving out only the `sh:DatatypeConstraintComponent`
+**A declared variant for the bounds (ruling Q30).** Without it, no W3C case would check a bound. The three
+property-level bound cases run a second time with `sh:datatype xsd:integer` added to each property shape that has
+a bound and no datatype. Their results are compared with the case file's, leaving out only the `sh:DatatypeConstraintComponent`
 results the addition causes (for the value `"a"`). The strict runs above stay listed as excluded. `sh:minInclusive`
-has no runnable W3C case; `TestValidateBounds` covers it by hand. This variant is a choice the design does not make,
-and is raised on the pull request.
+has no runnable W3C case; `TestValidateBounds` covers it by hand. The owner kept this variant as it is (ruling Q30,
+design § "Rulings Q29–Q30"); it is a variant, not a run of the case as written.
 
 ### Evidence (6.3)
 
@@ -255,3 +261,23 @@ The validator was written in task 6.1, so fail-before is shown by seeded product
 - `sh:maxCount` off: the same four fail;
 - `sh:minCount` off: `TestBirthMissingRequiredValue` and `TestRebuiltPartialUpdate` fail;
 - every triple counted, not every distinct term: `TestAppendPastStoredMaximum` fails.
+
+## Ruling Q29 (hints on undeclared predicates)
+
+- `valueTerm` takes whether the bundle's pack declares the predicate; on an undeclared predicate a hinted triple goes
+  to `hintedTerm`, export's hint branch restated. The type-independent errors (nil, NaN, infinity, unsupported Go
+  type) still apply to it.
+- **Fail-before.** On 76b2557, `TestValidateUndeclaredHints` (`shacl/validate_test.go`) failed, and the 11 new rows
+  of `TestValueTermsAgreeWithExport` each failed with the old input error ("is accepted only on an entity_id
+  predicate", "names no XSD datatype"). The input-error case "hint on an undeclared predicate" was removed from
+  `TestValidateInputErrors`, since Q29 makes it valid.
+- **Pass-after.** `TestValidateUndeclaredHints` requires a closed shape to report `@id` on another pack's entity ID
+  (as its IRI), `@id` on `not-an-id` (as a plain literal), `42` with `xsd:integer`, and the ill-typed `"x"` with
+  `xsd:integer` each as one `sh:ClosedConstraintComponent` result with that term and an empty path, and a shape that
+  is not closed to report nothing for them. The agreement test makes export the oracle for each term.
+- **Shown able to fail**, each reverted:
+  - `@id` resolved to the bare entity ID instead of its IRI: the agreement test fails;
+  - the hint datatype left unexpanded (`xsd:integer` as written): `TestValidateUndeclaredHints` and the agreement
+    test fail;
+  - Q29's acceptance applied to declared predicates too: four `TestValidateInputErrors` subtests and
+    `TestValueTermDifferencesFromExport` fail.

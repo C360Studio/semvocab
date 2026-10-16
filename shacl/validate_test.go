@@ -96,8 +96,6 @@ func TestValidateInputErrors(t *testing.T) {
 		{"map object", tr("test.prop.q", map[string]any{"a": 1}), "map[string]interface {}"},
 		{"NaN", tr("test.prop.p", math.NaN()), "NaN"},
 		{"float32 infinity", tr("test.prop.q", float32(math.Inf(1))), "+Inf"},
-		{"hint on an undeclared predicate", message.Triple{Subject: focus, Predicate: "other.prop.x", Object: 1,
-			Datatype: "xsd:integer"}, "xsd:integer"},
 		{"hint on a predicate with no data_type", message.Triple{Subject: focus, Predicate: "test.prop.q", Object: 1,
 			Datatype: "xsd:integer"}, "xsd:integer"},
 		{"hint naming another datatype", message.Triple{Subject: focus, Predicate: "test.prop.p", Object: 1,
@@ -335,4 +333,29 @@ func TestValidateDeterministic(t *testing.T) {
 			t.Errorf("permutation %d:\n%s\nwant:\n%s", i, formatResults(got.Results), formatResults(want.Results))
 		}
 	}
+}
+
+// TestValidateUndeclaredHints is ruling Q29: a hinted triple on a predicate
+// the bundle does not declare is accepted, with the term export writes for
+// that hint (vocabulary/export/object.go:120-142 at v0.1.0-alpha.2). A
+// closed shape reports each as a disallowed value with that term; a shape
+// that is not closed ignores them.
+func TestValidateUndeclaredHints(t *testing.T) {
+	hinted := []message.Triple{
+		{Subject: focus, Predicate: "other.prop.a", Object: "acme.edge.sensor.intel.platform.p2",
+			Datatype: message.EntityReferenceDatatype},
+		{Subject: focus, Predicate: "other.prop.b", Object: "not-an-id", Datatype: message.EntityReferenceDatatype},
+		{Subject: focus, Predicate: "other.prop.c", Object: 42, Datatype: "xsd:integer"},
+		{Subject: focus, Predicate: "other.prop.d", Object: "x", Datatype: "xsd:integer"},
+	}
+	closed := mustCompile(t, `ex:S sh:targetClass ex:C ; sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+		sh:property [ sh:path ex:p ] .`)
+	requireResults(t, validate(t, closed, hinted...),
+		res(ex+"S", "", "other.prop.c", "ClosedConstraintComponent", `"42"^^<`+xsd+`integer>`),
+		res(ex+"S", "", "other.prop.b", "ClosedConstraintComponent", `"not-an-id"`),
+		res(ex+"S", "", "other.prop.d", "ClosedConstraintComponent", `"x"^^<`+xsd+`integer>`),
+		res(ex+"S", "", "other.prop.a", "ClosedConstraintComponent", "<"+entityBase+"acme/edge/sensor/intel/platform/p2>"))
+
+	open := mustCompile(t, `ex:S sh:targetClass ex:C ; sh:property [ sh:path ex:p ; sh:maxCount 1 ] .`)
+	requireResults(t, validate(t, open, hinted...))
 }

@@ -110,6 +110,9 @@ func bundles(t *testing.T) map[string]*shacl.Bundle {
 			t.Fatalf("registration: %s has metadata %+v, want data_type %q", pred, md, dt)
 		}
 	}
+	if md := vocabulary.GetPredicateMetadata("undeclared.value.x"); md != nil {
+		t.Fatalf("undeclared.value.x is registered: %+v", md)
+	}
 	return out
 }
 
@@ -296,6 +299,19 @@ func TestValueTermsAgreeWithExport(t *testing.T) {
 		{"agree.value.entity-id", "not-an-id", message.EntityReferenceDatatype},
 		{"agree.value.entity-id", "http://example.org/x", ""},
 		{"agree.value.entity-id", 5, ""},
+		// a predicate no bundle declares, with a hint: export's hint branch
+		// (object.go:120-142), ruling Q29
+		{"undeclared.value.x", ref, message.EntityReferenceDatatype},
+		{"undeclared.value.x", "_:b1", message.EntityReferenceDatatype},
+		{"undeclared.value.x", "not-an-id", message.EntityReferenceDatatype},
+		{"undeclared.value.x", 7, message.EntityReferenceDatatype},
+		{"undeclared.value.x", 42, "xsd:integer"},
+		{"undeclared.value.x", 42, xsd + "integer"},
+		{"undeclared.value.x", "x", "xsd:integer"},
+		{"undeclared.value.x", 1.5, "xsd:double"},
+		{"undeclared.value.x", ref, "xsd:string"},
+		{"undeclared.value.x", `{"a":1}`, "rdf:JSON"},
+		{"undeclared.value.x", instant, ""},
 		// no data_type: observation only (object.go:98-106)
 		{"agree.value.untyped", 42, ""},
 		{"agree.value.untyped", float64(5), ""},

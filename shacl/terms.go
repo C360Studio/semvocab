@@ -72,8 +72,8 @@ var declaredDatatype = map[string]string{
 }
 
 // valueTerm maps one candidate triple's object to its term. dataType is the
-// predicate's data_type in the bundle's pack, empty when the pack declares
-// none or does not declare the predicate.
+// predicate's data_type in the bundle's pack, and isDeclared says whether
+// the pack declares the predicate at all.
 //
 // It returns an error, where export would write nothing or something else
 // (probe P5 in notes/1-probes.md), for: a nil object, a NaN or infinite
@@ -84,9 +84,15 @@ var declaredDatatype = map[string]string{
 // any hint verbatim, object.go:138-142). An accepted hint must also leave the
 // term unchanged: export writes a hinted value's %v form, which can differ
 // from the term the data_type gives (notes/6-validator.md).
-func valueTerm(dataType string, t message.Triple) (term, error) {
+//
+// On a predicate the pack does not declare, any hint is accepted and the
+// term is the one export writes for it (ruling Q29; hintedTerm).
+func valueTerm(dataType string, isDeclared bool, t message.Triple) (term, error) {
 	if err := checkObject(t.Object); err != nil {
 		return term{}, err
+	}
+	if !isDeclared && t.Datatype != "" {
+		return hintedTerm(t), nil
 	}
 	declared := classify(dataType, t.Object)
 	if t.Datatype == "" {
@@ -115,6 +121,25 @@ func valueTerm(dataType string, t message.Triple) (term, error) {
 			t.Datatype, hinted, dataType, declared)
 	}
 	return declared, nil
+}
+
+// hintedTerm is export's hint branch, object.go:125-143: @id on a
+// blank-node label or a valid entity ID gives that blank node or IRI, and
+// otherwise falls back to observation; any other hint gives the %v lexical
+// form with the hint, expanded, as datatype, ill-typed or not.
+func hintedTerm(t message.Triple) term {
+	if t.Datatype == message.EntityReferenceDatatype {
+		if s, ok := t.Object.(string); ok {
+			if isBlankNodeLabel(s) {
+				return term{kind: termBlank, value: s}
+			}
+			if message.IsValidEntityID(s) {
+				return term{kind: termIRI, value: export.SubjectIRI(s, "")}
+			}
+		}
+		return classifyObserved(t.Object)
+	}
+	return term{kind: termLiteral, value: fmt.Sprintf("%v", t.Object), datatype: expandDatatype(t.Datatype)}
 }
 
 // checkObject refuses the values D9 makes input errors whatever the

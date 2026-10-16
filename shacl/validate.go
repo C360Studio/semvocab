@@ -92,7 +92,8 @@ func (b *Bundle) ValidateCandidateState(entityID string, triples []message.Tripl
 			errs = append(errs, fmt.Sprintf("triple %q: %v", t.Predicate, err))
 			continue
 		}
-		v, err := valueTerm(b.dataTypes[t.Predicate], t)
+		dataType, declared := b.dataTypes[t.Predicate]
+		v, err := valueTerm(dataType, declared, t)
 		if err != nil {
 			errs = append(errs, fmt.Sprintf("triple %s: %v", t.Predicate, err))
 			continue
