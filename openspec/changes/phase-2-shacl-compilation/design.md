@@ -255,15 +255,19 @@ Phase 3 results can agree:
   `float64` 1.5 on an `int` predicate becomes an `xsd:double` value that fails `sh:datatype xsd:integer`.
 - On a `string` predicate, a string that is a valid entity ID, an absolute IRI, or a blank-node label is an IRI or
   blank node in export (`object.go:151-157`, `341-365`). It therefore fails `sh:datatype xsd:string`.
-- A triple with a `Datatype` hint is accepted only when the hint names the XSD datatype the predicate's `data_type`
-  exports as, or `@id` on an `entity_id` predicate.
+- On a predicate the bundle declares, a triple with a `Datatype` hint is accepted only when the hint names the XSD
+  datatype the predicate's `data_type` exports as, or `@id` on an `entity_id` predicate.
+- On a predicate the bundle does not declare (another pack's), a hinted triple is accepted and its term is the one
+  export writes with that hint: `@id` on a valid entity ID or blank-node label gives that IRI or blank node, and any
+  other hint gives the `%v` lexical form with the hint as its datatype (`object.go:120-142`) (Q29). Such a predicate
+  carries no constraint of its own, so the term matters only to closed shapes, which see it as a disallowed value.
 
-Each of these is checked against SemEngine's serializer by D15's agreement test. A nil object, an unsupported Go
-type, NaN or infinity, or any other hint is an input error, not a violation. This is a deliberate difference from
-export: at the pin, export silently drops a triple whose object is nil, NaN, or infinite, writes an unsupported Go
-value (a struct) as a plain string from its `%v` form, and writes any `Datatype` hint verbatim, even an ill-typed one
-such as `"x"^^xsd:integer` (probe P5). The agreement test covers only the rows both accept, and asserts the
-difference for these rows.
+Each of these is checked against SemEngine's serializer by D15's agreement test. A nil object, an unsupported Go type,
+NaN or infinity, or any other hint on a declared predicate is an input error, not a violation. This is a deliberate
+difference from export: at the pin, export silently drops a triple whose object is nil, NaN, or infinite, writes an
+unsupported Go value (a struct) as a plain string from its `%v` form, and writes any `Datatype` hint verbatim, even an
+ill-typed one such as `"x"^^xsd:integer` (probe P5). The agreement test covers only the rows both accept, and asserts
+the difference for these rows.
 
 ### D10. Regex subset (Q15)
 
@@ -496,3 +500,13 @@ Raised by the developer during task 3.1: the size cap as first written in D2 con
   `Compile` as D15 requires.
 - **Q28 YAML strings:** the YAML form requires the `!!str` tag on every string scalar, not only on bounds, so
   `in: [1]` is rejected rather than coerced to `"1"` (probe P3).
+
+### Rulings Q29–Q30 (owner, 2026-10-16, during task group 6)
+
+- **Q29 Hints on undeclared predicates:** a hinted triple on a predicate the bundle does not declare is accepted with
+  the term export writes for that hint, so a consumer need not filter other packs' hinted triples and closed shapes
+  still see them (D9). Rejected: refusing them as input errors, which made callers filter them out; ignoring them
+  except in closed-shape checks.
+- **Q30 W3C bound coverage:** keep the declared variant of task 6.3 that re-runs `property/minExclusive-001`,
+  `maxExclusive-001`, and `maxInclusive-001` with `sh:datatype xsd:integer` added, compared against the case files'
+  results minus the datatype results the addition causes. The strict runs stay listed as excluded under D8.
