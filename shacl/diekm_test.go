@@ -237,3 +237,77 @@ func TestCompileIgnoresRegistrations(t *testing.T) {
 		t.Error("a registration between two compiles changed the bundle")
 	}
 }
+
+// TestValidateReadsNoRegistry is design D13's purity, from the outside:
+// validation leaves SemEngine's registry and prefix state unchanged, and a
+// registration between two validations that gives the bundle's predicate
+// another data_type leaves the report unchanged. A validator that typed
+// values from the registry, as export does (vocabulary/export/object.go:99
+// at v0.1.0-alpha.2), would write float64 5 as "5.0"^^xsd:double there, which
+// fails sh:datatype xsd:integer.
+func TestValidateReadsNoRegistry(t *testing.T) {
+	n := invocation.Add(1)
+	pred := fmt.Sprintf("vprobe.meta.count%d", n)
+	path := fmt.Sprintf("http://example.org/vprobe%d#count", n)
+	class := fmt.Sprintf("http://example.org/vprobe%d#Thing", n)
+	shapes, err := shacl.ParseTurtle(strings.NewReader(fmt.Sprintf(
+		"<%s#S> <http://www.w3.org/ns/shacl#targetClass> <%s> ; <http://www.w3.org/ns/shacl#property> [ "+
+			"<http://www.w3.org/ns/shacl#path> <%s> ; "+
+			"<http://www.w3.org/ns/shacl#datatype> <http://www.w3.org/2001/XMLSchema#integer> ] .", class, class, path)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := shacl.Compile(vocabulary.PackSpec{
+		Name:        fmt.Sprintf("vprobe%d", n),
+		Predicates:  []vocabulary.PredicateSpec{{Name: pred, IRI: path}},
+		EntityTypes: []vocabulary.EntityTypeSpec{{DomainType: "vprobe.thing", ClassIRI: class}},
+	}, shapes, shacl.Mapping{
+		EntityTypes: []shacl.EntityTypeBinding{{ClassIRI: class, DomainTypes: []string{"vprobe.thing"}}},
+		Predicates:  []shacl.PredicateBinding{{PathIRI: path, Name: pred}},
+		Contracts: []shacl.ContractBinding{{DomainType: "vprobe.thing",
+			Groups: []shacl.GroupBinding{{Mode: contract.ModeReconcile, Predicates: []string{pred}}}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const id = "acme.edge.sensor.vprobe.thing.t1"
+	candidate := []message.Triple{{Subject: id, Predicate: pred, Object: float64(5)}}
+
+	before := observe(t)
+	first, err := b.ValidateCandidateState(id, candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !first.Targeted || !first.Conforms {
+		t.Fatalf("first report = %+v, want targeted and conforming", first)
+	}
+	if _, err := b.ValidateCandidateState(id, []message.Triple{{Subject: id, Predicate: pred, Object: nil}}); err == nil {
+		t.Fatal("a nil object validated")
+	}
+	after := observe(t)
+	if !reflect.DeepEqual(before, after) {
+		t.Fatal("validation changed SemEngine's registry or prefix state")
+	}
+
+	err = vocabulary.RegisterPack(vocabulary.PackSpec{
+		Name:       fmt.Sprintf("vprobe-other%d", n),
+		Predicates: []vocabulary.PredicateSpec{{Name: pred, IRI: path, DataType: vocabulary.DataTypeFloat}},
+	}, vocabulary.WithPrefixRegistrar(export.RegisterPrefixes))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if md := vocabulary.GetPredicateMetadata(pred); md == nil || md.DataType != vocabulary.DataTypeFloat {
+		t.Fatalf("registration did not take effect: %+v", md)
+	}
+	registered := observe(t)
+	second, err := b.ValidateCandidateState(id, candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Errorf("a registration between two validations changed the report:\nfirst  %+v\nsecond %+v", first, second)
+	}
+	if !reflect.DeepEqual(registered, observe(t)) {
+		t.Error("validation changed SemEngine's registry or prefix state")
+	}
+}

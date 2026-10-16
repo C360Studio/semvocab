@@ -87,6 +87,10 @@ type Bundle struct {
 	// shapes holds, per entity type, every node shape that applies to it
 	// through the mapping, sorted by node shape IRI.
 	shapes map[string][]compiledNodeShape
+	// dataTypes and iris give each pack predicate's data_type and iri, for
+	// the validator's value terms (design D9) and closed-shape paths.
+	dataTypes map[string]string
+	iris      map[string]string
 }
 
 // Pack returns a copy of the compiled pack: the base pack in its original
@@ -204,7 +208,15 @@ func Compile(pack vocabulary.PackSpec, shapes ShapeSet, m Mapping) (*Bundle, err
 		})
 		return nil, &CompileError{Issues: slices.Compact(c.issues)}
 	}
-	return &Bundle{pack: out, contracts: contracts, unwritable: unwritable, shapes: compiled}, nil
+	b := &Bundle{pack: out, contracts: contracts, unwritable: unwritable, shapes: compiled,
+		dataTypes: map[string]string{}, iris: map[string]string{}}
+	for _, p := range out.Predicates {
+		b.dataTypes[p.Name] = p.DataType
+		if p.IRI != "" {
+			b.iris[p.Name] = p.IRI
+		}
+	}
+	return b, nil
 }
 
 // rejectionMessage words a parser record by the profile's classification of
