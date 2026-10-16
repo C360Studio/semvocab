@@ -398,15 +398,17 @@ func (g *graph) in(shape, path string, head turtle.Term) *[]string {
 
 // list reads a well-formed RDF list: blank cells, each with exactly one
 // rdf:first and one rdf:rest and nothing else, ending at rdf:nil, with no
-// cycle. Its cells are consumed. A malformed list consumes nothing, and the
-// caller records it.
+// cycle. Cycle detection is local to this walk; the cells are then marked
+// consumed for triple accounting only, so a list read again (a named property
+// shape used by several node shapes) reads the same way. A malformed list
+// consumes nothing, and the caller records it.
 func (g *graph) list(head turtle.Term) ([]turtle.Term, bool) {
 	var items []turtle.Term
 	var cells []turtle.Term
 	visited := map[turtle.Term]bool{}
 	for cur := head; !(cur.Kind == turtle.IRI && cur.Value == rdfNil); {
 		ts := g.bySubject[cur]
-		if cur.Kind != turtle.Blank || visited[cur] || g.consumed[cur] || len(ts) != 2 {
+		if cur.Kind != turtle.Blank || visited[cur] || len(ts) != 2 {
 			return nil, false
 		}
 		visited[cur] = true

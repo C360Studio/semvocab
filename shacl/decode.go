@@ -99,7 +99,22 @@ func DecodeMappingYAML(r io.Reader) (Mapping, error) {
 }
 
 func decodeJSON(r io.Reader, out any) error {
-	dec := json.NewDecoder(r)
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	// encoding/json decodes null into a string as "" (in a list) or leaves
+	// the field unset, so a null is refused before the struct decode. Every
+	// field of both forms is a string, a number, a boolean, or a list or
+	// object of them; none takes null. YAML refuses null through the !!str
+	// check.
+	var tree any
+	if json.Unmarshal(data, &tree) == nil {
+		if where, ok := findNull(tree, "$"); ok {
+			return fmt.Errorf("%s is null; omit the field or give a value", where)
+		}
+	}
+	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(out); err != nil {
 		return err
@@ -109,6 +124,33 @@ func decodeJSON(r io.Reader, out any) error {
 		return errors.New("trailing data after the document")
 	}
 	return nil
+}
+
+// findNull returns the JSON path of the first null in v, visiting object
+// keys in sorted order so the reported path does not depend on map order.
+func findNull(v any, path string) (string, bool) {
+	switch v := v.(type) {
+	case nil:
+		return path, true
+	case []any:
+		for i, e := range v {
+			if p, ok := findNull(e, fmt.Sprintf("%s[%d]", path, i)); ok {
+				return p, true
+			}
+		}
+	case map[string]any:
+		keys := make([]string, 0, len(v))
+		for k := range v {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
+			if p, ok := findNull(v[k], path+"."+k); ok {
+				return p, true
+			}
+		}
+	}
+	return "", false
 }
 
 func decodeYAML(r io.Reader, out any) error {

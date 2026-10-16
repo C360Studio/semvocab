@@ -417,3 +417,101 @@ func TestDecodeShapesRefuses(t *testing.T) {
 		})
 	}
 }
+
+// TestNamedPropertyShapeSharedByTwoNodeShapes keeps a named property shape's
+// sh:in on every node shape that uses it, in either statement order (review
+// of 3833987, finding 1). A cyclic or malformed list is still recorded.
+func TestNamedPropertyShapeSharedByTwoNodeShapes(t *testing.T) {
+	const p = `ex:P sh:path ex:p ; sh:datatype xsd:string ; sh:in ("a" "b") .` + "\n"
+	const a = "ex:A a sh:NodeShape ; sh:targetClass ex:C ; sh:property ex:P .\n"
+	const b = "ex:B a sh:NodeShape ; sh:targetClass ex:D ; sh:property ex:P .\n"
+	want := []string{"a", "b"}
+	for name, body := range map[string]string{"A first": p + a + b, "B first": b + a + p} {
+		t.Run(name, func(t *testing.T) {
+			got, err := ParseTurtle(strings.NewReader(prefix + body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got.rejections) != 0 {
+				t.Fatalf("rejections:\n%s", formatRejections(got.rejections))
+			}
+			for _, ns := range got.NodeShapes {
+				if in := ns.Properties[0].In; in == nil || !reflect.DeepEqual(*in, want) {
+					t.Errorf("%s: In = %v, want %v", ns.ID, in, want)
+				}
+			}
+		})
+	}
+	bad := map[string]string{
+		"cycle":     "ex:P sh:path ex:p ; sh:in _:c1 .\n_:c1 rdf:first \"a\" ; rdf:rest _:c2 .\n_:c2 rdf:first \"b\" ; rdf:rest _:c1 .\n",
+		"no rest":   "ex:P sh:path ex:p ; sh:in _:c1 .\n_:c1 rdf:first \"a\" .\n",
+		"extra arc": "ex:P sh:path ex:p ; sh:in _:c1 .\n_:c1 rdf:first \"a\" ; rdf:rest rdf:nil ; ex:x ex:y .\n",
+	}
+	for name, list := range bad {
+		t.Run(name, func(t *testing.T) {
+			got, err := ParseTurtle(strings.NewReader(prefix + list + a + b))
+			if err != nil {
+				t.Fatal(err)
+			}
+			requireRejection(t, got, rejection{
+				Construct: sh + "in", Shape: "http://example.org/P", Path: "http://example.org/p", Detail: "not a well-formed RDF list",
+			})
+			for _, ns := range got.NodeShapes {
+				if ns.Properties[0].In != nil {
+					t.Errorf("%s: In = %v from a malformed list", ns.ID, *ns.Properties[0].In)
+				}
+			}
+		})
+	}
+}
+
+// TestDecodeJSONRefusesNull refuses JSON null at every string position of the
+// shape and mapping forms, where encoding/json would otherwise decode it as ""
+// or leave the field unset (review of 3833987, finding 2). Empty strings
+// still decode.
+func TestDecodeJSONRefusesNull(t *testing.T) {
+	const node = `"id": "http://example.org/S"`
+	const prop = `"path": "http://example.org/p"`
+	shapes := map[string]string{
+		"in member":        `{"node_shapes": [{` + node + `, "properties": [{` + prop + `, "in": [null]}]}]}`,
+		"message":          `{"node_shapes": [{` + node + `, "messages": [null]}]}`,
+		"target class":     `{"node_shapes": [{` + node + `, "target_classes": [null]}]}`,
+		"ignored property": `{"node_shapes": [{` + node + `, "ignored_properties": [null]}]}`,
+		"node id":          `{"node_shapes": [{"id": null}]}`,
+		"path":             `{"node_shapes": [{` + node + `, "properties": [{"path": null}]}]}`,
+		"datatype":         `{"node_shapes": [{` + node + `, "properties": [{` + prop + `, "datatype": null}]}]}`,
+		"bound":            `{"node_shapes": [{` + node + `, "properties": [{` + prop + `, "min_inclusive": null}]}]}`,
+		"in":               `{"node_shapes": [{` + node + `, "properties": [{` + prop + `, "in": null}]}]}`,
+		"node shape":       `{"node_shapes": [null]}`,
+	}
+	for name, src := range shapes {
+		t.Run("shapes "+name, func(t *testing.T) {
+			if _, err := DecodeShapesJSON(strings.NewReader(src)); err == nil || !strings.Contains(err.Error(), "null") {
+				t.Fatalf("err = %v, want null refused", err)
+			}
+		})
+	}
+	mappings := map[string]string{
+		"domain type member": `{"entity_types": [{"class_iri": "http://example.org/C", "domain_types": [null]}]}`,
+		"predicate name":     `{"predicates": [{"path_iri": "http://example.org/p", "name": null}]}`,
+		"birth member":       `{"contracts": [{"domain_type": "a.b", "birth": [null]}]}`,
+		"group mode":         `{"contracts": [{"domain_type": "a.b", "groups": [{"mode": null}]}]}`,
+		"group predicate":    `{"contracts": [{"domain_type": "a.b", "groups": [{"predicates": [null]}]}]}`,
+		"ignored predicate":  `{"closed_ignored_predicates": [null]}`,
+	}
+	for name, src := range mappings {
+		t.Run("mapping "+name, func(t *testing.T) {
+			if _, err := DecodeMappingJSON(strings.NewReader(src)); err == nil || !strings.Contains(err.Error(), "null") {
+				t.Fatalf("err = %v, want null refused", err)
+			}
+		})
+	}
+	got, err := DecodeShapesJSON(strings.NewReader(`{"node_shapes": [{` + node + `, "messages": [""], "properties": [{` + prop + `, "in": [""], "pattern": ""}]}]}`))
+	if err != nil {
+		t.Fatalf("empty strings: %v", err)
+	}
+	if p := got.NodeShapes[0].Properties[0]; !reflect.DeepEqual(*p.In, []string{""}) || *p.Pattern != "" ||
+		!reflect.DeepEqual(got.NodeShapes[0].Messages, []string{""}) {
+		t.Fatalf("empty strings decoded as %+v", got.NodeShapes[0])
+	}
+}

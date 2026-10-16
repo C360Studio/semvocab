@@ -107,3 +107,29 @@ open.
   - no ownership: `TestParseTurtleRecordsRejections` and `TestW3CRejectedFamiliesRecorded` fail;
   - no blank-node refusal: the three refusal cases fail;
   - target classes unsorted: `TestEveryFieldInThreeFormats` fails.
+
+## Fixes from the review of 3833987 (PR #9, Codex, CHANGES REQUESTED)
+
+- **Finding 1, a named property shape reused by two node shapes.** `list` refused any cell already marked consumed,
+  so the second node shape to read a shared property shape's `sh:in` lost it and gained a "not a well-formed RDF list"
+  record. Which node shape lost it depended on statement order.
+  - Fix: cycle detection is now local to each walk (`visited`). Marking cells consumed only accounts for their
+    triples, so any number of readers get the same list.
+  - Sweep: the one other place that reads `consumed` as a refusal is the shared blank property shape check, which is
+    deliberate (D3: a blank property shape's identity is its node shape plus its path). Every other use only accounts
+    for triples.
+  - `TestNamedPropertyShapeSharedByTwoNodeShapes` requires both node shapes to keep `("a" "b")` in either statement
+    order with no record. It also requires a cyclic list, a cell with no `rdf:rest`, and a cell with an extra arc to
+    still be recorded, with `In` nil on both node shapes.
+- **Finding 2, JSON null.** `encoding/json` decodes `null` in a `[]string` as `""`, and leaves a string or pointer
+  field unset.
+  - Fix: before the strict decode, `decodeJSON` decodes the document into a generic tree. It refuses the first null
+    it finds, naming its JSON path (for example `$.node_shapes[0].properties[0].in[0] is null`).
+  - Choice: null is refused everywhere in both JSON forms, including optional fields (`"in": null`,
+    `"min_inclusive": null`), where it could be read as "absent". No field of either form takes null, and the YAML
+    form already refuses every null through the `!!str` check (Q28). So the two forms now agree, and absence is
+    spelled by leaving the field out. Empty strings still decode.
+  - `TestDecodeJSONRefusesNull` covers null in `in` members, messages, targets, ignored properties, the node ID, the
+    path, the datatype, a bound, `in` itself, and a node shape entry. In mappings it covers domain-type members, a
+    predicate name, birth members, a group mode, group predicates, and closed-ignored predicates. It also checks that
+    `""` decodes in `in`, `pattern`, and `messages`.
