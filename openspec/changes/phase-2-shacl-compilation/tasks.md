@@ -18,7 +18,7 @@ to `design.md` in this change.
 
 ## 3. Turtle reader
 
-- [ ] 3.1 `internal/turtle` serves production callers: its package comment drops "test-only"; nesting deeper than 64
+- [x] 3.1 `internal/turtle` serves production callers: its package comment drops "test-only"; nesting deeper than 64
       levels fails with a position; a caller-supplied base resolves relative IRIs, used only by the test-suite loader;
       existing tests still pass (D2, Q25). The 1 MiB cap is `shacl.ParseTurtle`'s, delivered with task 4.1
 - [ ] 3.2 Sensitivity tests show the nesting cap rejects one level over and accepts exactly at the limit, and (with
