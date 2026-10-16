@@ -123,13 +123,25 @@ open.
     still be recorded, with `In` nil on both node shapes.
 - **Finding 2, JSON null.** `encoding/json` decodes `null` in a `[]string` as `""`, and leaves a string or pointer
   field unset.
-  - Fix: before the strict decode, `decodeJSON` decodes the document into a generic tree. It refuses the first null
-    it finds, naming its JSON path (for example `$.node_shapes[0].properties[0].in[0] is null`).
+  - Fix: before the strict decode, `decodeJSON` walks the first value's token stream (`json.Decoder.Token`). It
+    refuses the first null, naming its JSON path (for example `$.node_shapes[0].properties[0].in[0] is null`).
   - Choice: null is refused everywhere in both JSON forms, including optional fields (`"in": null`,
-    `"min_inclusive": null`), where it could be read as "absent". No field of either form takes null, and the YAML
-    form already refuses every null through the `!!str` check (Q28). So the two forms now agree, and absence is
-    spelled by leaving the field out. Empty strings still decode.
+    `"min_inclusive": null`), where it could be read as "absent". No field of either JSON form takes null. To mean
+    "absent", leave the field out.
+  - The YAML form is not the same. Q28 requires `!!str` on every string position, so a null there is refused. The
+    values of `min_count`, `max_count`, and `closed` are exempt from that check, and yaml.v3 decodes a null there to
+    the field's zero value: `min_count: null` is 0, `max_count: null` is nil (unbounded), and `closed: null` is false.
+    Each matches leaving the field out. This fix does not change YAML.
   - `TestDecodeJSONRefusesNull` covers null in `in` members, messages, targets, ignored properties, the node ID, the
     path, the datatype, a bound, `in` itself, and a node shape entry. In mappings it covers domain-type members, a
     predicate name, birth members, a group mode, group predicates, and closed-ignored predicates. It also checks that
     `""` decodes in `in`, `pattern`, and `messages`.
+- **Re-review of ddae5a7 (issue #11), duplicate JSON keys.** The first version of the null check decoded into a
+  generic map, which keeps only the last of a repeated key. `encoding/json` merges repeated members into the slice
+  elements it has already decoded (`encoding/json/decode.go:50-52` and `:550-564` at go1.26.9). So
+  `"properties":[{"path":"urn:p","in":[null]}],"properties":[{"path":"urn:p"}]` hid the null and still gave
+  `In == []string{""}`.
+  - Fix: the token-stream walk now refuses a repeated object key, naming the key and its JSON path, in the same pass
+    as the null check. JSON now matches YAML, where yaml.v3 refuses duplicate keys (probe P3).
+  - `TestDecodeJSONRefusesDuplicateKeys` covers that input, a repeated property key, and a repeated top-level key in
+    shapes, and a repeated predicate key and a repeated top-level key in mappings.

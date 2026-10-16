@@ -50,11 +50,13 @@ var errEmpty = errors.New("no document")
 // nonStringKeys are the YAML keys whose values are not strings. Every other
 // scalar in a shapes or mapping document must carry the !!str tag (ruling
 // Q28), so yaml.v3 never coerces a number, boolean, or null into a string.
+// The struct decode types these keys' values; a null there decodes to the
+// field's zero value, the same as leaving the field out.
 var nonStringKeys = map[string]bool{"min_count": true, "max_count": true, "closed": true}
 
 // DecodeShapesJSON decodes SemVocab's JSON shape form. It refuses unknown
-// fields, a trailing value, a numeric bound or other non-string where a
-// string belongs, relative IRIs, a blank-node node shape, a property shape
+// fields, a trailing value, any null, a repeated object key, a numeric bound
+// or other non-string where a string belongs, relative IRIs, a blank-node node shape, a property shape
 // with no path, and a node shape listed twice.
 func DecodeShapesJSON(r io.Reader) (ShapeSet, error) {
 	var w wireShapeSet
@@ -77,8 +79,8 @@ func DecodeShapesYAML(r io.Reader) (ShapeSet, error) {
 }
 
 // DecodeMappingJSON decodes a mapping document, refusing unknown fields, a
-// trailing value, and a non-string where a string belongs. Compile checks the
-// mapping's rules (design D6).
+// trailing value, any null, a repeated object key, and a non-string where a
+// string belongs. Compile checks the mapping's rules (design D6).
 func DecodeMappingJSON(r io.Reader) (Mapping, error) {
 	var m Mapping
 	if err := decodeJSON(r, &m); err != nil {
@@ -104,15 +106,13 @@ func decodeJSON(r io.Reader, out any) error {
 		return err
 	}
 	// encoding/json decodes null into a string as "" (in a list) or leaves
-	// the field unset, so a null is refused before the struct decode. Every
-	// field of both forms is a string, a number, a boolean, or a list or
-	// object of them; none takes null. YAML refuses null through the !!str
-	// check.
-	var tree any
-	if json.Unmarshal(data, &tree) == nil {
-		if where, ok := findNull(tree, "$"); ok {
-			return fmt.Errorf("%s is null; omit the field or give a value", where)
-		}
+	// the field unset, and merges a repeated object key into the members it
+	// already decoded (encoding/json/decode.go:50-52 at go1.26.9). So the
+	// first value's token stream is checked before the struct decode: every
+	// null and every repeated key is refused. No field of either JSON form
+	// takes null. A syntax error is left to the struct decode to report.
+	if err := scanJSON(json.NewDecoder(bytes.NewReader(data)), "$"); err != nil && !errors.Is(err, errJSONSyntax) {
+		return err
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
@@ -126,31 +126,49 @@ func decodeJSON(r io.Reader, out any) error {
 	return nil
 }
 
-// findNull returns the JSON path of the first null in v, visiting object
-// keys in sorted order so the reported path does not depend on map order.
-func findNull(v any, path string) (string, bool) {
-	switch v := v.(type) {
-	case nil:
-		return path, true
-	case []any:
-		for i, e := range v {
-			if p, ok := findNull(e, fmt.Sprintf("%s[%d]", path, i)); ok {
-				return p, true
-			}
-		}
-	case map[string]any:
-		keys := make([]string, 0, len(v))
-		for k := range v {
-			keys = append(keys, k)
-		}
-		slices.Sort(keys)
-		for _, k := range keys {
-			if p, ok := findNull(v[k], path+"."+k); ok {
-				return p, true
-			}
-		}
+// errJSONSyntax marks a token-stream error in scanJSON; the struct decode
+// reports it with its own message.
+var errJSONSyntax = errors.New("json syntax")
+
+// scanJSON reads one JSON value from dec's token stream and fails on a null
+// or a repeated object key, naming its JSON path.
+func scanJSON(dec *json.Decoder, path string) error {
+	tok, err := dec.Token()
+	if err != nil {
+		return errJSONSyntax
 	}
-	return "", false
+	switch tok {
+	case nil:
+		return fmt.Errorf("%s is null; omit the field or give a value", path)
+	case json.Delim('['):
+		for i := 0; dec.More(); i++ {
+			if err := scanJSON(dec, fmt.Sprintf("%s[%d]", path, i)); err != nil {
+				return err
+			}
+		}
+	case json.Delim('{'):
+		seen := map[string]bool{}
+		for dec.More() {
+			kt, err := dec.Token()
+			if err != nil {
+				return errJSONSyntax
+			}
+			key, _ := kt.(string)
+			if seen[key] {
+				return fmt.Errorf("%s: key %q repeated", path, key)
+			}
+			seen[key] = true
+			if err := scanJSON(dec, path+"."+key); err != nil {
+				return err
+			}
+		}
+	default:
+		return nil
+	}
+	if _, err := dec.Token(); err != nil { // the closing delimiter
+		return errJSONSyntax
+	}
+	return nil
 }
 
 func decodeYAML(r io.Reader, out any) error {

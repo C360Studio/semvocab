@@ -515,3 +515,43 @@ func TestDecodeJSONRefusesNull(t *testing.T) {
 		t.Fatalf("empty strings decoded as %+v", got.NodeShapes[0])
 	}
 }
+
+// TestDecodeJSONRefusesDuplicateKeys refuses a repeated object key in the
+// JSON shape and mapping forms, naming it and its path. encoding/json merges
+// repeated members into existing slice elements, which hid a null from the
+// null check (issue #11, review of ddae5a7). YAML refuses duplicate keys too
+// (probe P3).
+func TestDecodeJSONRefusesDuplicateKeys(t *testing.T) {
+	shapes := map[string]struct{ src, want string }{
+		"null hidden by a repeat": {
+			`{"node_shapes":[{"id":"urn:S","properties":[{"path":"urn:p","in":[null]}],"properties":[{"path":"urn:p"}]}]}`,
+			"$.node_shapes[0].properties[0].in[0] is null",
+		},
+		"repeated property key": {
+			`{"node_shapes":[{"id":"urn:S","properties":[{"path":"urn:p","path":"urn:q"}]}]}`,
+			`$.node_shapes[0].properties[0]: key "path" repeated`,
+		},
+		"repeated top key": {`{"node_shapes":[],"node_shapes":[]}`, `$: key "node_shapes" repeated`},
+	}
+	for name, tt := range shapes {
+		t.Run("shapes "+name, func(t *testing.T) {
+			if _, err := DecodeShapesJSON(strings.NewReader(tt.src)); err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("err = %v, want containing %q", err, tt.want)
+			}
+		})
+	}
+	mappings := map[string]struct{ src, want string }{
+		"repeated predicate key": {
+			`{"predicates":[{"path_iri":"urn:p","name":"a.b.c","name":"a.b.d"}]}`,
+			`$.predicates[0]: key "name" repeated`,
+		},
+		"repeated top key": {`{"contracts":[],"contracts":[]}`, `$: key "contracts" repeated`},
+	}
+	for name, tt := range mappings {
+		t.Run("mapping "+name, func(t *testing.T) {
+			if _, err := DecodeMappingJSON(strings.NewReader(tt.src)); err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("err = %v, want containing %q", err, tt.want)
+			}
+		})
+	}
+}
