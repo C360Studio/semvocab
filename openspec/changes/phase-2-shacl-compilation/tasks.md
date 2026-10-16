@@ -66,11 +66,11 @@ to `design.md` in this change.
 
 ## 7. Determinism, fuzzing, and benchmarks
 
-- [ ] 7.1 The D16 Rapid properties pass under `task verify`. The pull request records the command, seed, and check
+- [x] 7.1 The D16 Rapid properties pass under `task verify`. The pull request records the command, seed, and check
       count. The step-order sensitivity pair fails when two steps are swapped
-- [ ] 7.2 The five fuzz targets have committed seed corpora that `task verify` runs. A bounded run of each is
+- [x] 7.2 The five fuzz targets have committed seed corpora that `task verify` runs. A bounded run of each is
       recorded on the pull request with the Go version, and any crasher is committed as a corpus entry
-- [ ] 7.3 The benchmarks run with `-benchmem -count 10`, and the results table is in `docs/shacl-compilation.md`
+- [x] 7.3 The benchmarks run with `-benchmem -count 10`, and the results table is in `docs/shacl-compilation.md`
 
 ## 8. Documentation
 
