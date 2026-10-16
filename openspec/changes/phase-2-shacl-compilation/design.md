@@ -87,10 +87,13 @@ triples) and the W3C SHACL vocabulary (1,127 triples) without error. It rejected
 Changes to the reader:
 
 - The package comment stops saying "test-only"; production code may import it.
-- New caps: input of at most 1 MiB and nesting (`[`, `(`) of at most 64 levels. Either limit fails with the line and
-  column. Today the reader recurses without a depth bound, and the size cap alone does not bound the stack: 1 MiB of
-nested `[` reaches 174,755 levels and 256 MiB of goroutine stack, and one million levels kill the process with an
-unrecoverable stack overflow (probe P1).
+- New cap in the reader: nesting (`[`, `(`) of at most 64 levels, failing with the line and column. Today the reader
+  recurses without a depth bound, and a size cap alone does not bound the stack: 1 MiB of nested `[` reaches 174,755
+  levels and 256 MiB of goroutine stack, and one million levels kill the process with an unrecoverable stack overflow
+  (probe P1).
+- The 1 MiB input cap is enforced by `shacl.ParseTurtle`, not by the reader (Q25). The reader also serves
+  `internal/oracle`, whose pinned CCO v2.2 file is 1,994,610 bytes; a cap in the reader would fail the Phase 1 catalog
+  and pack oracles. `ParseTurtle` fails input over 1 MiB with the byte offset where the limit was crossed.
 - An option resolves relative IRIs against a base the caller supplies (RFC 3986 §5.2). Only the test-suite loader
   passes one. `shacl.ParseTurtle` passes none, so shapes documents must use absolute IRIs.
 - The grammar subset is otherwise unchanged (`internal/turtle/turtle.go:1-20`). SPARQL-style `PREFIX`/`BASE`,
@@ -477,3 +480,19 @@ ruling, then the rejected alternatives.
   predicates.
 - **Q24 Subclass targeting:** list every pack entity type in the target class's closure, checked against
   `superclasses`, or exact `class_iri` matches only, documented as narrower than SHACL.
+
+### Rulings Q25–Q28 (owner, 2026-10-16, during task 3.1)
+
+Raised by the developer during task 3.1: the size cap as first written in D2 contradicted "existing tests still pass".
+
+- **Q25 Size cap location:** the reader keeps only the 64-level nesting cap; `shacl.ParseTurtle` enforces 1 MiB (D2).
+  Rejected: a reader option defaulting to 1 MiB that `internal/oracle` raises.
+- **Q26 Profile violations reach `Compile`:** parsing records out-of-profile constructs (construct, shape, path,
+  detail) in the `ShapeSet` instead of failing, and `Compile` reports them all together, so `sh:in (1)` is named with
+  its member even though the model's `In` holds only strings.
+- **Q27 Which blank nodes D3 refuses:** a node shape is a subject typed `sh:NodeShape` or carrying a target predicate;
+  only such a subject that is a blank node is refused. A blank node reachable only from a rejected construct (inside
+  `sh:and`, `sh:xone`, …) belongs to that construct's single issue, so the W3C rejected-family cases fail at
+  `Compile` as D15 requires.
+- **Q28 YAML strings:** the YAML form requires the `!!str` tag on every string scalar, not only on bounds, so
+  `in: [1]` is rejected rather than coerced to `"1"` (probe P3).
