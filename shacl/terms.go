@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/c360studio/semengine/message"
 	"github.com/c360studio/semengine/vocabulary"
@@ -91,6 +92,9 @@ func valueTerm(dataType string, isDeclared bool, t message.Triple) (term, error)
 	if err := checkObject(t.Object); err != nil {
 		return term{}, err
 	}
+	if !utf8.ValidString(t.Datatype) {
+		return term{}, fmt.Errorf("the Datatype hint %q is not valid UTF-8 (ruling Q31)", t.Datatype)
+	}
 	if !isDeclared && t.Datatype != "" {
 		return hintedTerm(t), nil
 	}
@@ -153,7 +157,12 @@ func checkObject(obj any) error {
 		return checkFloat(float64(v))
 	case float64:
 		return checkFloat(v)
-	case string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, time.Time:
+	case string:
+		if !utf8.ValidString(v) {
+			return fmt.Errorf("the object %q is not valid UTF-8, which export would write with U+FFFD (ruling Q31)", v)
+		}
+		return nil
+	case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, time.Time:
 		return nil
 	default:
 		return fmt.Errorf("the object's Go type %T is not one export classifies (string, bool, an integer or float type, time.Time)", obj)

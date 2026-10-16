@@ -364,6 +364,8 @@ func TestValueTermDifferencesFromExport(t *testing.T) {
 		{row{"agree.value.untyped", 42, "xsd:integer"}, `"42"^^<` + xsd + `integer>`},
 		{row{"agree.value.entity-id", ref, "xsd:string"}, `"` + ref + `"`},
 		{row{"intel.role.assigned", ref, "xsd:string"}, `"` + ref + `"`},
+		// ruling Q31: export writes each malformed byte as U+FFFD
+		{row{"intel.role.assigned", string([]byte{0xff}), ""}, "\"\uFFFD\""},
 	} {
 		if got := exported(t, tt.triple()); got != tt.export {
 			t.Errorf("%s %T(%v) hint %q: export writes %q, want %q", tt.pred, tt.obj, tt.obj, tt.hint, got, tt.export)
@@ -371,5 +373,17 @@ func TestValueTermDifferencesFromExport(t *testing.T) {
 		if got, err := validated(t, bs, tt.row); err == nil {
 			t.Errorf("%s %T(%v) hint %q: validator accepted it as %s", tt.pred, tt.obj, tt.obj, tt.hint, got)
 		}
+	}
+
+	// Ruling Q31 for a hint: export writes a malformed hint's bytes into the
+	// datatype IRI unchanged, so its output is not valid UTF-8 and cannot be
+	// read back; the validator refuses the hint.
+	bad := row{"undeclared.value.x", "x", "xsd:" + string([]byte{0xfe})}
+	nt, err := export.SerializeToString([]message.Triple{bad.triple()}, export.NTriples)
+	if err != nil || !strings.Contains(nt, `"x"^^<`+xsd+string([]byte{0xfe})+">") {
+		t.Errorf("export of a malformed hint: %q, %v", nt, err)
+	}
+	if got, err := validated(t, bs, bad); err == nil {
+		t.Errorf("validator accepted a malformed hint as %s", got)
 	}
 }

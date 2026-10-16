@@ -208,11 +208,11 @@ func (v *validation) closed(ns compiledNodeShape) {
 	}
 }
 
-// hasDatatype is §4.1.2 for the D8 table. Every literal valueTerm returns is
-// well formed for its datatype, because it is built from the Go value by
-// export's own rules, so only the datatype IRI is compared.
+// hasDatatype is §4.1.2 for the D8 table: the value is a literal with that
+// datatype, and well formed for it. A literal valueTerm returns carries
+// export's lexical form, which is not always well formed (#14).
 func hasDatatype(t term, datatype string) bool {
-	return t.kind == termLiteral && t.datatype == datatype
+	return t.kind == termLiteral && t.datatype == datatype && wellFormed(t)
 }
 
 // compareNumeric compares a value with a bound exactly: the value must be an

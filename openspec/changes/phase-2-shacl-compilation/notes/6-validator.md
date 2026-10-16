@@ -49,9 +49,10 @@ are the ones the design leaves open.
   `float64(5)`, and `uint8(5)` on an `int` predicate are one term, `"5"^^xsd:integer`, as export writes them.
 - **Constraints.** Every property shape of every applicable node shape runs, then each closed shape:
   - `sh:minCount` and `sh:maxCount` count distinct terms.
-  - `sh:datatype` compares the literal's datatype IRI. Every literal D9 returns is well formed for its datatype,
-    because it is built from the Go value by export's own rules and hints may not change the term, so no lexical
-    check is needed.
+  - `sh:datatype` requires a literal with that datatype IRI whose lexical form is in the datatype's lexical space
+    (`wellFormed`, `shacl/lexical.go`). The first version compared only the IRI, on the claim that every literal D9
+    returns is well formed. That claim was wrong (#14, below): export can write an ill-typed form under a supported
+    datatype, and D9 keeps export's term.
   - Bounds (§4.3) compare exactly: an integer value with an integer bound through `big.Int`, anything else through
     `big.Float` set exactly from the operands, never through a rounded `float64`. A value that is not an `xsd:integer`
     or `xsd:double` literal, or a `NaN` bound, is not comparable and violates. A mixed comparison (an `xsd:double`
@@ -110,15 +111,16 @@ are the ones the design leaves open.
   `"2"^^xsd:double` (where the unhinted term is `"2.0"`), a `time.Time` with `xsd:dateTime` is its Go `String()`
   form (ill-typed), and an entity ID with `xsd:string` on a `string` predicate is a literal (where the unhinted term
   is an IRI). The validator accepts a hint only when the hinted term export writes equals the unhinted term, so a
-  hint confirms the value's term and never changes it; otherwise it is an input error naming both terms. This keeps
-  every accepted term well formed, which is why `sh:datatype` needs no lexical check, and keeps hinted and unhinted
-  triples for one value one term. It refuses the well-typed `"2"^^xsd:double` as well. Ruling Q29 keeps this rule
+  hint confirms the value's term and never changes it; otherwise it is an input error naming both terms. A hint
+  therefore adds no ill-typed form beyond those the unhinted term can have (#14), and hinted and unhinted triples
+  for one value are one term. It refuses the well-typed `"2"^^xsd:double` as well. Ruling Q29 keeps this rule
   for declared predicates. `@id` on an `entity_id` predicate always gives the unhinted term, because export's
   `@id` branch (`object.go:126-136`) and its `entity_id` branch (`:160-168`) agree for every value.
 - **Type-independent errors.** nil, a NaN or infinite `float32` or `float64`, and a Go type outside export's
   observation cases (`string`, `bool`, the integer and float types, `time.Time`) are input errors on every
   predicate. A named type such as `time.Duration` is outside them: export's type switch does not match it and writes
-  `"5ns"`. So is a `*time.Time`.
+  `"5ns"`. So is a `*time.Time`. A string object or a hint that is not valid UTF-8 is an input error too (ruling
+  Q31, #15, below).
 
 ### Evidence (6.2)
 
@@ -281,3 +283,62 @@ The validator was written in task 6.1, so fail-before is shown by seeded product
     test fail;
   - Q29's acceptance applied to declared predicates too: four `TestValidateInputErrors` subtests and
     `TestValueTermDifferencesFromExport` fail.
+
+## Review fixes: #14 and #15 (Codex, approval of f184df4)
+
+### #14: `sh:datatype` checked only the datatype IRI
+
+- **Defect.** `hasDatatype` compared the IRI and relied on every D9 literal being well formed. Export writes
+  `datetime` values through `time.Format(time.RFC3339Nano)` (`object.go:265-278`), which can give a timezone offset
+  outside XSD's ±14:00: an RFC 3339 string with `+14:01` to `+23:59` (Go's parser accepts offset hours up to 23),
+  and any `time.Time` in a `FixedZone` beyond 14 hours, including a three-digit hour (`FixedZone("", -100*3600)` is
+  written `-100:00`). These conformed.
+- **Fix.** D9's term is unchanged. `hasDatatype` now also requires `wellFormed`, which checks the lexical space of
+  each D8 datatype; an ill-typed literal is a `sh:DatatypeConstraintComponent` result, not an input error.
+- **Every D8 datatype, checked for the same gap** (probe at go1.26.9 of what Go and export write):
+  - `xsd:dateTime`: the gap above. The check is XSD 1.1 Part 2 §3.3.7.2's `dateTimeLexicalRep` with the day-of-month
+    constraint in the proleptic Gregorian calendar, so year `0000` (which Go writes for year 0) and `-0001` are
+    valid; `24:00:00` is accepted as XSD 1.1 allows. Everything else Go writes for a `time.Time` (years past 9999,
+    negative years, nanoseconds) is valid.
+  - `xsd:string`: **also a gap.** Its lexical space is XML's Char, and export writes a Go string's characters as
+    they are, so a string holding U+0000, another C0 control other than tab, newline, and carriage return, or U+FFFE
+    or U+FFFF passed `sh:datatype xsd:string`. XSD 1.1 §3.3.1 lets a processor take Char from XML 1.0 or 1.1; the
+    check uses XML 1.0's, the stricter, in line with D10's use of XSD 1.0 Second Edition for regexes.
+  - `xsd:integer` (`%d`, `strconv.FormatInt`), `xsd:double` (`%g` with `.0` added; NaN and infinities are input
+    errors), `xsd:boolean` (`%t`), and `rdf:JSON` (`json.Valid`, over valid UTF-8 by Q31): no gap; export only writes
+    well-formed forms on the unhinted path, and on a declared predicate a hint may not change the term. `wellFormed`
+    checks them anyway, with the existing XSD lexical parsers, so a later change cannot open a gap silently. A Q29
+    hinted literal on an undeclared predicate can be ill-typed (`"x"^^xsd:integer`), but no shape constrains such a
+    predicate.
+- **Tests.**
+  - `TestValidateDatatypeLexicalSpace`: `+14:00` and `-14:00` as strings and as `time.Time`, plus years 0 and -1,
+    conform; `+14:01`, `+15:00`, `-14:01` as strings and `FixedZone` offsets of +15 and -100 hours are each one
+    datatype result with export's term. For `xsd:string`, tab, newline, carriage return, U+FFFD, and U+10FFFF
+    conform; U+0000, U+001F, and U+FFFE are each one result.
+  - `TestWellFormedLexicalSpaces`: accepted and refused forms for each D8 datatype.
+  - **Fail-before** on f184df4's production code: `TestValidateDatatypeLexicalSpace` failed (`TestWellFormedLexicalSpaces`
+    did not compile, as `wellFormed` did not exist).
+  - **Seeded**, each reverted: offsets up to `14:59` accepted (both tests fail); `hasDatatype` back to the IRI only
+    (`TestValidateDatatypeLexicalSpace` fails); the `xsd:string` Char check off (both fail).
+
+### #15: invalid UTF-8 (ruling Q31)
+
+- **Defect.** The validator kept a malformed string's bytes, while export writes each malformed byte as U+FFFD
+  (`object.go:415-435`), so `string([]byte{0xff})` and `string([]byte{0xfe})` counted as two terms that export writes
+  as one.
+- **Fix (ruling Q31).** A string object that is not valid UTF-8 is an input error, like nil, NaN, and infinity; there
+  is no normalization to U+FFFD. The same holds for a `Datatype` hint, which reaches the term as its datatype IRI
+  (export writes a malformed hint's bytes unchanged, so its output is not valid UTF-8 at all). A malformed subject is
+  already an input error, since it cannot equal an entity ID that `ValidateEntityID` accepts, and so is a malformed
+  predicate, which `ParsePredicate` refuses (lower-kebab ASCII).
+- **Tests.**
+  - `TestValidateInvalidUTF8`: `{0xff, 0xfe}`, `{0xff, U+FFFD}`, and a truncated sequence each give an input error
+    naming UTF-8 under `sh:maxCount 1`; two U+FFFD strings are one term and conform.
+  - `TestValidateInputErrors` gains a malformed object, hint, predicate, and subject.
+  - `TestValueTermDifferencesFromExport` gains the row `string([]byte{0xff})`, asserting export writes `"\uFFFD"`
+    (read back as U+FFFD) and the validator refuses it, and a malformed hint, asserting export writes its byte into
+    the datatype IRI and the validator refuses it.
+  - **Fail-before** on f184df4's production code: the malformed object and hint subtests, `TestValidateInvalidUTF8`,
+    and `TestValueTermDifferencesFromExport` failed. The predicate and subject subtests passed, as expected.
+  - **Seeded**, each reverted: the object UTF-8 check off (`TestValidateInputErrors`, `TestValidateInvalidUTF8`, and
+    the difference test fail); the hint UTF-8 check off (`TestValidateInputErrors` and the difference test fail).

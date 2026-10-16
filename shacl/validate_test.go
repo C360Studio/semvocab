@@ -102,6 +102,12 @@ func TestValidateInputErrors(t *testing.T) {
 			Datatype: "xsd:string"}, "xsd:string"},
 		{"@id on an int predicate", message.Triple{Subject: focus, Predicate: "test.prop.p", Object: 1,
 			Datatype: message.EntityReferenceDatatype}, "@id"},
+		{"invalid UTF-8 object", tr("test.prop.q", string([]byte{0xff})), "UTF-8"},
+		{"invalid UTF-8 hint", message.Triple{Subject: focus, Predicate: "other.prop.x", Object: "x",
+			Datatype: "xsd:" + string([]byte{0xfe})}, "UTF-8"},
+		{"invalid UTF-8 predicate", tr("test.prop."+string([]byte{0xff}), 1), "test.prop."},
+		{"invalid UTF-8 subject", message.Triple{Subject: focus + string([]byte{0xff}), Predicate: "test.prop.p",
+			Object: 1}, "subject"},
 		{"hint that changes the term", message.Triple{Subject: focus, Predicate: "test.prop.p", Object: "42",
 			Datatype: "xsd:integer"}, `"42"`},
 	} {
@@ -358,4 +364,89 @@ func TestValidateUndeclaredHints(t *testing.T) {
 
 	open := mustCompile(t, `ex:S sh:targetClass ex:C ; sh:property [ sh:path ex:p ; sh:maxCount 1 ] .`)
 	requireResults(t, validate(t, open, hinted...))
+}
+
+// TestValidateInvalidUTF8 is ruling Q31 (#15): a candidate string that is
+// not valid UTF-8 is an input error, never a value. Export writes each such
+// string with U+FFFD (vocabulary/export/object.go:415-435 at
+// v0.1.0-alpha.2), so two distinct native strings would be one exported term.
+func TestValidateInvalidUTF8(t *testing.T) {
+	b := mustCompile(t, `ex:S sh:targetClass ex:C ; sh:property [ sh:path ex:p ; sh:datatype xsd:string ; sh:maxCount 1 ] .`)
+	for _, objs := range [][]any{
+		{string([]byte{0xff}), string([]byte{0xfe})},
+		{string([]byte{0xff}), "\uFFFD"},
+		{"ok" + string([]byte{0xc3})},
+	} {
+		var triples []message.Triple
+		for _, o := range objs {
+			triples = append(triples, tr("test.prop.p", o))
+		}
+		r, err := b.ValidateCandidateState(focus, triples)
+		if err == nil || !strings.Contains(err.Error(), "UTF-8") {
+			t.Errorf("%q: report %+v, err %v; want an input error naming UTF-8", objs, r, err)
+		}
+	}
+	// Two U+FFFD strings are one valid term.
+	requireResults(t, validate(t, b, tr("test.prop.p", "\uFFFD"), tr("test.prop.p", "\uFFFD")))
+}
+
+// TestValidateDatatypeLexicalSpace is #14: sh:datatype requires the literal
+// to be well formed for its datatype (SHACL §4.1.2), not only to carry the
+// datatype IRI. Export writes some Go values as ill-typed literals under a
+// supported datatype; the term stays export's, and sh:datatype reports it.
+func TestValidateDatatypeLexicalSpace(t *testing.T) {
+	dateTime := func(v string) string { return `"` + v + `"^^<` + xsd + `dateTime>` }
+	b := mustCompile(t, `ex:S sh:targetClass ex:C ; sh:property [ sh:path ex:p ; sh:datatype xsd:dateTime ] .`)
+	at := func(offset int) time.Time {
+		return time.Date(2026, 10, 16, 12, 0, 0, 0, time.FixedZone("", offset))
+	}
+	// XSD 1.1 Part 2 §3.3.7: a timezone offset is at most 14:00 either way.
+	requireResults(t, validate(t, b, tr("test.prop.p", "2026-10-16T12:00:00+14:00"),
+		tr("test.prop.p", "2026-10-16T12:00:00-14:00"), tr("test.prop.p", at(14*3600)), tr("test.prop.p", at(-14*3600)),
+		tr("test.prop.p", time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)), tr("test.prop.p", time.Date(-1, 12, 31, 0, 0, 0, 0, time.UTC))))
+	requireResults(t, validate(t, b, tr("test.prop.p", "2026-10-16T12:00:00+14:01"),
+		tr("test.prop.p", "2026-10-16T12:00:00+15:00"), tr("test.prop.p", "2026-10-16T12:00:00-14:01"),
+		tr("test.prop.p", at(15*3600)), tr("test.prop.p", at(-100*3600))),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", dateTime("2026-10-16T12:00:00+14:01")),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", dateTime("2026-10-16T12:00:00+15:00")),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", dateTime("2026-10-16T12:00:00-100:00")),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", dateTime("2026-10-16T12:00:00-14:01")))
+
+	// xsd:string's lexical space is XML 1.0's Char (XSD 1.1 Part 2 §3.3.1):
+	// no C0 control other than tab, newline, and carriage return, and no
+	// U+FFFE or U+FFFF.
+	b = mustCompile(t, `ex:S sh:targetClass ex:C ; sh:property [ sh:path ex:p ; sh:datatype xsd:string ] .`)
+	requireResults(t, validate(t, b, tr("test.prop.p", "tab\tnew\nline\r"), tr("test.prop.p", "\uFFFD\U0010FFFF")))
+	requireResults(t, validate(t, b, tr("test.prop.p", "a\x00"), tr("test.prop.p", "b\x1f"), tr("test.prop.p", "c\uFFFE")),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", "\"a\x00\""),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", "\"b\x1f\""),
+		res(ex+"S", ex+"p", "test.prop.p", "DatatypeConstraintComponent", "\"c\uFFFE\""))
+}
+
+// TestWellFormedLexicalSpaces checks the lexical-space test for every
+// datatype of the D8 table against forms XSD 1.1 Part 2 accepts and refuses
+// (§3.3.1 string, §3.3.13 integer, §3.3.5 double, §3.3.2 boolean, §3.3.7
+// dateTime) and against RFC 8259 JSON for rdf:JSON.
+func TestWellFormedLexicalSpaces(t *testing.T) {
+	for _, tt := range []struct {
+		datatype, lexical string
+		want              bool
+	}{
+		{xsdString, "plain \t\n\r", true}, {xsdString, "\x01", false}, {xsdString, "￿", false},
+		{xsdInt, "-0042", true}, {xsdInt, "4.0", false}, {xsdInt, "", false},
+		{xsdDouble, "1e+21", true}, {xsdDouble, "-INF", true}, {xsdDouble, "Inf", false}, {xsdDouble, "1,5", false},
+		{xsdBool, "1", true}, {xsdBool, "false", true}, {xsdBool, "True", false},
+		{xsdDateTime, "2026-10-16T12:00:00.5-14:00", true}, {xsdDateTime, "2026-10-16T24:00:00Z", true},
+		{xsdDateTime, "2024-02-29T00:00:00", true}, {xsdDateTime, "2000-02-29T00:00:00Z", true},
+		{xsdDateTime, "0000-02-29T00:00:00Z", true}, {xsdDateTime, "-0001-01-01T00:00:00Z", true},
+		{xsdDateTime, "1900-02-29T00:00:00Z", false}, {xsdDateTime, "2026-04-31T00:00:00Z", false},
+		{xsdDateTime, "2026-10-16T24:00:01Z", false}, {xsdDateTime, "2026-10-16T12:00:00+14:30", false},
+		{xsdDateTime, "2026-10-16T12:00:00-100:00", false}, {xsdDateTime, "02026-10-16T12:00:00Z", false},
+		{xsdDateTime, "2026-10-16", false}, {xsdDateTime, "2026-10-16T12:00:00.Z", false},
+		{rdfJSON, `{"a":[1,true,null]}`, true}, {rdfJSON, "hovering", false},
+	} {
+		if got := wellFormed(term{kind: termLiteral, value: tt.lexical, datatype: tt.datatype}); got != tt.want {
+			t.Errorf("%q^^<%s>: well formed %v, want %v", tt.lexical, tt.datatype, got, tt.want)
+		}
+	}
 }
