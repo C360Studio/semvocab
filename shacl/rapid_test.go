@@ -778,7 +778,7 @@ func genValue(t *rapid.T, label, dataType string) any {
 	pools := map[string][]any{
 		vocabulary.DataTypeString:   {"a", "b", "acme.edge.sensor.gen.t0.e2", "http://example.org/x", "", "é"},
 		vocabulary.DataTypeInt:      {1, int64(2), float64(3), int32(-4), 1.5},
-		vocabulary.DataTypeFloat:    {1.5, 2, float32(0.5), -0.0},
+		vocabulary.DataTypeFloat:    {1.5, 2, float32(0.5), math.Copysign(0, -1)},
 		vocabulary.DataTypeBool:     {true, false},
 		vocabulary.DataTypeDateTime: {time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC), "2024-01-02T03:04:05Z"},
 		vocabulary.DataTypeJSON:     {`{"a":1}`, `[1,2]`, "not json"},
