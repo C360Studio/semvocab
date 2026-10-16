@@ -21,15 +21,15 @@ to `design.md` in this change.
 - [x] 3.1 `internal/turtle` serves production callers: its package comment drops "test-only"; nesting deeper than 64
       levels fails with a position; a caller-supplied base resolves relative IRIs, used only by the test-suite loader;
       existing tests still pass (D2, Q25). The 1 MiB cap is `shacl.ParseTurtle`'s, delivered with task 4.1
-- [ ] 3.2 Sensitivity tests show the nesting cap rejects one level over and accepts exactly at the limit, and (with
+- [x] 3.2 Sensitivity tests show the nesting cap rejects one level over and accepts exactly at the limit, and (with
       4.1) `shacl.ParseTurtle` rejects one byte over 1 MiB and accepts exactly 1 MiB
 
 ## 4. Shape model and inputs
 
-- [ ] 4.1 `shacl.ParseTurtle`, `DecodeShapesJSON`, and `DecodeShapesYAML` build the model, refusing blank-node node
+- [x] 4.1 `shacl.ParseTurtle`, `DecodeShapesJSON`, and `DecodeShapesYAML` build the model, refusing blank-node node
       shapes, relative IRIs, unknown fields, trailing documents, and non-string bounds (D3)
-- [ ] 4.2 `DecodeMappingJSON` and `DecodeMappingYAML` decode the mapping document strictly (D6).
-- [ ] 4.3 The DIEKM shapes in Turtle, JSON, and YAML decode to equal shape sets
+- [x] 4.2 `DecodeMappingJSON` and `DecodeMappingYAML` decode the mapping document strictly (D6).
+- [x] 4.3 The DIEKM shapes in Turtle, JSON, and YAML decode to equal shape sets
 
 ## 5. Profile and compiler
 

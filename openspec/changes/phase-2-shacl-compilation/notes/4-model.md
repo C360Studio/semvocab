@@ -1,0 +1,109 @@
+# Notes: task group 4 (shape model and inputs)
+
+Written 2026-10-16 with go1.26.9 darwin/arm64, SemEngine `v0.1.0-alpha.2`, and `gopkg.in/yaml.v3 v3.0.1`. Rulings
+Q25–Q28 (`design.md`) settle the questions raised during task 3.1. The choices below are the ones the design leaves
+open.
+
+## Files and API
+
+- `shacl/model.go` holds the package comment, `ShapeSet`, `NodeShape`, `PropertyShape`, `Literal`, and `Mapping` with
+  its row types. `shacl/parser.go` has `ParseTurtle` and the triple-to-model builder. `shacl/decode.go` has the JSON
+  and YAML decoders and the canonical form.
+- Every decoder takes an `io.Reader`, as SemEngine's `LoadPackYAML` does.
+- `GroupBinding.Mode` is SemEngine's `contract.WriteMode`, used directly. Decoding does not check it; Compile does
+  (D7).
+
+## The model
+
+- **Bounds.** A bound is a `*Literal` (lexical form plus datatype). Turtle keeps the literal's own datatype. The JSON
+  and YAML forms hold a bound as a string, and decoding gives it the property's `datatype`. So a Turtle bound whose
+  datatype differs from `sh:datatype` stays visible to Compile (D8), and a JSON or YAML bound with no `datatype` has
+  an empty datatype, which Compile rejects.
+- **Optional fields.** `Pattern` is a `*string`, so an empty pattern is not mistaken for none. `In` is a `*[]string`,
+  as D11 states.
+- **Canonical form.** Node shapes are sorted by IRI. Properties are sorted by path, then ID, then full content, and
+  exact duplicates are merged. IRI and string lists (targets, ignored properties, messages, `in` members) are sorted
+  with repeats removed, because they are sets in RDF. An empty list is nil, except an empty `In`, which means
+  `sh:in ()`. All three inputs pass through the same `normalize`, so equal shapes decode to `reflect.DeepEqual` sets.
+
+## Turtle (ruling Q26 and Q27)
+
+- **Size.** `ParseTurtle` reads at most 1 MiB + 1 byte. Over the limit, it fails with
+  `input exceeds the 1048576-byte limit at byte offset 1048576` (Q25).
+- **Order of work.** The reader parses with no base, exact repeated triples are removed (D3), then the model is built.
+- **Node shapes.** A node shape is a subject typed `sh:NodeShape` or carrying any target predicate (`sh:targetClass`,
+  `sh:targetNode`, `sh:targetSubjectsOf`, `sh:targetObjectsOf`, `sh:target`). A blank one fails parsing, naming its
+  predicates (Q27).
+- **Property shapes.** A property shape is the object of `sh:property` from a node shape. Both are built field by
+  field. A blank property shape referenced by two node shapes is recorded.
+- **Records.** Everything the model cannot hold becomes a record for Compile (`rejection`: construct, shape, path,
+  detail). That covers an out-of-profile predicate, a wrongly typed value, several values for a single-valued
+  parameter, a malformed list, an `rdf:type` other than the shape's own, a non-string `sh:in` member, and a path
+  other than one IRI.
+  - The shape is the property shape's IRI, or its node shape's IRI when the property shape is blank.
+  - A path that is not one IRI is recorded by its construct: `sh:inversePath`, `sh:alternativePath`, and so on, or
+    `sh:path` with "sequence path" for a list.
+  - A shape with a target that also carries `sh:path` (the W3C path cases use such shapes) records that `sh:path`
+    and the path construct.
+- **Ownership.** When a record's object is a blank node, the blank nodes reachable from it belong to that record, and
+  none of their triples is recorded again. So `sh:and ( [ sh:property … ] )` is one `sh:and` record (Q27).
+- **Stray triples.** Every other triple is recorded under its subject's IRI: one whose subject is not a shape, a
+  list cell the model used, or a blank node a record owns. Data and manifest triples in the W3C files fall here. A
+  blank subject is recorded with an empty shape. Unreferenced blank subjects go first, then blank cycles, so records
+  do not depend on triple order.
+- **No labels.** Records never contain a blank-node label. Values are shown as `<iri>`, `"lex"^^<dt>`, `"lex"@lang`,
+  or "a blank node". Records are sorted and deduplicated.
+- **Annotations.** `sh:name`, `sh:description`, `sh:order`, `sh:defaultValue`, `rdfs:label`, and `rdfs:comment` are
+  accepted and dropped (D4). Their blank objects are owned, not recorded.
+- **Classification is Compile's.** Each record names the construct. Task 5 classifies it and writes the message, for
+  example `sh:rule`'s Phase 4 deferral.
+
+## JSON and YAML
+
+- **Wire types.** Unexported wire structs (`wireShapeSet` and the rest) are built into the model, so the exported
+  model carries no struct tags for a form it does not use.
+- **JSON.** `DisallowUnknownFields`. A second `Decode` must return `io.EOF`, otherwise "trailing data". A number where
+  a string belongs (a bound, an `in` member, a name) fails in `encoding/json`, naming the field.
+- **YAML.** First a strict decode with `KnownFields(true)`, so an unknown field is named as such. A second `Decode`
+  must return `io.EOF`, otherwise "trailing document". Then the bytes are parsed into a `yaml.Node`, and every scalar
+  must be tagged `!!str` (Q28). The exceptions are the values of `min_count`, `max_count`, and `closed`, whose types
+  the struct decode enforces. Mapping keys must also be strings. Aliases are followed. The error names the line and
+  key, for example `line 5: min_inclusive must be a string (YAML tag !!int); quote it`. A duplicate key fails in
+  yaml.v3.
+- **Shape checks.** Node shape IDs, targets, ignored properties, paths, and any non-empty property ID, datatype, or
+  severity must be absolute IRIs: an RFC 3986 scheme, and none of the characters Turtle's IRIREF excludes. An ID
+  starting `_:` is refused as a blank-node node shape. A property shape needs a path. A node shape listed twice is
+  refused.
+- **Mapping.** Decoded strictly, with no rule checks: D6 and D7 are task 5.6 and task 5.7.
+
+## Evidence
+
+- **4.1:**
+  - `TestEveryFieldInThreeFormats` decodes one shape that uses every model field, in Turtle, JSON, and YAML, to the
+    same set written out by hand.
+  - `TestParseTurtleRefuses` covers blank-node node shapes (typed, `sh:targetClass`, `sh:targetNode`), a relative
+    IRI (with line and column), a syntax error, and 65 levels of nesting.
+  - `TestParseTurtleRemovesRepeats`: a repeated `sh:minCount 1` is one constraint, while `1` and `2` are recorded.
+  - `TestParseTurtleRecordsRejections` covers `owl:imports`, an implicit class target, `sh:rule`, `sh:in ( "a" 1 )`
+    (naming the member), a sequence path, an inverse path, a language-tagged pattern, `sh:minCount 1.5`, and a
+    missing path. It also checks that no record names a blank label or a triple under `sh:rule`.
+  - `TestW3CRejectedFamiliesRecorded` loads all 28 vendored rejected-family cases through the test-suite loader
+    (`turtle.WithBase`, then the same builder `ParseTurtle` uses). Each one records its family's construct. For
+    `property/and-001` it checks `sh:and` with its shape and path, and `sh:targetNode`, and that nothing inside
+    `sh:and` is recorded on its own.
+  - `TestDecodeShapesRefuses` covers unknown fields at all three levels, trailing values and documents, numeric
+    bounds, unquoted and `!!int` bounds, `in: [1]`, `pattern: 5`, `severity: ~`, duplicate keys, blank-node IDs,
+    relative IRIs, a missing path, and a duplicate node shape.
+- **3.2 with 4.1:** `TestParseTurtleSizeLimit` accepts exactly 1 MiB and rejects 1 MiB + 1, naming the offset.
+- **4.2:** `TestDecodeMapping` decodes JSON and YAML to the mapping written out by hand. `TestDecodeMappingRefuses`
+  covers unknown fields, trailing values and documents, and non-string scalars.
+- **4.3:** `TestDIEKMShapesInThreeFormats` decodes the pack's own `diekm.shacl.ttl` (through `diekm.Shapes()`) and
+  the hand-written `shacl/testdata/diekm.shapes.json` and `.yaml` to equal sets, each equal to the set written out by
+  hand.
+- **Shown able to fail.** Each seeded change was reverted:
+  - no repeat removal: `TestParseTurtleRemovesRepeats` fails;
+  - no `!!str` check: the YAML scalar cases fail;
+  - size limit off by one: `TestParseTurtleSizeLimit` fails;
+  - no ownership: `TestParseTurtleRecordsRejections` and `TestW3CRejectedFamiliesRecorded` fail;
+  - no blank-node refusal: the three refusal cases fail;
+  - target classes unsorted: `TestEveryFieldInThreeFormats` fails.
