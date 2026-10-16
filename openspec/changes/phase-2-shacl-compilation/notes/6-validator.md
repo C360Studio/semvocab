@@ -91,3 +91,65 @@ are the ones the design leaves open.
   - only the first input error reported: `TestValidateInputErrors` fails;
   - integer comparison through `float64`: `TestValidateSpecScenarios` fails;
   - the closed shape's allowed set ignored: `TestValidateClosed` and `TestValidateDeterministic` fail.
+
+## 6.2 The value-term mapping (design D9)
+
+- **Restated, rule by rule.** `shacl/terms.go` follows export's order (`vocabulary/export/object.go:88-107`): the
+  hint, then the declared `data_type` when the value can carry it (`:158-202`), then observation (`:281-310`). Each
+  helper cites the lines it restates. SemEngine's pure exports are used directly: `message.IsValidEntityID` and
+  `export.SubjectIRI`. The blank-node label check restates export's unexported PN_LOCAL test
+  (`prefix.go:148-197`), and "absolute IRI" means export's own rule (`object.go:381-402`: `http://`, `https://`, or
+  `urn:` with something after it and no IRIREF-excluded character), not RFC 3986's.
+- **Hints (a choice the design leaves open).** D9 accepts a hint only when it names the datatype the predicate's
+  `data_type` exports as, or `@id` on an `entity_id` predicate. Export writes a hinted value's `%v` form with the
+  hint as datatype (`object.go:138-142`), which is not always the term the `data_type` gives: `float64(2^53)` with
+  `xsd:integer` is written `"9.007199254740992e+15"^^xsd:integer` (ill-typed), `int(2)` with `xsd:double` is
+  `"2"^^xsd:double` (where the unhinted term is `"2.0"`), a `time.Time` with `xsd:dateTime` is its Go `String()`
+  form (ill-typed), and an entity ID with `xsd:string` on a `string` predicate is a literal (where the unhinted term
+  is an IRI). The validator accepts a hint only when the hinted term export writes equals the unhinted term, so a
+  hint confirms the value's term and never changes it; otherwise it is an input error naming both terms. This keeps
+  every accepted term well formed, which is why `sh:datatype` needs no lexical check, and keeps hinted and unhinted
+  triples for one value one term. It refuses the well-typed `"2"^^xsd:double` as well; that is raised on the pull
+  request as an open question. `@id` on an `entity_id` predicate always gives the unhinted term, because export's
+  `@id` branch (`object.go:126-136`) and its `entity_id` branch (`:160-168`) agree for every value.
+- **Type-independent errors.** nil, a NaN or infinite `float32` or `float64`, and a Go type outside export's
+  observation cases (`string`, `bool`, the integer and float types, `time.Time`) are input errors on every
+  predicate. A named type such as `time.Duration` is outside them: export's type switch does not match it and writes
+  `"5ns"`. So is a `*time.Time`.
+
+### Evidence (6.2)
+
+- **Where.** `shacl/internal/agreement/agreement_test.go`, a package with only a test file, so its registrations
+  run in their own test process (design D15: "in its own test package"), apart from the shacl tests that require the
+  registries unchanged.
+- **How the validator's term is read.** Through the exported API only: each bundle has one closed node shape that
+  allows no native predicate, so every candidate triple yields one `sh:ClosedConstraintComponent` result, whose
+  `Value` is the validator's term for that object.
+- **Registration.** The test compiles the DIEKM pack (`diekm.Spec()`) and a second pack, `semvocab-agreement`, each
+  with that closed shape, and registers both compiled packs with `RegisterPack` and the export prefix registrar. The
+  second pack declares one predicate for each `data_type` DIEKM lacks (`int`, `bool`, `datetime`, `json`,
+  `entity_id`), another `float`, and one with no `data_type`. DIEKM alone covers only `string` and `float`. Both
+  packs are the same every run and re-register idempotently under `test:repeat`; the test asserts each predicate's
+  registered `data_type` and never restores state.
+- **Comparison.** Each row is serialized with `export.SerializeToString(…, export.NTriples)`, read back with
+  `internal/turtle`, rendered in N-Triples syntax by the test's own renderer, and compared with the validator's
+  `Value`.
+- **`TestValueTermsAgreeWithExport`**: 79 rows both accept, covering every P5 row both accept: each `data_type`'s
+  Go types, the fall back to the observed type, the 2^53 limit in both signs and 2^54, negative zero, `float32`
+  widening, `%g` exponents, time zones and nanoseconds, JSON validity, entity-ID, `http`/`https`/`urn` IRI and
+  blank-node strings, the strings export leaves plain (`http://`, a space, `ftp://`, `_:b.`, `_:`, a five-part ID),
+  escapes, and the confirming hints, both as `xsd:` names and as full IRIs.
+- **`TestValueTermDifferencesFromExport`**: 21 rows where the validator returns an input error. It asserts what
+  export writes for each: nothing for nil, NaN, and infinities; the `%v` form as a plain string for a struct, a
+  slice, a map, a `time.Duration`, and a `*time.Time`; and the hint verbatim for each refused hint.
+- **Shown able to fail.** Each seeded change to one mapping row was reverted. The agreement test failed on each:
+  - the whole-float bound at 2^54;
+  - `formatFloat` without the `.0` suffix;
+  - `ftp://` treated as an absolute IRI;
+  - `data_type` `string` forcing a literal;
+  - `datetime` formatted with `time.RFC3339`, dropping nanoseconds;
+  - `json` without `json.Valid`;
+  - a blank-node label with a trailing dot accepted;
+  - `uint64` missing from the `float` values.
+  The difference test failed on each of these, also reverted: every hint naming the datatype accepted, a struct
+  accepted, and a nil object accepted.

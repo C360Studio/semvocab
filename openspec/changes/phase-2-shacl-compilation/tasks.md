@@ -56,7 +56,7 @@ to `design.md` in this change.
 
 - [x] 6.1 `ValidateCandidateState` follows D13: input errors, targeting with `Targeted`, distinct-term counting,
       every applicable shape, sorted results, no registry reads
-- [ ] 6.2 The D9 value-term mapping passes the agreement test against `export.Serialize`, and the test fails when one
+- [x] 6.2 The D9 value-term mapping passes the agreement test against `export.Serialize`, and the test fails when one
       mapping row is changed.
 - [ ] 6.3 The W3C supported-component cases pass through the reviewed adapter, and their expected results come from
       the vendored files
