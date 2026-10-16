@@ -153,3 +153,68 @@ are the ones the design leaves open.
   - `uint64` missing from the `float` values.
   The difference test failed on each of these, also reverted: every hint naming the datatype accepted, a struct
   accepted, and a nil object accepted.
+
+## 6.3 The W3C test-suite adapter (design D15)
+
+`shacl/w3c_test.go` holds the adapter and `TestW3CSupportedCases`. Each vendored case is read through
+`oracle.ReadFixture` (sha256 checked) and `turtle.WithBase`, with exact repeats removed. The adapter's rules:
+
+- **Expected report.** Read from the case file's manifest entry: `sh:conforms` and, per `sh:result`, the focus node,
+  `sh:resultPath`, `sh:sourceConstraintComponent`, `sh:sourceShape`, `sh:value`, and `sh:resultSeverity`. Terms are
+  compared in N-Triples syntax. The test also states, counted by hand, how many results each file holds, so an
+  adapter that read none would fail.
+- **Shapes graph.** The case's one node shape (a subject typed `sh:NodeShape` or carrying `sh:targetNode` or
+  `sh:targetClass`), its property shapes, and the blank nodes under them. Its targets are replaced by one
+  `sh:targetClass` of the adapter's class, `urn:semvocab:w3c-adapter#Focus`: `sh:targetNode`, `sh:targetClass`, and,
+  for an implicit class target, the shape's `rdf:type rdfs:Class` and `rdfs:subClassOf`. A case with another number
+  of node shapes is excluded; none of the selected cases has one.
+- **Focus nodes** follow SHACL §2.1.3 over the whole file: the `sh:targetNode` objects, and every subject whose
+  `rdf:type` is a target class, the implicit class, or a subclass of one through `rdfs:subClassOf`. Focus nodes,
+  sorted, become entities `w3c.suite.core.adapter.focus.f<n>` of the type `adapter.focus`. Every other IRI subject
+  outside the manifest and shapes graph that is not an `rdfs:Class` becomes `w3c.suite.core.adapter.other.o<n>`, and
+  must report `Targeted` false.
+- **Data.** Each data property IRI, and each shape path, becomes a predicate `adapter.path.p<n>` of a synthetic pack
+  with that `iri` and no `data_type`; the shapes fill it (design D5). An `rdf:type` triple is not a native triple: the
+  entity's type stands for it (design D12). One reconcile group holds every predicate, so ruling Q19 holds.
+- **Values.** A data object maps to a Go value only when the D9 term of that value is the same RDF term, so an
+  expected `sh:value` compares as written: an `http`, `https`, or `urn` IRI to its string, an `xsd:string` literal
+  that export would not turn into an IRI or blank node to its string, a canonical `xsd:integer` to an `int64`, and
+  `xsd:boolean` `true` or `false` to a `bool`. Any other object drops its focus node, with the reason, and that focus
+  node's expected results are removed from the comparison.
+- **Source shapes.** A W3C result whose source shape is a blank property shape is compared with the node shape's
+  IRI, which is how the validator names it.
+
+### Cases and focus nodes the adapter cannot map
+
+The test lists each one with its reason and requires the adapter to find that reason itself.
+
+| Case | Reason |
+| --- | --- |
+| `property/datatype-001` | `sh:datatype xsd:date` is outside the D8 table; Compile rejects it. Its data also uses `xsd:date` and `xsd:decimal` values |
+| `property/minExclusive-001`, `property/maxExclusive-001`, `property/maxInclusive-001` | a bound with no `sh:datatype`, which D8 rejects; Compile names the bound |
+| `node/minInclusive-001` | the focus nodes are literals (`7`, `8`, `9`) and the constraint is on a node shape; native focus nodes are entities, and the profile takes bounds on property shapes only |
+| `node/closed-001` | the closed shape does not ignore `rdf:type`; Compile rejects it by design D12 |
+| `property/datatype-002`, focus `ex:InvalidInstance1` | its value `"A"@en` is language-tagged, and no Go value exports as `rdf:langString`. The case's other three focus nodes run |
+
+**A declared variant for the bounds.** Without it, no W3C case would check a bound. The three property-level bound
+cases run a second time with `sh:datatype xsd:integer` added to each property shape that has a bound and no
+datatype. Their results are compared with the case file's, leaving out only the `sh:DatatypeConstraintComponent`
+results the addition causes (for the value `"a"`). The strict runs above stay listed as excluded. `sh:minInclusive`
+has no runnable W3C case; `TestValidateBounds` covers it by hand. This variant is a choice the design does not make,
+and is raised on the pull request.
+
+### Evidence (6.3)
+
+- 9 cases run unchanged (`minCount-001`, `minCount-002`, `maxCount-001`, `maxCount-002`, `datatype-002` with one
+  focus node dropped, `pattern-001`, `in-001`, `closed-002`, `targetClass-001`), and the three bound cases run as
+  the variant. Their results equal the case files'.
+- The validator was written in task 6.1, before this test. Fail-before is shown by seeded changes, each reverted:
+  - `sh:maxCount` compared with `>=`: `maxCount-001` and `targetClass-001` fail;
+  - `sh:minCount` off: `minCount-001` fails;
+  - `sh:datatype` off: `datatype-002` fails;
+  - `sh:pattern` off: `pattern-001` fails;
+  - `sh:in` off: `in-001` fails;
+  - closed shapes off: `closed-002` fails;
+  - `sh:minExclusive` inclusive, `sh:maxExclusive` inclusive, `sh:maxInclusive` exclusive: the matching variant
+    fails each time;
+  - the adapter passing `rdf:type` triples through as data: nine cases fail.

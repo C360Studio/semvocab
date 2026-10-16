@@ -58,7 +58,7 @@ to `design.md` in this change.
       every applicable shape, sorted results, no registry reads
 - [x] 6.2 The D9 value-term mapping passes the agreement test against `export.Serialize`, and the test fails when one
       mapping row is changed.
-- [ ] 6.3 The W3C supported-component cases pass through the reviewed adapter, and their expected results come from
+- [x] 6.3 The W3C supported-component cases pass through the reviewed adapter, and their expected results come from
       the vendored files
 - [ ] 6.4 The #1 state cases pass: reconcile `{A,B}` to `{B,C}`; append to `{A,B,C}`; mixed cardinalities do not
       choose the mode; birth missing a required value fails; a rebuilt partial update passes; an append past the
