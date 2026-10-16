@@ -33,14 +33,14 @@ to `design.md` in this change.
 
 ## 5. Profile and compiler
 
-- [ ] 5.1 The profile table classifies all 183 vocabulary terms. `TestProfileClassifiesEveryTerm` passes, and fails
+- [x] 5.1 The profile table classifies all 183 vocabulary terms. `TestProfileClassifiesEveryTerm` passes, and fails
       when one classification is removed (D4, D15)
-- [ ] 5.2 Every rejected family fails compilation, naming construct, shape, and path, and all issues are reported
+- [x] 5.2 Every rejected family fails compilation, naming construct, shape, and path, and all issues are reported
       together; `sh:rule` names the Phase 4 deferral. The W3C rejected-family cases pass with no adapter
-- [ ] 5.3 Cardinality, datatype table, numeric bounds with exact integers, and `sh:in` compile as D4, D8, and D11
+- [x] 5.3 Cardinality, datatype table, numeric bounds with exact integers, and `sh:in` compile as D4, D8, and D11
       state. The #1 cases pass: omitted maximum, `maxCount 0`, `maxCount 1`, invalid bounds, empty and typed
       enumeration.
-- [ ] 5.4 The regex subset compiler accepts and rejects as D10 states, and agrees with the W3C pattern cases.
+- [x] 5.4 The regex subset compiler accepts and rejects as D10 states, and agrees with the W3C pattern cases.
 - [ ] 5.5 Closed shapes follow D12, including the `rdf:type` rule.
 - [ ] 5.6 Mapping rules follow D5 and D6: explicit bindings, `iri` agreement, closure-checked targeting, datatype
       fill and conflict. Several shapes on one class keep all constraints. Conflicting mappings fail.
