@@ -62,7 +62,7 @@ A new repo-wide or agent-conduct rule updates both this file and `.agents/rules-
 
 | Gate | Rule | Where |
 | --- | --- | --- |
-| `review` | Production code imports no test library and nothing under `internal/harness` | `dev`, `rev` |
+| `review` | Production code imports no test library and nothing under `internal/harness` | `dev`, `rev`; `TestTestOnlyImports` (Rapid only) |
 | `review` | Public packages' exported signatures name no `internal/` type | `dev`, `rev` |
 | `review` | Importing a package registers nothing; packages export `Register…` functions and only a composition root calls them | `dev`, `rev` |
 | `review` | Validation and compilation are side-effect free: they never mutate SemEngine's global `vocabulary` or `vocabulary/export` registries, and never snapshot/clear/register/restore them as a workaround | `dev`, `rev`; #1 |

@@ -11,10 +11,10 @@ to `design.md` in this change.
 
 ## 2. Fixtures and dependencies
 
-- [ ] 2.1 The W3C SHACL vocabulary and the selected SHACL Core test-suite cases are vendored with their license
+- [x] 2.1 The W3C SHACL vocabulary and the selected SHACL Core test-suite cases are vendored with their license
       notice. The ledger records them under `pins.fixtures`. `TestAdmissionLedgerShape` checks the section and fails
       when a field is removed. The tests check each sha256 before reading.
-- [ ] 2.2 `go.mod` requires `pgregory.net/rapid v1.3.0`, imported only from test files
+- [x] 2.2 `go.mod` requires `pgregory.net/rapid v1.3.0`, imported only from test files
 
 ## 3. Turtle reader
 

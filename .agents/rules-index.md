@@ -11,7 +11,7 @@ is listed as a gap until it exists.
 
 | Rule | Enforced by | Gaps |
 | --- | --- | --- |
-| Production code imports no test library and nothing under `internal/harness` | Review: developer § Required workflow; reviewer § Required review workflow | No import guard yet; SemEngine's `TestProductionImports` is the model when production packages land |
+| Production code imports no test library and nothing under `internal/harness` | Review: developer § Required workflow; reviewer § Required review workflow; `TestTestOnlyImports` fails a non-test file importing `pgregory.net/rapid` | No guard for other test libraries or `internal/harness` yet; SemEngine's `TestProductionImports` is the model when production packages land |
 | Public packages' exported signatures name no `internal/` type | Review: developer, reviewer | No signature guard yet (SemEngine `signatures_test.go` is the model) |
 | Importing a package registers nothing; `Register…` functions, called only from a composition root | Review: developer § Registries and global state; reviewer § Registries and global state | No `init()` guard yet |
 | Validation and compilation never mutate SemEngine's global registries, and never snapshot/clear/register/restore them | Review: developer, reviewer; #1 Phase 2 acceptance (state-independence tests) | Proven per package by its own tests once `shacl/` exists |
