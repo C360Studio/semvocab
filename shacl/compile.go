@@ -191,6 +191,7 @@ func (c *compiler) add(shape, path, construct, format string, args ...any) {
 // (vocabulary/predicate_contract.go:85-142), which is not a registry.
 func Compile(pack vocabulary.PackSpec, shapes ShapeSet, m Mapping) (*Bundle, error) {
 	c := &compiler{}
+	m = canonicalMapping(m)
 	for _, r := range shapes.rejections {
 		c.add(r.Shape, r.Path, r.Construct, "%s", rejectionMessage(r))
 	}
@@ -217,6 +218,47 @@ func Compile(pack vocabulary.PackSpec, shapes ShapeSet, m Mapping) (*Bundle, err
 		}
 	}
 	return b, nil
+}
+
+// canonicalMapping returns a copy of m with every row list sorted. Rows are
+// sets: where two rows conflict, the checks below keep the first and report
+// the rest, so without a fixed order the issues would depend on how the
+// author ordered the document (design D16). Repeats are kept, so each
+// duplicate check still sees them.
+func canonicalMapping(m Mapping) Mapping {
+	out := Mapping{
+		EntityTypes:             slices.Clone(m.EntityTypes),
+		Predicates:              slices.Clone(m.Predicates),
+		Contracts:               slices.Clone(m.Contracts),
+		ClosedIgnoredPredicates: slices.Sorted(slices.Values(m.ClosedIgnoredPredicates)),
+	}
+	for i := range out.EntityTypes {
+		out.EntityTypes[i].DomainTypes = slices.Sorted(slices.Values(m.EntityTypes[i].DomainTypes))
+	}
+	slices.SortFunc(out.EntityTypes, func(a, b EntityTypeBinding) int {
+		return cmp.Or(cmp.Compare(a.ClassIRI, b.ClassIRI), slices.Compare(a.DomainTypes, b.DomainTypes))
+	})
+	slices.SortFunc(out.Predicates, func(a, b PredicateBinding) int {
+		return cmp.Or(cmp.Compare(a.PathIRI, b.PathIRI), cmp.Compare(a.Name, b.Name))
+	})
+	for i := range out.Contracts {
+		ct := &out.Contracts[i]
+		ct.Birth = slices.Sorted(slices.Values(m.Contracts[i].Birth))
+		ct.Groups = slices.Clone(m.Contracts[i].Groups)
+		for j := range ct.Groups {
+			ct.Groups[j].Predicates = slices.Sorted(slices.Values(ct.Groups[j].Predicates))
+		}
+		slices.SortFunc(ct.Groups, func(a, b GroupBinding) int {
+			return cmp.Or(cmp.Compare(a.Name, b.Name), cmp.Compare(a.Mode, b.Mode), slices.Compare(a.Predicates, b.Predicates))
+		})
+	}
+	slices.SortFunc(out.Contracts, func(a, b ContractBinding) int {
+		return cmp.Or(cmp.Compare(a.DomainType, b.DomainType), cmp.Compare(a.Name, b.Name),
+			slices.Compare(a.Birth, b.Birth), slices.CompareFunc(a.Groups, b.Groups, func(x, y GroupBinding) int {
+				return cmp.Or(cmp.Compare(x.Name, y.Name), cmp.Compare(x.Mode, y.Mode), slices.Compare(x.Predicates, y.Predicates))
+			}))
+	})
+	return out
 }
 
 // rejectionMessage words a parser record by the profile's classification of

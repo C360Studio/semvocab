@@ -331,7 +331,7 @@ func TestContracts(t *testing.T) {
 		{"conflicting modes", []ContractBinding{{DomainType: "test.thing", Groups: []GroupBinding{
 			{Name: "g", Mode: contract.ModeReconcile, Predicates: all[:2]},
 			{Name: "g", Mode: contract.ModeAppend, Predicates: all[2:]},
-		}}}, "group g is declared with modes reconcile and append"},
+		}}}, "group g is declared with modes append and reconcile"},
 		{"mode missing", []ContractBinding{{DomainType: "test.thing", Groups: []GroupBinding{
 			{Name: "g", Predicates: all},
 		}}}, `mode "" must be reconcile or append`},

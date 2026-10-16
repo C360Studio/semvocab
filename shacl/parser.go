@@ -437,8 +437,11 @@ func (g *graph) list(head turtle.Term) ([]turtle.Term, bool) {
 // recordStray records every triple whose subject is not a shape or a list
 // cell the model used (design D4), except triples under a blank node already
 // handed to another record. Records name the subject when it is an IRI.
-// Blank subjects reached from nothing are reported before blank cycles, so
-// the records do not depend on triple order.
+// Blank subjects reached from nothing are reported first, each owning the
+// blank nodes under it. The blank subjects left after that lie on or under a
+// cycle that nothing reports reaches; which cycle node is met first depends
+// on triple order, so each of them reports its own triples and none owns
+// another. Either way the records do not depend on triple order.
 func (g *graph) recordStray() {
 	g.closeOwned()
 	for _, s := range g.subjects {
@@ -447,15 +450,27 @@ func (g *graph) recordStray() {
 		}
 	}
 	g.closeOwned()
-	for pass := range 2 {
-		for _, s := range g.subjects {
-			if s.Kind != turtle.Blank || g.consumed[s] || g.owned[s] || pass == 0 && g.isObject[s] {
-				continue
-			}
+	for _, s := range g.subjects {
+		if g.unclaimedBlank(s) && !g.isObject[s] {
 			g.rejectSubject("", s)
 			g.closeOwned()
 		}
 	}
+	var cyclic []turtle.Term
+	for _, s := range g.subjects {
+		if g.unclaimedBlank(s) {
+			cyclic = append(cyclic, s)
+		}
+	}
+	for _, s := range cyclic {
+		g.rejectSubject("", s)
+	}
+	g.closeOwned()
+}
+
+// unclaimedBlank reports a blank subject no shape, list, or record holds.
+func (g *graph) unclaimedBlank(s turtle.Term) bool {
+	return s.Kind == turtle.Blank && !g.consumed[s] && !g.owned[s]
 }
 
 func (g *graph) rejectSubject(shape string, s turtle.Term) {
