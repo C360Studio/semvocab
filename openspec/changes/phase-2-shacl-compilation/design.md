@@ -88,7 +88,9 @@ Changes to the reader:
 
 - The package comment stops saying "test-only"; production code may import it.
 - New caps: input of at most 1 MiB and nesting (`[`, `(`) of at most 64 levels. Either limit fails with the line and
-  column. Today the reader recurses without a depth bound.
+  column. Today the reader recurses without a depth bound, and the size cap alone does not bound the stack: 1 MiB of
+nested `[` reaches 174,755 levels and 256 MiB of goroutine stack, and one million levels kill the process with an
+unrecoverable stack overflow (probe P1).
 - An option resolves relative IRIs against a base the caller supplies (RFC 3986 §5.2). Only the test-suite loader
   passes one. `shacl.ParseTurtle` passes none, so shapes documents must use absolute IRIs.
 - The grammar subset is otherwise unchanged (`internal/turtle/turtle.go:1-20`). SPARQL-style `PREFIX`/`BASE`,
@@ -103,7 +105,10 @@ trailing values; YAML decoding uses `KnownFields(true)` and refuses trailing doc
 number or a YAML node whose tag is not `!!str` is rejected, so no bound passes through `float64` and the design does
 not depend on how `yaml.v3` coerces scalars. Node shapes must be IRIs: a blank-node node shape gets a label that
 depends on document order, which would make names and results order-dependent. Property shapes may be blank nodes;
-their identity is their node shape plus their path.
+their identity is their node shape plus their path. An RDF graph is a set of triples, but `internal/turtle` returns
+every triple it reads, repeats included (probe P2 found a W3C file that states two triples twice). The Turtle input
+path removes exact repeats before building the model, so a repeated `sh:minCount 1` is one constraint, not a
+conflict.
 
 ### D4. Supported profile
 
@@ -251,7 +256,11 @@ Phase 3 results can agree:
   exports as, or `@id` on an `entity_id` predicate.
 
 Each of these is checked against SemEngine's serializer by D15's agreement test. A nil object, an unsupported Go
-type, NaN or infinity, or any other hint is an input error, not a violation.
+type, NaN or infinity, or any other hint is an input error, not a violation. This is a deliberate difference from
+export: at the pin, export silently drops a triple whose object is nil, NaN, or infinite, writes an unsupported Go
+value (a struct) as a plain string from its `%v` form, and writes any `Datatype` hint verbatim, even an ill-typed one
+such as `"x"^^xsd:integer` (probe P5). The agreement test covers only the rows both accept, and asserts the
+difference for these rows.
 
 ### D10. Regex subset (Q15)
 
@@ -261,12 +270,16 @@ The compiler parses each pattern with its own allowlist and emits RE2:
 
 - **Accepted:** literals; `.`, translated to `[^\n\r]` because XSD's `.` excludes both characters; `^` and `$`;
   `|`; capturing `( )`; `* + ? {n} {n,} {n,m}` and their reluctant forms; classes and negated classes with ranges;
-  single-character escapes; `\p{…}` and `\P{…}` for Unicode general categories.
-- **Rejected by name:** `\d \D \w \W \s \S`, which are Unicode-wide in XSD and ASCII-only in RE2; `\i \I \c \C`;
-  block escapes `\p{Is…}`; back-references; `(?`; class subtraction `-[`; any escape XSD does not define; any
-  `sh:flags`.
+  single-character escapes; `\p{…}` and `\P{…}` for the 36 general categories XSD lists (Appendix F), checked by
+  name against that list, never by whether RE2 compiles them.
+- **Rejected by name:** `\d \D \w \W \s \S`. XSD's `\d` and `\w` are Unicode-wide while RE2's are ASCII-only, and
+  XSD's `\s` is `[ \t\n\r]` while RE2's adds `\f` (probe P4). Also rejected: `\i \I \c \C`; block escapes
+  `\p{Is…}`; names RE2 accepts that XSD does not list, such as `\p{Cs}` and script names like `\p{Greek}`;
+  back-references; `(?`; class subtraction `-[`, which RE2 compiles silently as a different class; any escape XSD
+  does not define (RE2 accepts `\x41`, `\A`, `\z`, `\b`); any `sh:flags`.
 
-Each claim on XSD or RE2 behaviour above is confirmed by probe P4 at go1.26.9 before implementation. Agreement is
+Each claim on XSD or RE2 behaviour above was confirmed by probe P4 at go1.26.9 (`notes/1-probes.md`). Go 1.26.9's
+Unicode tables are version 15.0.0, so category membership follows Unicode 15.0; the support matrix says so. Agreement is
 then checked against the W3C test-suite pattern cases and the XPath examples.
 
 ### D11. Enumerations (Q16)

@@ -6,7 +6,7 @@ to `design.md` in this change.
 ## 1. Design rulings and probes
 
 - [x] 1.1 The owner rules Q12–Q24 on #1, and `design.md` records each ruling in place of its proposed default.
-- [ ] 1.2 Probes P1–P5 run, each with its command and result in `notes/1-probes.md`. A probe that contradicts the
+- [x] 1.2 Probes P1–P5 run, each with its command and result in `notes/1-probes.md`. A probe that contradicts the
       design changes `design.md` before the dependent task starts
 
 ## 2. Fixtures and dependencies
