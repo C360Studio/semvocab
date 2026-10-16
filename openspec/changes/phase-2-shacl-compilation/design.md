@@ -13,7 +13,7 @@ or loaded, never inside SemEngine's ingest or query paths. Its output, the *bund
 
 This design is drafted for the owner's review; nothing in it is implemented. All SemEngine citations are at
 `github.com/c360studio/semengine v0.1.0-alpha.2` (`11da4721c2233a8e2b5b1d6236a97a44e06abbb6`), read from the module
-cache. Owner rulings Q1–Q11 stand; Q12–Q24 below are open, each with a proposed default.
+cache. Owner rulings Q1–Q11 stand; Q12–Q24 below were ruled on #1 (2026-10-16), each as proposed.
 
 Review: round 1 pending (architect contract: three rounds, then the owner).
 
@@ -79,7 +79,7 @@ Final identifiers may change during implementation; the observable behaviour bel
 
 The probe (2026-10-16, Go proxy) found no tagged release of the two Go Turtle parsers searched for:
 `github.com/knakk/rdf` and `github.com/deiu/rdf2go` list no versions. A third-party RDF module would also become a
-transitive dependency of every consumer. The proposed default promotes the existing reader. A probe on 2026-10-16
+transitive dependency of every consumer. The ruling (Q12) promotes the existing reader. A probe on 2026-10-16
 copied `internal/turtle/turtle.go` at `5fdff15` into a scratch module. It parsed `packs/diekm/diekm.shacl.ttl` (11
 triples) and the W3C SHACL vocabulary (1,127 triples) without error. It rejected the SHACL test-suite file
 `core/node/closed-001.ttl` at its first relative IRI (`<>`, line 28).
@@ -163,7 +163,7 @@ global predicate metadata" case in #1. The compiled pack must pass `(*PackSpec).
 
 ### D6. Mapping document (Q13, Q24)
 
-The mapping is a SemVocab YAML or JSON document. The proposed default keeps it separate from the Turtle, so the
+The mapping is a SemVocab YAML or JSON document. The ruling (Q13) keeps it separate from the Turtle, so the
 shapes file stays plain W3C SHACL that a Phase 3 external validator reads unchanged, and SemVocab mints no annotation
 namespace that would need its own provenance. Fields:
 
@@ -429,37 +429,38 @@ Each probe runs before the code that depends on it. Its result goes in a `notes/
 - An append is not revision-fenced at the pin, so `sh:maxCount` under concurrent appends is not guaranteed (D13).
 - `(*PackSpec).Validate` fills SemEngine's predicate-parse cache (ownership inventory).
 
-## Open questions for the owner
+## Owner rulings Q12–Q24
 
-Each has a proposed default. A task that depends on one carries a `Hold:` until it is ruled.
+Ruled on #1 (2026-10-16, comment 6214350098): the owner accepted every proposed default. Each entry states the
+ruling, then the rejected alternatives.
 
-- **Q12 Turtle reader:** promote `internal/turtle`, with caps and a test-only base option (proposed). The other
+- **Q12 Turtle reader:** promote `internal/turtle`, with caps and a test-only base option. The other
   options are a third-party module (none has a tagged release) or a second, separate reader.
-- **Q13 Mapping form:** a separate YAML/JSON mapping document (proposed), or annotations in a new SemVocab namespace
+- **Q13 Mapping form:** a separate YAML/JSON mapping document, or annotations in a new SemVocab namespace
   inside the Turtle.
 - **Q14 Base pack:** `Compile` takes the reviewed `PackSpec`, and the compiled pack fills an empty `data_type` from
-  the shapes (proposed). Alternatives: require `data_type` to be declared already, or generate the whole pack from
+  the shapes. Alternatives: require `data_type` to be declared already, or generate the whole pack from
   shapes and mapping.
-- **Q15 Regex flags:** no `sh:flags` in the first profile (proposed), or support `i`, whose Unicode folding differs
+- **Q15 Regex flags:** no `sh:flags` in the first profile, or support `i`, whose Unicode folding differs
   between XPath and RE2 for a few characters.
-- **Q16 `sh:in`:** string-only (proposed), or typed members compared by datatype and value.
-- **Q17 Entity references:** reject `sh:nodeKind`, so `entity_id` predicates take cardinality only (proposed), or
+- **Q16 `sh:in`:** string-only, or typed members compared by datatype and value.
+- **Q17 Entity references:** reject `sh:nodeKind`, so `entity_id` predicates take cardinality only, or
   accept `sh:nodeKind sh:IRI` on `entity_id` predicates.
-- **Q18 Shapes with no writable contract:** no contract, with the entity type listed in `Unwritable()` (proposed), or
+- **Q18 Shapes with no writable contract:** no contract, with the entity type listed in `Unwritable()`, or
   fail compilation.
-- **Q19 Constrained predicates outside the contract:** fail compilation (proposed), or allow predicates another
+- **Q19 Constrained predicates outside the contract:** fail compilation, or allow predicates another
   writer owns.
-- **Q20 Closed shapes:** require `rdf:type` in `sh:ignoredProperties` (proposed), or accept, with a documented
+- **Q20 Closed shapes:** require `rdf:type` in `sh:ignoredProperties`, or accept, with a documented
   Phase 3 disagreement.
 - **Q21 W3C fixtures:** vendor `shacl.ttl` and the selected SHACL test-suite cases from `w3c/data-shapes` at
-  `4cd469867a1cc6d2fff80e8a40723b26c695d67a`, recorded in a new ledger section `pins.fixtures` (proposed). The
+  `4cd469867a1cc6d2fff80e8a40723b26c695d67a`, recorded in a new ledger section `pins.fixtures`. The
   vocabulary file is `shacl/shacl.ttl`, sha256 `1a534caa9d3df5bbc5e5351002bda56ead9226fda0a617c165b218d8bd06b9af`.
   Its `sh:` term set equals the one served at `https://www.w3.org/ns/shacl.ttl` (probe, 2026-10-16). The alternative
   is hand-written expectations only.
-- **Q22 Value-term mapping:** SemVocab defines it and checks it against SemEngine's serializer (proposed). The
+- **Q22 Value-term mapping:** SemVocab defines it and checks it against SemEngine's serializer. The
   alternative is to file a SemEngine issue for a pure exported classifier first, and hold D9 on it.
-- **Q23 DIEKM contract:** the mapping needs modes and birth for `intel.platform`. Proposed: group `measurement`
+- **Q23 DIEKM contract:** the mapping needs modes and birth for `intel.platform`. Ruled: group `measurement`
   (`intel.measurement.altitude-m`) as `reconcile`; group `role` (`intel.role.assigned`) as `reconcile`; no birth
   predicates.
 - **Q24 Subclass targeting:** list every pack entity type in the target class's closure, checked against
-  `superclasses` (proposed), or exact `class_iri` matches only, documented as narrower than SHACL.
+  `superclasses`, or exact `class_iri` matches only, documented as narrower than SHACL.

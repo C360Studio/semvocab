@@ -5,8 +5,7 @@ to `design.md` in this change.
 
 ## 1. Design rulings and probes
 
-- [ ] 1.1 The owner rules Q12–Q24 on #1, and `design.md` records each ruling in place of its proposed default.
-      Hold: owner rulings Q12–Q24 on #1
+- [x] 1.1 The owner rules Q12–Q24 on #1, and `design.md` records each ruling in place of its proposed default.
 - [ ] 1.2 Probes P1–P5 run, each with its command and result in `notes/1-probes.md`. A probe that contradicts the
       design changes `design.md` before the dependent task starts
 
@@ -14,22 +13,21 @@ to `design.md` in this change.
 
 - [ ] 2.1 The W3C SHACL vocabulary and the selected SHACL Core test-suite cases are vendored with their license
       notice. The ledger records them under `pins.fixtures`. `TestAdmissionLedgerShape` checks the section and fails
-      when a field is removed. The tests check each sha256 before reading. Hold: owner ruling Q21 on #1
+      when a field is removed. The tests check each sha256 before reading.
 - [ ] 2.2 `go.mod` requires `pgregory.net/rapid v1.3.0`, imported only from test files
 
 ## 3. Turtle reader
 
 - [ ] 3.1 `internal/turtle` serves production callers: its package comment drops "test-only"; input over 1 MiB and
       nesting deeper than 64 levels fail with a position; a caller-supplied base resolves relative IRIs, used only by
-      the test-suite loader; existing tests still pass (D2). Hold: owner ruling Q12 on #1
+      the test-suite loader; existing tests still pass (D2).
 - [ ] 3.2 Sensitivity tests show each cap rejects one byte or one level over and accepts exactly at the limit
 
 ## 4. Shape model and inputs
 
 - [ ] 4.1 `shacl.ParseTurtle`, `DecodeShapesJSON`, and `DecodeShapesYAML` build the model, refusing blank-node node
       shapes, relative IRIs, unknown fields, trailing documents, and non-string bounds (D3)
-- [ ] 4.2 `DecodeMappingJSON` and `DecodeMappingYAML` decode the mapping document strictly (D6). Hold: owner ruling
-      Q13 on #1
+- [ ] 4.2 `DecodeMappingJSON` and `DecodeMappingYAML` decode the mapping document strictly (D6).
 - [ ] 4.3 The DIEKM shapes in Turtle, JSON, and YAML decode to equal shape sets
 
 ## 5. Profile and compiler
@@ -40,19 +38,15 @@ to `design.md` in this change.
       together; `sh:rule` names the Phase 4 deferral. The W3C rejected-family cases pass with no adapter
 - [ ] 5.3 Cardinality, datatype table, numeric bounds with exact integers, and `sh:in` compile as D4, D8, and D11
       state. The #1 cases pass: omitted maximum, `maxCount 0`, `maxCount 1`, invalid bounds, empty and typed
-      enumeration. Hold: owner rulings Q16 and Q17 on #1
-- [ ] 5.4 The regex subset compiler accepts and rejects as D10 states, and agrees with the W3C pattern cases. Hold:
-      owner ruling Q15 on #1
-- [ ] 5.5 Closed shapes follow D12, including the `rdf:type` rule. Hold: owner ruling Q20 on #1
+      enumeration.
+- [ ] 5.4 The regex subset compiler accepts and rejects as D10 states, and agrees with the W3C pattern cases.
+- [ ] 5.5 Closed shapes follow D12, including the `rdf:type` rule.
 - [ ] 5.6 Mapping rules follow D5 and D6: explicit bindings, `iri` agreement, closure-checked targeting, datatype
-      fill and conflict. Several shapes on one class keep all constraints. Conflicting mappings fail. Hold: owner
-      rulings Q14 and Q24 on #1
+      fill and conflict. Several shapes on one class keep all constraints. Conflicting mappings fail.
 - [ ] 5.7 Contracts follow D7: pattern, explicit modes and birth, conflicting modes fail, every constrained predicate
-      in the contract, sorted names, the `Unwritable()` list. Each contract passes `ValidateShape`. Hold: owner
-      rulings Q18 and Q19 on #1
+      in the contract, sorted names, the `Unwritable()` list. Each contract passes `ValidateShape`.
 - [ ] 5.8 `packs/diekm/diekm.mapping.yaml` binds the DIEKM shapes. The DIEKM bundle compiles, and its pattern matches
-      `acme.edge.sensor.intel.platform.p1` and rejects `acme.edge.intel.other.platform.p1`. Hold: owner ruling Q23 on
-      #1
+      `acme.edge.sensor.intel.platform.p1` and rejects `acme.edge.intel.other.platform.p1`.
 - [ ] 5.9 `TestSHACLCompilerOutputsValidPackAndContracts` passes. The compiled pack passes `(*PackSpec).Validate`.
       Global registry and prefix state are asserted unchanged after a successful and a failed compile. An unrelated
       registration between two compiles leaves the bundles equal (D14)
@@ -62,7 +56,7 @@ to `design.md` in this change.
 - [ ] 6.1 `ValidateCandidateState` follows D13: input errors, targeting with `Targeted`, distinct-term counting,
       every applicable shape, sorted results, no registry reads
 - [ ] 6.2 The D9 value-term mapping passes the agreement test against `export.Serialize`, and the test fails when one
-      mapping row is changed. Hold: owner ruling Q22 on #1
+      mapping row is changed.
 - [ ] 6.3 The W3C supported-component cases pass through the reviewed adapter, and their expected results come from
       the vendored files
 - [ ] 6.4 The #1 state cases pass: reconcile `{A,B}` to `{B,C}`; append to `{A,B,C}`; mixed cardinalities do not
