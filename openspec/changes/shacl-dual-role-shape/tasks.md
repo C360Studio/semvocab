@@ -8,7 +8,7 @@
       predicate and the `sh:NodeShape` type, and the referring shape's other properties; a seeded change is shown to
       fail them
 - [x] 1.3 The W3C rejected-family and path cases and the Rapid properties still pass
-- [ ] 1.4 `docs/shacl-compilation.md` states the rule
+- [x] 1.4 `docs/shacl-compilation.md` states the rule
 - [ ] 1.5 `task verify` passes on a clean tree
 
 ## 2. Archive
