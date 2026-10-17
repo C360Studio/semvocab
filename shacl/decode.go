@@ -105,7 +105,7 @@ func DecodeMappingYAML(r io.Reader) (Mapping, error) {
 }
 
 func decodeJSON(r io.Reader, out any) error {
-	data, err := io.ReadAll(r)
+	data, err := readDocument(r)
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func scanJSON(dec *json.Decoder, path string) error {
 }
 
 func decodeYAML(r io.Reader, out any) error {
-	data, err := io.ReadAll(r)
+	data, err := readDocument(r)
 	if err != nil {
 		return err
 	}

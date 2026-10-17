@@ -3,6 +3,7 @@ package shacl
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -618,4 +619,33 @@ func decodeShapes(src string) error {
 func decodeMapping(src string) error {
 	_, err := DecodeMappingJSON(strings.NewReader(src))
 	return err
+}
+
+// TestDecodeSizeLimit shows each JSON and YAML decoder accepts a document of
+// exactly 1 MiB and rejects one byte more, naming the limit and the byte
+// offset, as ParseTurtle does (ruling Q33, issue #17). Each document is
+// padded with trailing whitespace, which both formats ignore.
+func TestDecodeSizeLimit(t *testing.T) {
+	const limit = 1 << 20
+	pad := func(doc string, size int) string { return doc + strings.Repeat("\n", size-len(doc)) }
+	decoders := map[string]struct {
+		doc    string
+		decode func(io.Reader) error
+	}{
+		"shapes json":  {`{"node_shapes":[{"id":"urn:S"}]}`, func(r io.Reader) error { _, err := DecodeShapesJSON(r); return err }},
+		"shapes yaml":  {"node_shapes:\n  - id: \"urn:S\"\n", func(r io.Reader) error { _, err := DecodeShapesYAML(r); return err }},
+		"mapping json": {`{"predicates":[]}`, func(r io.Reader) error { _, err := DecodeMappingJSON(r); return err }},
+		"mapping yaml": {"predicates: []\n", func(r io.Reader) error { _, err := DecodeMappingYAML(r); return err }},
+	}
+	want := fmt.Sprintf("input exceeds the %d-byte limit at byte offset %d", limit, limit)
+	for name, d := range decoders {
+		t.Run(name, func(t *testing.T) {
+			if err := d.decode(strings.NewReader(pad(d.doc, limit))); err != nil {
+				t.Fatalf("exactly %d bytes: %v", limit, err)
+			}
+			if err := d.decode(strings.NewReader(pad(d.doc, limit+1))); err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("%d bytes: err = %v, want containing %q", limit+1, err, want)
+			}
+		})
+	}
 }

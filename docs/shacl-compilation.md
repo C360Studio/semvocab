@@ -162,6 +162,8 @@ The decoders refuse:
 - a blank-node node shape (`id` starting `_:`), and a node shape listed twice.
 
 The JSON and YAML forms cannot express an out-of-profile construct, so they never produce the issues Turtle can.
+Both forms share Turtle's 1 MiB (1,048,576-byte) cap: input over it fails, naming the byte offset where the limit was
+crossed, and exactly 1 MiB is accepted (`TestDecodeSizeLimit`, ruling Q33).
 Every error names what it refused, but not every error carries a position. Syntax errors give a line (YAML) or a
 byte offset (JSON). Invalid UTF-8 gives a byte offset in both forms, and so does a JSON `\u` escape naming a lone
 UTF-16 surrogate: `encoding/json` would otherwise decode either into U+FFFD without error

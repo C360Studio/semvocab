@@ -117,8 +117,8 @@ func FuzzParseTurtleShapes(f *testing.F) {
 			doc := []byte("<http://example.org/S> <http://www.w3.org/ns/shacl#targetClass> <http://example.org/C> .\n#")
 			return append(doc, bytes.Repeat([]byte("x"), n-len(doc))...)
 		}
-		f.Add(pad(maxTurtleBytes))
-		f.Add(pad(maxTurtleBytes + 1))
+		f.Add(pad(maxDocumentBytes))
+		f.Add(pad(maxDocumentBytes + 1))
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -143,15 +143,28 @@ var (
 	shapeRule = regexp.MustCompile(`(?s)^shacl: shapes: (blank-node node shape ".*": node shapes must be IRIs \(design D3\)|node shape .+ listed twice|node shape .+ has a property shape with no path|.+: ".*" is not an absolute IRI)$`)
 	// emptyDocument names the whole input.
 	emptyDocument = regexp.MustCompile(`^shacl: shapes: no document$`)
+	// shapesSizeLimit is the 1 MiB cap on the JSON and YAML forms (ruling Q33).
+	shapesSizeLimit = regexp.MustCompile(`^shacl: shapes: input exceeds the 1048576-byte limit at byte offset 1048576$`)
 )
+
+// addSizeSeeds adds seed at exactly the 1 MiB cap and one byte over, padded
+// with trailing newlines, under plain go test only, as FuzzParseTurtle does.
+func addSizeSeeds(f *testing.F, seed []byte) {
+	if fl := flag.Lookup("test.fuzz"); fl == nil || fl.Value.String() == "" {
+		for _, n := range []int{maxDocumentBytes, maxDocumentBytes + 1} {
+			f.Add(append(slices.Clone(seed), bytes.Repeat([]byte("\n"), n-len(seed))...))
+		}
+	}
+}
 
 // FuzzDecodeShapesJSON fuzzes DecodeShapesJSON, then Compile.
 func FuzzDecodeShapesJSON(f *testing.F) {
 	f.Add(readFuzzSeed(f, "diekm.shapes.json"))
+	addSizeSeeds(f, readFuzzSeed(f, "diekm.shapes.json"))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		set, err := DecodeShapesJSON(bytes.NewReader(data))
 		if err != nil {
-			requireNamed(t, err, jsonLocated, jsonField, jsonPath, shapeRule, emptyDocument)
+			requireNamed(t, err, jsonLocated, jsonField, jsonPath, shapeRule, emptyDocument, shapesSizeLimit)
 			return
 		}
 		if !utf8.Valid(data) {
@@ -174,10 +187,11 @@ var (
 // FuzzDecodeShapesYAML fuzzes DecodeShapesYAML, then Compile.
 func FuzzDecodeShapesYAML(f *testing.F) {
 	f.Add(readFuzzSeed(f, "diekm.shapes.yaml"))
+	addSizeSeeds(f, readFuzzSeed(f, "diekm.shapes.yaml"))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		set, err := DecodeShapesYAML(bytes.NewReader(data))
 		if err != nil {
-			requireNamed(t, err, yamlLine, yamlLocated, yamlConstruct, shapeRule, emptyDocument)
+			requireNamed(t, err, yamlLine, yamlLocated, yamlConstruct, shapeRule, emptyDocument, shapesSizeLimit)
 			return
 		}
 		requireIssuesNamed(t, set)
@@ -252,7 +266,7 @@ func TestFuzzErrorFormsReachable(t *testing.T) {
 	samples := map[string]func() error{
 		"turtleLocated": func() error { _, err := ParseTurtle(strings.NewReader("@@")); return err },
 		"sizeLimit": func() error {
-			_, err := ParseTurtle(bytes.NewReader(make([]byte, maxTurtleBytes+1)))
+			_, err := ParseTurtle(bytes.NewReader(make([]byte, maxDocumentBytes+1)))
 			return err
 		},
 		"blankNodeShape": func() error {
