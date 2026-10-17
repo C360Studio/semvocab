@@ -109,6 +109,9 @@ func decodeJSON(r io.Reader, out any) error {
 	if err != nil {
 		return err
 	}
+	if err := checkJSONText(data); err != nil {
+		return err
+	}
 	// encoding/json decodes null into a string as "" (in a list) or leaves
 	// the field unset, and merges a repeated object key into the members it
 	// already decoded (encoding/json/decode.go:50-52 at go1.26.9). So the
@@ -151,6 +154,62 @@ func locateJSONError(err error, data []byte) error {
 		return fmt.Errorf("byte offset %d: %w", typ.Offset, err)
 	}
 	return err
+}
+
+// checkJSONText refuses the text encoding/json would replace with U+FFFD
+// without error: invalid UTF-8, and a \u escape naming a lone UTF-16
+// surrogate (encoding/json/decode.go:98-100 at go1.26.9). The YAML and
+// Turtle readers refuse the same input (issue #18). A backslash outside a
+// string is a syntax error either way, so escapes are found without tracking
+// strings.
+func checkJSONText(data []byte) error {
+	for i := 0; i < len(data); {
+		r, n := utf8.DecodeRune(data[i:])
+		if r == utf8.RuneError && n == 1 {
+			return fmt.Errorf("byte offset %d: the input is not valid UTF-8", i)
+		}
+		if r != '\\' {
+			i += n
+			continue
+		}
+		hi, ok := jsonEscapedUnit(data[i:])
+		switch {
+		case !ok:
+			i += 2 // another escape, or a syntax error the struct decode reports
+		case hi >= 0xDC00 && hi <= 0xDFFF:
+			return fmt.Errorf("byte offset %d: \\u%04x is a lone UTF-16 surrogate", i, hi)
+		case hi >= 0xD800 && hi <= 0xDBFF:
+			if lo, ok := jsonEscapedUnit(data[i+6:]); !ok || lo < 0xDC00 || lo > 0xDFFF {
+				return fmt.Errorf("byte offset %d: \\u%04x is a lone UTF-16 surrogate", i, hi)
+			}
+			i += 12
+		default:
+			i += 6
+		}
+	}
+	return nil
+}
+
+// jsonEscapedUnit reads the UTF-16 code unit of a \uXXXX escape at the start
+// of b.
+func jsonEscapedUnit(b []byte) (rune, bool) {
+	if len(b) < 6 || b[0] != '\\' || b[1] != 'u' {
+		return 0, false
+	}
+	var u rune
+	for _, c := range b[2:6] {
+		switch {
+		case '0' <= c && c <= '9':
+			u = u<<4 | rune(c-'0')
+		case 'a' <= c && c <= 'f':
+			u = u<<4 | rune(c-'a'+10)
+		case 'A' <= c && c <= 'F':
+			u = u<<4 | rune(c-'A'+10)
+		default:
+			return 0, false
+		}
+	}
+	return u, true
 }
 
 // errJSONSyntax marks a token-stream error in scanJSON; the struct decode

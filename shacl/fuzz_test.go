@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/c360studio/semengine/vocabulary"
 	"github.com/c360studio/semvocab/internal/oracle"
@@ -152,6 +153,9 @@ func FuzzDecodeShapesJSON(f *testing.F) {
 		if err != nil {
 			requireNamed(t, err, jsonLocated, jsonField, jsonPath, shapeRule, emptyDocument)
 			return
+		}
+		if !utf8.Valid(data) {
+			t.Fatalf("accepted input that is not valid UTF-8 (issue #18)")
 		}
 		requireIssuesNamed(t, set)
 	})

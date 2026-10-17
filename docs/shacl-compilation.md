@@ -163,9 +163,12 @@ The decoders refuse:
 
 The JSON and YAML forms cannot express an out-of-profile construct, so they never produce the issues Turtle can.
 Every error names what it refused, but not every error carries a position. Syntax errors give a line (YAML) or a
-byte offset (JSON), and invalid UTF-8 in YAML gives a byte offset. A JSON null or repeated key names its JSON path,
-such as `$.node_shapes is null`. An unknown field names the field, and a model error, such as a relative IRI, names
-the field and value. `yaml.v3` rejects unknown keys at every nesting level with the line (probe P3).
+byte offset (JSON). Invalid UTF-8 gives a byte offset in both forms, and so does a JSON `\u` escape naming a lone
+UTF-16 surrogate: `encoding/json` would otherwise decode either into U+FFFD without error
+(`encoding/json/decode.go:98-100` at go1.26.9), while a surrogate pair still decodes. A JSON null or repeated key
+names its JSON path, such as `$.node_shapes is null`. An unknown field names the field, and a model error, such as a
+relative IRI, names the field and value. `yaml.v3` rejects unknown keys at every nesting level with the line (probe
+P3).
 
 ### The mapping document
 
