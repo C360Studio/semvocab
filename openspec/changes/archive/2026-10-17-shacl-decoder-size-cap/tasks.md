@@ -12,4 +12,4 @@
 
 ## 2. Archive
 
-- [ ] 2.1 The change is archived and `openspec/specs/` is synced; `task spec:check` passes
+- [x] 2.1 The change is archived and `openspec/specs/` is synced; `task spec:check` passes
