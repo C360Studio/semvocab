@@ -11,9 +11,23 @@ import (
 	"github.com/c360studio/semvocab/internal/turtle"
 )
 
-// maxTurtleBytes caps a shapes document (design D2, ruling Q25). The reader
-// itself has no size limit, because it also loads large vendored oracles.
-const maxTurtleBytes = 1 << 20
+// maxDocumentBytes caps a shapes or mapping document in every format (design
+// D2, rulings Q25 and Q33). The Turtle reader itself has no size limit,
+// because it also loads large vendored oracles.
+const maxDocumentBytes = 1 << 20
+
+// readDocument reads at most maxDocumentBytes from r, failing on input over
+// the cap with the byte offset where the limit is crossed.
+func readDocument(r io.Reader) ([]byte, error) {
+	src, err := io.ReadAll(io.LimitReader(r, maxDocumentBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read: %w", err)
+	}
+	if len(src) > maxDocumentBytes {
+		return nil, fmt.Errorf("input exceeds the %d-byte limit at byte offset %d", maxDocumentBytes, maxDocumentBytes)
+	}
+	return src, nil
+}
 
 // IRIs the parser recognises. SemEngine exports none of them (design,
 // ownership inventory).
@@ -52,13 +66,9 @@ var annotations = []string{
 // the ShapeSet for Compile to report (ruling Q26). No triple is skipped
 // silently.
 func ParseTurtle(r io.Reader) (ShapeSet, error) {
-	src, err := io.ReadAll(io.LimitReader(r, maxTurtleBytes+1))
+	src, err := readDocument(r)
 	if err != nil {
-		return ShapeSet{}, fmt.Errorf("shacl: read: %w", err)
-	}
-	if len(src) > maxTurtleBytes {
-		return ShapeSet{}, fmt.Errorf("shacl: input exceeds the %d-byte limit at byte offset %d",
-			maxTurtleBytes, maxTurtleBytes)
+		return ShapeSet{}, fmt.Errorf("shacl: %w", err)
 	}
 	triples, err := turtle.Parse(bytes.NewReader(src))
 	if err != nil {
