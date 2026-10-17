@@ -77,6 +77,7 @@ type graph struct {
 	owned      map[turtle.Term]bool // blank nodes under a recorded rejection
 	ownRoots   []turtle.Term
 	rejections []rejection
+	dual       map[turtle.Term][]string // node shapes also used as property shapes → their referrers
 }
 
 // fromTriples builds the model from parsed triples. ParseTurtle and the W3C
@@ -110,7 +111,12 @@ func fromTriples(triples []turtle.Triple) (ShapeSet, error) {
 		}
 		g.consumed[s] = true
 	}
+	g.findDualRoles()
 	for _, s := range g.subjects {
+		if g.dual[s] != nil {
+			g.rejectDualRole(s)
+			continue
+		}
 		if g.consumed[s] && s.Kind == turtle.IRI && g.isNodeShape(s) {
 			set.NodeShapes = append(set.NodeShapes, g.nodeShape(s))
 		}
@@ -141,6 +147,56 @@ func (g *graph) isNodeShape(s turtle.Term) bool {
 	return false
 }
 
+// findDualRoles finds each node shape that is also the object of a node
+// shape's sh:property, with the node shapes that refer to it, sorted. Both
+// passes read the whole graph, so the result does not depend on statement
+// order.
+func (g *graph) findDualRoles() {
+	g.dual = map[turtle.Term][]string{}
+	for _, s := range g.subjects {
+		if s.Kind != turtle.IRI || !g.isNodeShape(s) {
+			continue
+		}
+		for _, t := range g.bySubject[s] {
+			if t.P.Value == shNS+"property" && t.O.Kind == turtle.IRI && g.isNodeShape(t.O) &&
+				!slices.Contains(g.dual[t.O], s.Value) {
+				g.dual[t.O] = append(g.dual[t.O], s.Value)
+			}
+		}
+	}
+	for _, refs := range g.dual {
+		slices.Sort(refs)
+	}
+}
+
+// rejectDualRole records a node shape that is also a property shape (ruling
+// Q32) as one rejection naming both roles. The shape is built in neither
+// role, so its triples draw no other record: the rejection owns every blank
+// node under it.
+func (g *graph) rejectDualRole(s turtle.Term) {
+	var targets []string
+	for _, p := range g.predicates(s) {
+		if slices.Contains(targetPredicates, p) {
+			targets = append(targets, "sh:"+strings.TrimPrefix(p, shNS))
+		}
+	}
+	role, reason := "it is typed sh:NodeShape", "a property shape typed sh:NodeShape is outside the profile"
+	if len(targets) > 0 {
+		role = "it has " + strings.Join(targets, ", ")
+		reason = "a property shape with its own target is outside the profile"
+	}
+	refs := make([]string, len(g.dual[s]))
+	for i, r := range g.dual[s] {
+		refs[i] = "<" + r + ">"
+	}
+	g.rejections = append(g.rejections, rejection{Construct: shNS + "property", Shape: s.Value,
+		Message: fmt.Sprintf("shape <%s> is used as a node shape (%s) and as a property shape (sh:property from %s); %s",
+			s.Value, role, strings.Join(refs, ", "), reason)})
+	for _, t := range g.bySubject[s] {
+		g.own(t.O)
+	}
+}
+
 // reject records an out-of-profile use and hands the object's blank-node
 // subgraph to it, so nothing under the construct is reported again.
 func (g *graph) reject(construct, shape, path, detail string, obj turtle.Term) {
@@ -165,6 +221,8 @@ func (g *graph) nodeShape(s turtle.Term) NodeShape {
 			g.reject(rdfsClass, ns.ID, "", "implicit class target: the shape is also an rdfs:Class", o)
 		case p == shNS+"targetClass" && o.Kind == turtle.IRI:
 			ns.TargetClasses = append(ns.TargetClasses, o.Value)
+		case p == shNS+"property" && g.dual[o] != nil:
+			// Recorded once, on the shape itself (rejectDualRole).
 		case p == shNS+"property" && o.Kind != turtle.Literal:
 			if g.consumed[o] && o.Kind == turtle.Blank {
 				g.reject(p, ns.ID, "", "a blank-node property shape shared by several shapes", turtle.Term{})
