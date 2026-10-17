@@ -579,7 +579,9 @@ func TestDecodeJSONRefusesReplacedText(t *testing.T) {
 		"shapes lone high surrogate":  {shape(`\ud800x`), decodeShapes, "byte offset 67: "},
 		"shapes lone low surrogate":   {shape(`a\udc00`), decodeShapes, "byte offset 68: "},
 		"shapes reversed pair":        {shape(`\ude00\ud83d`), decodeShapes, "byte offset 67: "},
-		"shapes high then non-low":    {shape(`\ud83dA`), decodeShapes, "byte offset 67: "},
+		"shapes high then non-low":    {shape(`\ud83d\u0041`), decodeShapes, "byte offset 67: "},
+		"shapes high then above low":  {shape(`\ud83d\ue000`), decodeShapes, "byte offset 67: "},
+		"shapes high then non-escape": {shape(`\ud83dA`), decodeShapes, "byte offset 67: "},
 		"shapes invalid byte escaped": {shape("\\\xff"), decodeShapes, "byte offset 68: the input is not valid UTF-8"},
 		"shapes escaped multibyte":    {shape("\\é"), decodeShapes, "invalid character 'Ã' in string escape code"},
 		"mapping invalid byte":        {mapping("\xc0\xaf"), decodeMapping, "byte offset 43: "},
@@ -592,14 +594,14 @@ func TestDecodeJSONRefusesReplacedText(t *testing.T) {
 			}
 		})
 	}
-	got, err := DecodeShapesJSON(strings.NewReader(shape(`😀 \\ud800 é`)))
+	got, err := DecodeShapesJSON(strings.NewReader(shape(`\ud83d\ude00 \\ud800 é`)))
 	if err != nil {
 		t.Fatalf("pair and escaped backslash: %v", err)
 	}
 	if in := *got.NodeShapes[0].Properties[0].In; in[0] != `😀 \ud800 é` {
 		t.Fatalf("in = %q", in[0])
 	}
-	m, err := DecodeMappingJSON(strings.NewReader(mapping(`😀`)))
+	m, err := DecodeMappingJSON(strings.NewReader(mapping(`\ud83d\ude00`)))
 	if err != nil {
 		t.Fatalf("mapping pair: %v", err)
 	}

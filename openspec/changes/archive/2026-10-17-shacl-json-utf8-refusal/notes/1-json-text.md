@@ -38,3 +38,19 @@ Written 2026-10-17 with go1.26.9 darwin/arm64, at `2a0ae84` plus this change.
 - **Evidence:** two cases in `TestDecodeJSONRefusesReplacedText` ("shapes invalid byte escaped" and "shapes escaped
   multibyte") fail at `ad62de2` and pass with the fix. Seeding `i++` in place of `i += 2` for the escaped backslash
   fails the test's `\\ud800` acceptance. A 20 s `FuzzDecodeShapesJSON` run found no failure.
+
+## Archive-check fix (claude archive check of `92baf95`, MEDIUM)
+
+- **Finding:** no test fed either decoder an escaped surrogate pair. The acceptance checks were meant to use
+  `\ud83d\ude00`, but the file held the raw character, so the pair-accepting path was never run. The case written as
+  `\ud83d\u0041` had become `\ud83dA`. The cause was the tool that wrote the file: it decoded `\u` escapes in the text
+  before writing. Task 1.2 and this note's 1.2 evidence claimed the pair was covered; it was not, at `3fb4f25` through
+  `92baf95`.
+- **Fix:** both acceptance checks now use the escaped pair `\ud83d\ude00`; the `\ud83d\u0041` case is restored and
+  `\ud83dA` kept as its own case; a new case `\ud83d\ue000` covers an escape above the low-surrogate range. The two spec
+  scenario copies (`openspec/specs/shacl-compilation/spec.md` and this change's delta) also had the raw character in
+  place of `\ud83d\ude00` and are corrected. Every file in the branch diff was scanned for the raw character and for
+  missing `\u` escapes.
+- **Evidence:** seeding "refuse every high surrogate" fails the shapes acceptance check (`\ud83d is a lone UTF-16
+  surrogate`); dropping the `lo > 0xDFFF` bound fails "shapes high then above low"; dropping the `lo < 0xDC00` bound
+  fails "shapes high then non-low".

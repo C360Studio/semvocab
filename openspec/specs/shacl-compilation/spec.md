@@ -218,4 +218,4 @@ U+FFFD.
 #### Scenario: A lone surrogate escape
 
 - **WHEN** a JSON mapping document has `"\ud800"` as a predicate name
-- **THEN** decoding fails with the escape's offset, and `"😀"` in the same place still decodes
+- **THEN** decoding fails with the escape's offset, and `"\ud83d\ude00"` in the same place still decodes
