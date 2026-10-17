@@ -264,6 +264,9 @@ func canonicalMapping(m Mapping) Mapping {
 // rejectionMessage words a parser record by the profile's classification of
 // its construct.
 func rejectionMessage(r rejection) string {
+	if r.Message != "" {
+		return r.Message
+	}
 	var msg string
 	switch e, ok := profile[r.Construct]; {
 	case ok && e.class == termRejected:

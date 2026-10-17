@@ -585,7 +585,11 @@ rejected:
 - a predicate on a shape that is not an `sh:` term and not `rdfs:label` or `rdfs:comment` is "outside the profile";
 - an `rdf:type` on a shape other than `sh:NodeShape` or `sh:PropertyShape`, such as a rejected class, is reported
   under `rdf:type` with the class named;
-- a node shape with no `sh:targetClass` fails, because it would never apply and its constraints would silently drop.
+- a node shape with no `sh:targetClass` fails, because it would never apply and its constraints would silently drop;
+- an IRI that is a node shape (it has a target, or is typed `sh:NodeShape`) and is also the object of another node
+  shape's `sh:property` is built in neither role. A property shape with its own target is outside the profile. The
+  IRI is reported once, under `sh:property` on that IRI, naming its target and every shape that refers to it
+  (`TestDualRoleShapeIssue10`).
 
 A compile collects every issue before it fails. `CompileError.Issues` is sorted by shape, path, construct, and message,
 and no partial bundle is returned. The W3C SHACL test-suite files for each rejected family fail compilation with no

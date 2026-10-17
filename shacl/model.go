@@ -71,9 +71,10 @@ type Literal struct {
 // construct's IRI (or the sh: term that introduces it), the shape it appears
 // on (empty for a blank subject outside every shape), the property path
 // (empty on a node shape), and a detail naming the offending value. Blank-node
-// labels never appear, so records do not depend on document order.
+// labels never appear, so records do not depend on document order. Message,
+// when set, is the whole issue message, in place of the profile's wording.
 type rejection struct {
-	Construct, Shape, Path, Detail string
+	Construct, Shape, Path, Detail, Message string
 }
 
 // Mapping binds shapes to a SemEngine pack (design D6). It is decoded
