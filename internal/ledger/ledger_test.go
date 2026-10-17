@@ -96,6 +96,33 @@ func checkShape(l Ledger) []string {
 			add("pins.ontologies.%s.sha256 %q is not a 64-hex digest", name, o.SHA256)
 		}
 	}
+	if _, ok := l.Pins.Fixtures["w3c-data-shapes"]; !ok {
+		add("pins.fixtures.w3c-data-shapes missing")
+	}
+	for name, set := range l.Pins.Fixtures {
+		if set.Repository == "" || set.License == "" || set.VendoredAt == "" || set.Selection == "" {
+			add("pins.fixtures.%s lacks repository, license, vendored_at, or selection", name)
+		}
+		if !hex40.MatchString(set.Commit) {
+			add("pins.fixtures.%s.commit %q is not a full 40-hex commit", name, set.Commit)
+		}
+		if len(set.Files) == 0 {
+			add("pins.fixtures.%s lists no files", name)
+		}
+		paths := map[string]bool{}
+		for i, f := range set.Files {
+			if f.Path == "" {
+				add("pins.fixtures.%s.files[%d] has no path", name, i)
+			}
+			if paths[f.Path] {
+				add("pins.fixtures.%s lists %s twice", name, f.Path)
+			}
+			paths[f.Path] = true
+			if !hex64.MatchString(f.SHA256) {
+				add("pins.fixtures.%s file %s sha256 %q is not a 64-hex digest", name, f.Path, f.SHA256)
+			}
+		}
+	}
 	for _, phase := range []string{"phase-1", "phase-2", "phase-3", "phase-4"} {
 		g, ok := l.PhaseGates[phase]
 		if !ok || g.Requires == "" || g.Status == "" {
@@ -124,6 +151,18 @@ func TestAdmissionLedgerShape(t *testing.T) {
 	}
 	if g := l.PhaseGates["phase-2"]; g.Status != "available" || !strings.Contains(g.Requires, "semengine#256") {
 		t.Errorf("phase_gates.phase-2 = %+v, want semengine#256 with status available", g)
+	}
+	shapes := l.Pins.Fixtures["w3c-data-shapes"]
+	if shapes.Repository != "https://github.com/w3c/data-shapes" ||
+		shapes.Commit != "4cd469867a1cc6d2fff80e8a40723b26c695d67a" ||
+		!strings.Contains(shapes.License, "W3C Software and Document License") {
+		t.Errorf("pins.fixtures.w3c-data-shapes = %s %s %q, want w3c/data-shapes at 4cd46986 under the W3C Software and Document License",
+			shapes.Repository, shapes.Commit, shapes.License)
+	}
+	// The vocabulary digest is owner ruling Q21 on #1, restated here independently of the ledger.
+	if f, ok := shapes.File("shacl/shacl.ttl"); !ok ||
+		f.SHA256 != "1a534caa9d3df5bbc5e5351002bda56ead9226fda0a617c165b218d8bd06b9af" {
+		t.Errorf("pins.fixtures.w3c-data-shapes shacl/shacl.ttl = %+v (listed %v), want the Q21 sha256", f, ok)
 	}
 	if actr, err := l.Entry("actr"); err != nil || actr.Disposition != "deferred" {
 		t.Errorf("actr entry = %+v, %v; want deferred", actr, err)
@@ -174,6 +213,27 @@ func TestAdmissionLedgerShapeSensitivity(t *testing.T) {
 		{"short sha256", func(s string) string {
 			return strings.Replace(s, "sha256: 128f5fe1dab7ee804a3037a836813e5953c846eeeefee883a47d5db0b37a106b", "sha256: 128f5fe1", 1)
 		}, "pins.ontologies.bfo-2020.sha256"},
+		{"drop a fixture license", func(s string) string {
+			return strings.Replace(s, "      license: W3C Software and Document License", "      licence_removed: x\n      x: W3C Software and Document License", 1)
+		}, "field licence_removed not found"},
+		{"remove a fixture license", func(s string) string {
+			return regexp.MustCompile(`(?m)^      license: W3C Software and Document License.*\n`).ReplaceAllString(s, "")
+		}, "pins.fixtures.w3c-data-shapes lacks repository, license"},
+		{"remove a fixture commit", func(s string) string {
+			return strings.Replace(s, "      commit: 4cd469867a1cc6d2fff80e8a40723b26c695d67a\n", "", 1)
+		}, `pins.fixtures.w3c-data-shapes.commit ""`},
+		{"remove a fixture file digest", func(s string) string {
+			return strings.Replace(s, "\n          sha256: 1a534caa9d3df5bbc5e5351002bda56ead9226fda0a617c165b218d8bd06b9af", "", 1)
+		}, "file shacl/shacl.ttl sha256"},
+		{"remove a fixture file path", func(s string) string {
+			return strings.Replace(s, "path: shacl/shacl.ttl\n          sha256:", "sha256:", 1)
+		}, "has no path"},
+		{"remove the fixture files", func(s string) string {
+			return regexp.MustCompile(`(?s)      files:\n.*?\n\nphase_gates:`).ReplaceAllString(s, "\nphase_gates:")
+		}, "pins.fixtures.w3c-data-shapes lists no files"},
+		{"remove the fixture set", func(s string) string {
+			return strings.Replace(s, "    w3c-data-shapes:\n", "    w3c-data-shapes-x:\n", 1)
+		}, "pins.fixtures.w3c-data-shapes missing"},
 		{"drop a phase gate", func(s string) string {
 			return strings.Replace(s, "  phase-4: {", "  phase-9: {", 1)
 		}, "phase_gates.phase-4"},

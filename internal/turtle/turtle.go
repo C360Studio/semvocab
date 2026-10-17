@@ -1,8 +1,10 @@
-// Package turtle is a test-only reader for the subset of W3C Turtle
-// (https://www.w3.org/TR/turtle/) that SemVocab's vendored ontology oracles and
-// SemEngine's serializer output use. It exists so tests can read the BFO 2020
-// and CCO v2.2 release files without a third-party RDF module (design P4 of
-// openspec/changes/phase-1-catalogs). Production code must not import it.
+// Package turtle reads the subset of W3C Turtle
+// (https://www.w3.org/TR/turtle/) that SemVocab's vendored ontology and SHACL
+// fixtures, SemEngine's serializer output, and author-supplied SHACL shapes
+// documents use. It was written for tests (design P4 of phase-1-catalogs) and
+// is promoted to production use by the SHACL compiler (design D2 of
+// phase-2-shacl-compilation, owner ruling Q12), so SemVocab needs no
+// third-party RDF module.
 //
 // Supported: @prefix and @base directives; absolute IRIREFs; prefixed names
 // whose local part uses letters, digits, '_', '-', and inner '.'; the "a"
@@ -12,15 +14,28 @@
 // optional language tag or ^^datatype; INTEGER, DECIMAL, DOUBLE, and boolean
 // literals; '#' comments.
 //
+// Limit: nesting of blank-node property lists and collections deeper than 64
+// levels fails with the line and column of the opening bracket. The limit
+// bounds the reader's recursion: without it, deeply nested input grows the
+// goroutine stack until the process dies (probe P1 of
+// phase-2-shacl-compilation). The reader has no size limit, because it also
+// loads the 1.99 MB CCO v2.2 oracle; shacl.ParseTurtle caps author-supplied
+// shapes documents at 1 MiB (ruling Q25).
+//
+// Relative IRIs are rejected unless the caller passes WithBase, which resolves
+// them by RFC 3986 §5.2. Only the loader for the W3C SHACL test suite does;
+// shapes documents must use absolute IRIs. Without WithBase an @base directive
+// is checked but changes nothing.
+//
 // Everything else fails loudly with its line and column: SPARQL-style PREFIX
-// and BASE, relative IRIs (the reader never resolves against @base),
-// single-quoted strings, prefixed-name escapes ('\' and '%' in a local name),
-// and any other unexpected character. A failure returns an error; the reader
-// never skips input.
+// and BASE, single-quoted strings, prefixed-name escapes ('\' and '%' in a
+// local name), an IRI whose scheme RFC 3986 §3.1 does not allow (<0:>), and
+// any other unexpected character. Input that is not valid UTF-8 fails with the
+// byte offset of its first bad byte instead. A failure returns an error; the
+// reader never skips input.
 package turtle
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -49,6 +64,10 @@ const (
 	xsdString = xsdNS + "string"
 )
 
+// maxNesting bounds blank-node property lists and collections (design D2 of
+// phase-2-shacl-compilation).
+const maxNesting = 64
+
 // Term is one RDF term. Value is the IRI, the blank-node label, or the literal
 // lexical form. Datatype is set on every literal (xsd:string when untyped,
 // rdf:langString when Lang is set).
@@ -64,16 +83,45 @@ type Triple struct {
 	S, P, O Term
 }
 
-// Parse reads a Turtle document and returns its triples in document order.
-func Parse(r io.Reader) ([]Triple, error) {
+// Option configures Parse.
+type Option func(*config)
+
+type config struct {
+	base    string
+	baseErr error
+}
+
+// WithBase resolves relative IRIs against base, which must be an absolute IRI
+// with no fragment. An @base directive in the document then replaces it,
+// itself resolved against the current base.
+func WithBase(base string) Option {
+	return func(c *config) {
+		if !isAbsolute(base) || strings.ContainsRune(base, '#') {
+			c.baseErr = fmt.Errorf("turtle: base %q is not an absolute IRI without a fragment", base)
+			return
+		}
+		c.base = base
+	}
+}
+
+// Parse reads a Turtle document and returns its triples in document order,
+// repeats included.
+func Parse(r io.Reader, opts ...Option) ([]Triple, error) {
+	var cfg config
+	for _, o := range opts {
+		o(&cfg)
+	}
+	if cfg.baseErr != nil {
+		return nil, cfg.baseErr
+	}
 	src, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("turtle: read: %w", err)
 	}
 	if !utf8.Valid(src) {
-		return nil, errors.New("turtle: input is not valid UTF-8")
+		return nil, fmt.Errorf("turtle: input is not valid UTF-8 at byte offset %d", invalidUTF8(src))
 	}
-	p := &parser{src: string(src), prefixes: map[string]string{}}
+	p := &parser{src: string(src), prefixes: map[string]string{}, base: cfg.base}
 	for {
 		p.skipWS()
 		if p.eof() {
@@ -85,13 +133,40 @@ func Parse(r io.Reader) ([]Triple, error) {
 	}
 }
 
+// invalidUTF8 is the offset of the first byte that does not start a valid
+// UTF-8 sequence.
+func invalidUTF8(src []byte) int {
+	for i := 0; i < len(src); {
+		r, n := utf8.DecodeRune(src[i:])
+		if r == utf8.RuneError && n == 1 {
+			return i
+		}
+		i += n
+	}
+	return len(src)
+}
+
 type parser struct {
 	src      string
 	pos      int
 	prefixes map[string]string
 	bnodes   int
+	depth    int
+	base     string // empty when relative IRIs are rejected
 	out      []Triple
 }
+
+// enter counts one level of nesting at the opening bracket under p.pos and
+// fails past maxNesting. The caller defers p.leave.
+func (p *parser) enter() error {
+	if p.depth == maxNesting {
+		return p.errorf("nesting exceeds %d levels", maxNesting)
+	}
+	p.depth++
+	return nil
+}
+
+func (p *parser) leave() { p.depth-- }
 
 func (p *parser) eof() bool { return p.pos >= len(p.src) }
 
@@ -184,10 +259,14 @@ func (p *parser) directive() error {
 	case strings.HasPrefix(p.src[p.pos:], "@base"):
 		p.pos += len("@base")
 		p.skipWS()
-		// The base is read for validity only: relative IRIs are rejected, so it
-		// never applies.
-		if _, err := p.iriRef(); err != nil {
+		// Without a caller base the directive is read for validity only:
+		// relative IRIs stay rejected.
+		iri, err := p.iriRef()
+		if err != nil {
 			return err
+		}
+		if p.base != "" {
+			p.base = iri
 		}
 	default:
 		return p.errorf("unsupported directive")
@@ -342,6 +421,10 @@ func (p *parser) blankLabel() (Term, error) {
 }
 
 func (p *parser) blankNodePropertyList() (Term, error) {
+	if err := p.enter(); err != nil {
+		return Term{}, err
+	}
+	defer p.leave()
 	p.pos++ // '['
 	node := p.newBlank()
 	p.skipWS()
@@ -356,6 +439,10 @@ func (p *parser) blankNodePropertyList() (Term, error) {
 }
 
 func (p *parser) collection() (Term, error) {
+	if err := p.enter(); err != nil {
+		return Term{}, err
+	}
+	defer p.leave()
 	p.pos++ // '('
 	var items []Term
 	for {
@@ -398,9 +485,16 @@ func (p *parser) iriRef() (string, error) {
 			return "", p.errorf("unsupported character %q in IRI", r)
 		}
 	}
-	colon := strings.IndexByte(iri, ':')
-	if colon <= 0 || strings.ContainsAny(iri[:colon], "/?#") {
-		return "", p.errorf("unsupported relative IRI <%s>", iri)
+	// A scheme-shaped prefix that is not a valid scheme is neither an
+	// absolute IRI nor a relative reference (RFC 3986 §3.1, §4.2).
+	if hasScheme(iri) && !validScheme(iri) {
+		return "", p.errorf("IRI <%s> has an invalid scheme (RFC 3986 §3.1)", iri)
+	}
+	if !isAbsolute(iri) {
+		if p.base == "" {
+			return "", p.errorf("unsupported relative IRI <%s>", iri)
+		}
+		iri = resolve(p.base, iri)
 	}
 	p.pos += end + 1
 	return iri, nil

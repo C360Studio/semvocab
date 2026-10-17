@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\nex:S sh:targetClass ex:C ; sh:property [ sh:path ex:p ; sh:datatype xsd:string ; sh:in ( \"a\" 1 ex:x \"b\"@en ) ] .")

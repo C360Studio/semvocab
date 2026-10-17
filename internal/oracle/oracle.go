@@ -2,8 +2,10 @@
 // (BFO 2020 core and the CCO v2.2 merged file) for tests. Each file's sha256
 // is checked against docs/admission-ledger.yaml before it is parsed, so a test
 // never trusts a file the ledger does not pin. License notices sit beside each
-// file (testdata/*/NOTICE, testdata/cco-2.2/LICENSE). Production code must not
-// import this package.
+// file (testdata/*/NOTICE, testdata/cco-2.2/LICENSE). The vendored W3C SHACL
+// fixtures are read through ReadFixture, which checks each file's sha256
+// against the ledger's pins.fixtures before returning it. Production code must
+// not import this package.
 package oracle
 
 import (

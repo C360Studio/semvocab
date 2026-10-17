@@ -42,7 +42,35 @@ type Pins struct {
 		License  string   `yaml:"license"`
 		GoMod    string   `yaml:"go_mod"`
 	} `yaml:"semengine"`
-	Ontologies map[string]Ontology `yaml:"ontologies"`
+	Ontologies map[string]Ontology   `yaml:"ontologies"`
+	Fixtures   map[string]FixtureSet `yaml:"fixtures"`
+}
+
+// FixtureSet is one pinned set of vendored external test fixtures: files
+// copied unmodified from one repository at one commit.
+type FixtureSet struct {
+	Repository string        `yaml:"repository"`
+	Commit     string        `yaml:"commit"`
+	License    string        `yaml:"license"`
+	VendoredAt string        `yaml:"vendored_at"`
+	Selection  string        `yaml:"selection"`
+	Files      []FixtureFile `yaml:"files"`
+}
+
+// FixtureFile is one vendored file, by its path in the source repository.
+type FixtureFile struct {
+	Path   string `yaml:"path"`
+	SHA256 string `yaml:"sha256"`
+}
+
+// File returns the pinned file at path, by its path in the source repository.
+func (s FixtureSet) File(path string) (FixtureFile, bool) {
+	for _, f := range s.Files {
+		if f.Path == path {
+			return f, true
+		}
+	}
+	return FixtureFile{}, false
 }
 
 // Ontology is one pinned external ontology release.

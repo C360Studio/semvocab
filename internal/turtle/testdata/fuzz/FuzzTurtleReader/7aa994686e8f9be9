@@ -1,0 +1,3 @@
+go test fuzz v1
+[]byte("@prefix00:<0:>.@prefix00:<0:>.@prefix:<0:>.:::A;:[::;:\"00000000\"];:A:AA;.:AA::A;.#0")
+bool(false)

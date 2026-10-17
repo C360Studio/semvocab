@@ -69,6 +69,109 @@ pins:
         the SemStreams pin and by issue #1 and semsparql#1 text. No 1.x IRI is admitted. CCO publishes no 1.x→2.x
         crosswalk; the mapping in the cco entry was derived by identical rdfs:label + definition between v1.7 and
         v2.0, then by IRI identity from v2.0 to v2.2.
+  # Vendored external test fixtures (phase-2-shacl-compilation, owner ruling Q21). Files are copied unmodified with
+  # their upstream paths under vendored_at; tests check each sha256 before reading (internal/oracle ReadFixture).
+  fixtures:
+    w3c-data-shapes:
+      repository: https://github.com/w3c/data-shapes
+      commit: 4cd469867a1cc6d2fff80e8a40723b26c695d67a
+      license: W3C Software and Document License (LICENSE.md at the commit; shacl/shacl.ttl names the 2015 version); notice in vendored_at/NOTICE
+      vendored_at: internal/oracle/testdata/w3c-data-shapes
+      selection: >-
+        shacl/shacl.ttl is the SHACL vocabulary (its sh: term set equals https://www.w3.org/ns/shacl.ttl, probe
+        2026-10-16). The SHACL Core test-suite cases are chosen per design D15 of phase-2-shacl-compilation; the list
+        and the reason for each is in that change's notes/2-fixtures.md
+      files:
+        - path: LICENSE.md
+          sha256: 6e57fea82f0488b42c47fee06e66b98849b64cc721714ad5fb520d3e84b4d4b9
+        - path: data-shapes-test-suite/tests/core/misc/deactivated-001.ttl
+          sha256: 5c8b6b0bca15a9dfe5b78bafe1c49eb876335bb71f7af3a540f6c80283dcd4c7
+        - path: data-shapes-test-suite/tests/core/node/closed-001.ttl
+          sha256: 319e1cd5501d586b6c3fbbf746db9936d5c32ebc5aabf348798b3e62428055af
+        - path: data-shapes-test-suite/tests/core/node/closed-002.ttl
+          sha256: 6f9be824f6bcb6474cd64a3e9550f128e1f6b89093a1327cabba2b6aa47add08
+        - path: data-shapes-test-suite/tests/core/node/minInclusive-001.ttl
+          sha256: 9801c96ad6e93f9ccc1b6d92d4b746d73d438e32c0579c8168fd7bbf824ecf7d
+        - path: data-shapes-test-suite/tests/core/node/nodeKind-001.ttl
+          sha256: f1124da208845147aaf736ba594fe2ff8523a6bdde3edd4f6e75b6cef4ff7869
+        - path: data-shapes-test-suite/tests/core/node/xone-001.ttl
+          sha256: e875a51c91642bc9c006381e894157a65ae9ad09ae19610e86463f34aa18cc10
+        - path: data-shapes-test-suite/tests/core/path/path-alternative-001.ttl
+          sha256: ad241cbf524fc1f2b775359965bd597dd2b15334e3e501c4d72334b10ec3bfc5
+        - path: data-shapes-test-suite/tests/core/path/path-inverse-001.ttl
+          sha256: a5ca2cfb8511dddae4f3bc6f573175d9d918d32076038f92db0fb966d8c4da2c
+        - path: data-shapes-test-suite/tests/core/path/path-oneOrMore-001.ttl
+          sha256: ce73c290467d21016332c944a99631c37e60da5c347b5374fb92c91b13c8940f
+        - path: data-shapes-test-suite/tests/core/path/path-sequence-001.ttl
+          sha256: f8f6b3cd3f28b5ed9494b29daa3e256b9f9d2cb05f3163dc2882e57612e3ba75
+        - path: data-shapes-test-suite/tests/core/path/path-zeroOrMore-001.ttl
+          sha256: dd18a68be41fbf48b1bd3ffb0582c9e6390589646f4412c82f2e1b57438fba85
+        - path: data-shapes-test-suite/tests/core/path/path-zeroOrOne-001.ttl
+          sha256: 9fd16fd3dcc094da100c5e3a91524f2f2a9bde382a7cfcc7b5c4cfa775e3f488
+        - path: data-shapes-test-suite/tests/core/property/and-001.ttl
+          sha256: 50efa484f729a4a13f518e8d6614fdef27eb8ad7353cf3adb951cf53434c358b
+        - path: data-shapes-test-suite/tests/core/property/class-001.ttl
+          sha256: a481a8c12a8af13331d7a19c96afd1cb6a62cb1f2d593ae05766dbe2b6496d8a
+        - path: data-shapes-test-suite/tests/core/property/datatype-001.ttl
+          sha256: e8824e81d0e6bd7a45e48ec8e096aa625b96fb97f2648e42f4105da5511910f6
+        - path: data-shapes-test-suite/tests/core/property/datatype-002.ttl
+          sha256: 3512f2ab595b75a934a32ba779e3618f3cd5d80843b9a162374af001ab6ff566
+        - path: data-shapes-test-suite/tests/core/property/disjoint-001.ttl
+          sha256: 8a8d6f8be12cd8e3ecb8cc8ffb68bb6a8e78b89127626783c7bf125d0c4ddb87
+        - path: data-shapes-test-suite/tests/core/property/equals-001.ttl
+          sha256: b27ed862db942f64d8f7ec037f879fc31bee465eba5a2444c71423874854d138
+        - path: data-shapes-test-suite/tests/core/property/hasValue-001.ttl
+          sha256: 4123f6e9a8258d79406493f01b3d30c45c91fd03274bc87dc555a53652f470aa
+        - path: data-shapes-test-suite/tests/core/property/in-001.ttl
+          sha256: 38a5db152d2f80acda1dbb4ee3788c201066739dc7c49e76b255a738ef67a8ed
+        - path: data-shapes-test-suite/tests/core/property/languageIn-001.ttl
+          sha256: 2cd845129b0d94ca0af33c299ae0f3fb789f194f53c092927f024b0159e2b125
+        - path: data-shapes-test-suite/tests/core/property/lessThan-001.ttl
+          sha256: 671d18300babd4972899876a313419caf77acbdf3037805ca2a8a9858c28aff6
+        - path: data-shapes-test-suite/tests/core/property/lessThanOrEquals-001.ttl
+          sha256: 9e8b8529ff2870a8478c8cdba4e2accd6cbe8bd5b4efcca1768114ff72d0443c
+        - path: data-shapes-test-suite/tests/core/property/maxCount-001.ttl
+          sha256: adfeb1b713dbbdb5d84a14df38c3637e164660f36e3d32464fbdd7e2525cbd9d
+        - path: data-shapes-test-suite/tests/core/property/maxCount-002.ttl
+          sha256: 2deef056c491d680818d32cd8da5c23baba7a80405cfb9151132452a3a3ad788
+        - path: data-shapes-test-suite/tests/core/property/maxExclusive-001.ttl
+          sha256: 00d851f77aaa384aa4589cf66e9dede0d9ea6052ba9a5c8ec81a3426c2225b98
+        - path: data-shapes-test-suite/tests/core/property/maxInclusive-001.ttl
+          sha256: cc6debc85df8dc6aabf9f4b1f48c4ee6e91c8b586dd7c94a197061a81cc875ea
+        - path: data-shapes-test-suite/tests/core/property/maxLength-001.ttl
+          sha256: b2297b3731258f898a9b48b9879141971b09410c0cd8098d57c600ef6ebb3b18
+        - path: data-shapes-test-suite/tests/core/property/minCount-001.ttl
+          sha256: 39ddbe04c69100523bb2181d38a04e8ee78e16ed8adc8e22955a4e7fa84d8f11
+        - path: data-shapes-test-suite/tests/core/property/minCount-002.ttl
+          sha256: bbe5cc8feb57c2e728bd849285014ba266a13a616c76e3458647e53653692197
+        - path: data-shapes-test-suite/tests/core/property/minExclusive-001.ttl
+          sha256: 73fab3e0aab611040be519951baf08edf7e3a28d769184a00aa16e930c6d2d57
+        - path: data-shapes-test-suite/tests/core/property/minLength-001.ttl
+          sha256: 08e675f659af746efe3bbbc97d60080e9b7c636a70e731295ccda134fa55d98f
+        - path: data-shapes-test-suite/tests/core/property/node-002.ttl
+          sha256: c2eec3398a50456e8d9fc9438be19a7fbec134b54ae50f36851fef5d6748d585
+        - path: data-shapes-test-suite/tests/core/property/not-001.ttl
+          sha256: 1b551ef684ca6524bf3245e8ac797533cc4b926db42bd44d0e4c97cd18e7ecee
+        - path: data-shapes-test-suite/tests/core/property/or-001.ttl
+          sha256: e4265f6517738414496414e49466bf5fa01b8c8c53c724fec648a56dca84c4f0
+        - path: data-shapes-test-suite/tests/core/property/pattern-001.ttl
+          sha256: 3ecaebd227b7eb249ac0f71cffece5df77fa97fbb78c019987c1275518568a2c
+        - path: data-shapes-test-suite/tests/core/property/pattern-002.ttl
+          sha256: 1a8685e178c57955494b704f8a31fc6284b7adf4c8e6b441b6febfba18756e0f
+        - path: data-shapes-test-suite/tests/core/property/qualifiedValueShape-001.ttl
+          sha256: ab2a83bc5c6cd26a849b5e1a8bc400af2e7c6180e06917732152fde4386d8cc6
+        - path: data-shapes-test-suite/tests/core/property/uniqueLang-001.ttl
+          sha256: 003d3ea97faf3de1e5ee5147db2041ed8b228d6fa0dc2287ea8ed8875a8d69a1
+        - path: data-shapes-test-suite/tests/core/targets/targetClass-001.ttl
+          sha256: af8b4cbba827533cd8549b9748302165f1bcff4c6e4fb73fe9c6d903b335aa84
+        - path: data-shapes-test-suite/tests/core/targets/targetClassImplicit-001.ttl
+          sha256: fb333138d3d0c466a4134d0c653c74ab9be4216a21b7807d427973b9608f1594
+        - path: data-shapes-test-suite/tests/core/targets/targetObjectsOf-001.ttl
+          sha256: c0295cdd3183ee9d32a6d0bbc65402c04c08bdb61088e9104e80d3ab1e5e204b
+        - path: data-shapes-test-suite/tests/core/targets/targetSubjectsOf-001.ttl
+          sha256: 00e596d411f6cb77bbc44235c2106ae454c2cb1ae2c92d554092a41cbef0a07a
+        - path: shacl/shacl.ttl
+          sha256: 1a534caa9d3df5bbc5e5351002bda56ead9226fda0a617c165b218d8bd06b9af
 
 phase_gates:
   phase-1: {requires: "SemEngine RegisterPack/LoadPackYAML/WithPrefixRegistrar at v0.1.0-alpha.1", status: available}
@@ -329,7 +432,7 @@ entries:
   - pack: diekm
     disposition: new-content
     phase: 1
-    files: [packs/diekm/diekm.yaml, packs/diekm/diekm.shacl.ttl]
+    files: [packs/diekm/diekm.yaml, packs/diekm/diekm.shacl.ttl, packs/diekm/diekm.mapping.yaml]
     namespace:
       iri: https://w3id.org/c360/diekm#
       authority: C360 (local)
@@ -354,6 +457,7 @@ entries:
       Q4: "Information Bearing Entity hop via BFO_0000084 (generically depends on) → cco:ont00000253"
       Q4b: "altitude terminal value predicate is diekm:altitudeMetersValue on the Information Bearing Entity, not the deprecated cco:ont00001769"
       Q5: namespace stays local and unregistered
+      Q23: "diekm.mapping.yaml: intel.platform contract with groups measurement and role, both reconcile, no birth predicates"
     license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio"
     test_oracle: >-
       superclass sets equal the cco-2.2 asserted closure plus the recorded local assertion and its closure; every IRI

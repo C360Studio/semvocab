@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("node_shapes:\n  - id: \"http://ex/S\"\n    properties:\n      - path: \"http://ex/p\"\n        min_inclusive: 5\n")

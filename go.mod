@@ -11,6 +11,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/c360studio/semengine v0.1.0-alpha.2
 	gopkg.in/yaml.v3 v3.0.1
+	pgregory.net/rapid v1.3.0
 )
 
 require (

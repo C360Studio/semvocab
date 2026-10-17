@@ -1,0 +1,29 @@
+# Binds the DIEKM shapes (diekm.shacl.ttl) to the DIEKM pack (diekm.yaml) for
+# the SHACL compiler (semvocab#1 Phase 2; design D6 and D7 of
+# openspec/changes/phase-2-shacl-compilation). The compiler derives nothing
+# from an IRI: every sh:targetClass and sh:path is bound here.
+#
+# Each class lists every pack entity type whose class_iri or superclasses
+# contain it (ruling Q24). The intel.platform contract is owner ruling Q23:
+# groups measurement and role, both reconcile, no birth predicates.
+# intel.observation's shape constrains no predicate, so it gets no contract
+# and the bundle lists it as unwritable (ruling Q18).
+entity_types:
+  - class_iri: "https://w3id.org/c360/diekm#IntelligencePlatform"
+    domain_types: [intel.platform]
+  - class_iri: "https://w3id.org/c360/diekm#IntelligenceObservation"
+    domain_types: [intel.observation]
+predicates:
+  - path_iri: "https://w3id.org/c360/diekm#altitudeMeters"
+    name: intel.measurement.altitude-m
+  - path_iri: "https://w3id.org/c360/diekm#assignedRole"
+    name: intel.role.assigned
+contracts:
+  - domain_type: intel.platform
+    groups:
+      - name: measurement
+        mode: reconcile
+        predicates: [intel.measurement.altitude-m]
+      - name: role
+        mode: reconcile
+        predicates: [intel.role.assigned]

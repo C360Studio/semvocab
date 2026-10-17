@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("x: &a \"http://ex/C\"\nnode_shapes:\n  - id: \"http://ex/S\"\n    target_classes: [*a, *a]\n")

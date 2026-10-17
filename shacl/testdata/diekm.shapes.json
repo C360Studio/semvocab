@@ -1,0 +1,23 @@
+{
+  "node_shapes": [
+    {
+      "id": "https://w3id.org/c360/diekm#IntelligencePlatformShape",
+      "target_classes": ["https://w3id.org/c360/diekm#IntelligencePlatform"],
+      "properties": [
+        {
+          "path": "https://w3id.org/c360/diekm#assignedRole",
+          "datatype": "http://www.w3.org/2001/XMLSchema#string"
+        },
+        {
+          "path": "https://w3id.org/c360/diekm#altitudeMeters",
+          "datatype": "http://www.w3.org/2001/XMLSchema#double",
+          "max_count": 1
+        }
+      ]
+    },
+    {
+      "id": "https://w3id.org/c360/diekm#IntelligenceObservationShape",
+      "target_classes": ["https://w3id.org/c360/diekm#IntelligenceObservation"]
+    }
+  ]
+}
