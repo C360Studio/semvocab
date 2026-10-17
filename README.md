@@ -10,8 +10,9 @@ It is early software: the latest tag is `v0.2.2`, and nothing here is promised t
 
 SemEngine stores facts about things (entities) as triples: an entity ID, a predicate name such as
 `intel.measurement.altitude-m`, and a value. Its vocabulary registry records which predicates and entity types exist,
-and can map each one to an ontology IRI (a global name, such as `https://www.commoncoreontologies.org/ont00000787`) so
-that exported RDF uses standard terms.
+and can map each one to an ontology IRI so that exported RDF uses standard terms. An ontology is a published set of
+terms with agreed meanings; an IRI is a term's global name, written like a URL
+(`https://www.commoncoreontologies.org/ont00000787`); RDF is the W3C data format for triples.
 
 Someone has to write those registrations, and they have to be right: the IRIs must come from a real ontology release,
 and the entity types must sit under the right ontology classes. SemVocab holds that work so you do not repeat it:
@@ -19,7 +20,9 @@ and the entity types must sit under the right ontology classes. SemVocab holds t
 - the IRI constants and class hierarchy for two ontologies, BFO 2020 and CCO v2.2 (catalogs);
 - vocabulary packs, which are files that register entity types and predicates with SemEngine in one step;
 - a compiler that reads SHACL shapes (a W3C format for stating what values an entity's properties may hold) and
-  produces a pack, rules for which predicates a writer owns, and a validator for one entity's complete state.
+  produces a pack, contracts, and a validator for one entity's complete state. A contract tells SemEngine which
+  predicates on an entity type one program is allowed to write, and whether each write replaces or adds to the
+  stored values.
 
 SemEngine owns the registry and the RDF export. SemVocab fills the registry. SemSPARQL
 ([C360Studio/semsparql](https://github.com/C360Studio/semsparql)) owns query expansion, exporting shapes to an
@@ -33,7 +36,7 @@ external validator, and checking this repository's validator against one; none o
 | `catalog/cco` | The same for the admitted Common Core Ontologies (CCO v2.2) classes and object properties; its hierarchy continues into `catalog/bfo` |
 | `packs` | `bfo-cco-core`, a pack that declares the `obo` and `cco` prefixes; `RegisterBFOCCOCore` |
 | `packs/diekm` | The DIEKM pack (`intel.platform`, `intel.observation`, and two predicates), its SHACL shapes, and the mapping that binds them |
-| `shacl` | Parses shapes (Turtle, JSON, YAML), compiles them with a mapping, validates an entity's state |
+| `shacl` | Parses shapes (Turtle, a text format for RDF; JSON; YAML), compiles them with a mapping, validates an entity's state |
 
 Importing any of these registers nothing. A program registers a pack only by calling its `Register…` function.
 
@@ -135,7 +138,9 @@ contract: *.*.*.intel.platform.*
 no contract: [intel.observation]
 ```
 
-`intel.observation` has no contract because its shape constrains no predicate. Compiling registers nothing; the
+Entity IDs in SemEngine have six dotted parts, `org.platform.system.domain.type.instance`, so the pattern
+`*.*.*.intel.platform.*` means "every `intel.platform` entity". `intel.observation` has no contract because its shape
+constrains no predicate. Compiling registers nothing; the
 bundle's `Pack()` is yours to register. [docs/shacl-compilation.md](docs/shacl-compilation.md) shows validating an
 entity against the shapes.
 

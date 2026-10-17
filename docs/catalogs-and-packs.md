@@ -20,8 +20,9 @@ Importing a catalog registers nothing.
 ### `catalog/bfo`
 
 Constants for the Basic Formal Ontology 2020 (BFO) classes and relations that were admitted, such as `bfo.Entity`,
-`bfo.Quality`, `bfo.Process`, and `bfo.LocatedIn`. `bfo.Namespace` is `http://purl.obolibrary.org/obo/`, the base all
-OBO Foundry ontologies share.
+`bfo.Quality`, `bfo.Process`, and `bfo.LocatedIn`. `bfo.Namespace` is `http://purl.obolibrary.org/obo/`, the base
+shared by all ontologies in the OBO Foundry (a group of biology and science ontologies that follow common naming
+rules).
 
 Three functions answer hierarchy questions for classes:
 
@@ -98,10 +99,11 @@ externally registered ontology.
 | Entity type | `intel.platform` | A collection platform; a CCO Vehicle and a BFO object |
 | Entity type | `intel.observation` | An observation act; a CCO Act of Observation |
 | Predicate | `intel.role.assigned` | A string; written as the entity being bearer of a role whose label is the value |
-| Predicate | `intel.measurement.altitude-m` | A float in meters; written through an Altitude, a measurement, and the value |
+| Predicate | `intel.measurement.altitude-m` | A float in meters; written through an Altitude, a measurement, and an information-bearing entity that holds the value |
 
 The two predicates carry a projection: a chain of steps through intermediate nodes. One flat value
-(`intel.measurement.altitude-m = 120.5`) becomes the chain entity, altitude, measurement, value when exported as RDF.
+(`intel.measurement.altitude-m = 120.5`) becomes the chain entity → Altitude → measurement → information-bearing
+entity, which carries the value, when exported as RDF.
 The steps are in `packs/diekm/diekm.yaml`.
 
 `diekm` ships three embedded files that belong together:
@@ -168,9 +170,10 @@ pack before it changes anything (`TestPackAtomicFailure`). Failures the tests co
 an invalid predicate name, an invalid superclass IRI, a projection without a final value predicate, and a prefix
 already bound to a different namespace (`TestPackConflictingRegistration`).
 
-Registering the same pack twice is allowed and changes nothing (`TestPackRepeatedRegistration`). Registering a
-different pack that redefines a class or predicate IRI the registry already holds is not refused: the later scalar
-value wins, and superclass lists are merged (`TestPackConflictingRegistration`). Rebinding a prefix is refused.
+Registering the same pack twice is allowed and changes nothing (`TestPackRepeatedRegistration`). Registering a pack
+that reuses an entity-type or predicate name the registry already holds, with a different IRI or description, is not
+refused: the later value wins, and superclass lists are merged (`TestPackConflictingRegistration`). Rebinding a prefix
+is refused.
 
 ## Using your own pack
 
