@@ -23,3 +23,4 @@ Written 2026-10-17 with go1.26.9 darwin/arm64, at `f94f8ab` plus this change. Th
 - **1.3:** `FuzzDecodeShapesJSON` and `FuzzDecodeShapesYAML` add at-limit and one-over seeds under plain `go test`
   (as `FuzzParseTurtle` does) and accept `shapesSizeLimit` as a named refusal. With the pattern removed, both
   targets fail on the one-over seed.
+- **1.5:** `task verify` passed on a clean tree at `0c4aae1`.

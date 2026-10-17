@@ -8,7 +8,7 @@
       passes unchanged. A seeded change is shown to fail the tests
 - [x] 1.3 The JSON and YAML fuzz targets accept the size-limit error as a named refusal
 - [x] 1.4 `docs/shacl-compilation.md` states the cap for the JSON and YAML forms
-- [ ] 1.5 `task verify` passes on a clean tree
+- [x] 1.5 `task verify` passes on a clean tree
 
 ## 2. Archive
 
