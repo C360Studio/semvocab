@@ -174,8 +174,10 @@ func checkJSONText(data []byte) error {
 		}
 		hi, ok := jsonEscapedUnit(data[i:])
 		switch {
+		case !ok && i+1 < len(data) && data[i+1] == '\\':
+			i += 2 // an escaped backslash, which a following u cannot extend
 		case !ok:
-			i += 2 // another escape, or a syntax error the struct decode reports
+			i++ // another escape, or a syntax error the struct decode reports
 		case hi >= 0xDC00 && hi <= 0xDFFF:
 			return fmt.Errorf("byte offset %d: \\u%04x is a lone UTF-16 surrogate", i, hi)
 		case hi >= 0xD800 && hi <= 0xDBFF:

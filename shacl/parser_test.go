@@ -574,14 +574,16 @@ func TestDecodeJSONRefusesReplacedText(t *testing.T) {
 		decode func(string) error
 		want   string
 	}{
-		"shapes invalid byte":        {shape("a\xffb"), decodeShapes, "byte offset 68: "},
-		"shapes truncated sequence":  {shape("\xe2\x82"), decodeShapes, "byte offset 67: "},
-		"shapes lone high surrogate": {shape(`\ud800x`), decodeShapes, "byte offset 67: "},
-		"shapes lone low surrogate":  {shape(`a\udc00`), decodeShapes, "byte offset 68: "},
-		"shapes reversed pair":       {shape(`\ude00\ud83d`), decodeShapes, "byte offset 67: "},
-		"shapes high then non-low":   {shape(`\ud83dA`), decodeShapes, "byte offset 67: "},
-		"mapping invalid byte":       {mapping("\xc0\xaf"), decodeMapping, "byte offset 43: "},
-		"mapping lone high at end":   {mapping(`a.b.\ud800`), decodeMapping, "byte offset 47: "},
+		"shapes invalid byte":         {shape("a\xffb"), decodeShapes, "byte offset 68: "},
+		"shapes truncated sequence":   {shape("\xe2\x82"), decodeShapes, "byte offset 67: "},
+		"shapes lone high surrogate":  {shape(`\ud800x`), decodeShapes, "byte offset 67: "},
+		"shapes lone low surrogate":   {shape(`a\udc00`), decodeShapes, "byte offset 68: "},
+		"shapes reversed pair":        {shape(`\ude00\ud83d`), decodeShapes, "byte offset 67: "},
+		"shapes high then non-low":    {shape(`\ud83dA`), decodeShapes, "byte offset 67: "},
+		"shapes invalid byte escaped": {shape("\\\xff"), decodeShapes, "byte offset 68: the input is not valid UTF-8"},
+		"shapes escaped multibyte":    {shape("\\é"), decodeShapes, "invalid character 'Ã' in string escape code"},
+		"mapping invalid byte":        {mapping("\xc0\xaf"), decodeMapping, "byte offset 43: "},
+		"mapping lone high at end":    {mapping(`a.b.\ud800`), decodeMapping, "byte offset 47: "},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {

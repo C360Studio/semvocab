@@ -26,3 +26,15 @@ Written 2026-10-17 with go1.26.9 darwin/arm64, at `2a0ae84` plus this change.
   executions) found no failure.
 - **1.5:** `task verify` passed on a clean tree at `3fb4f25` (spec, docs, fmt, tidy, build, vet, lint, vuln,
   test:unit, test:repeat).
+
+## Review fix (gemini review of `ad62de2`, MEDIUM)
+
+- **Finding:** on a backslash not starting a `\uXXXX` escape, `checkJSONText` stepped two bytes. A backslash followed
+  by a non-ASCII byte skipped that byte's UTF-8 check: `\` + `0xff` passed the check, and `\é` was misreported as
+  invalid UTF-8 at the continuation byte. Both inputs are invalid JSON and `encoding/json` refused them, so nothing
+  was replaced, but the errors were wrong.
+- **Fix:** step two bytes only over an escaped backslash (`\\`), so a following `u` is never read as an escape;
+  otherwise step one byte.
+- **Evidence:** two cases in `TestDecodeJSONRefusesReplacedText` ("shapes invalid byte escaped" and "shapes escaped
+  multibyte") fail at `ad62de2` and pass with the fix. Seeding `i++` in place of `i += 2` for the escaped backslash
+  fails the test's `\\ud800` acceptance. A 20 s `FuzzDecodeShapesJSON` run found no failure.
