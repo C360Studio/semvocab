@@ -82,7 +82,7 @@ to `design.md` in this change.
 
 ## 9. Verification
 
-- [ ] 9.1 `task verify` passes on a clean tree
+- [x] 9.1 `task verify` passes on a clean tree
 
 ## 10. Archive
 
