@@ -555,3 +555,67 @@ func TestDecodeJSONRefusesDuplicateKeys(t *testing.T) {
 		})
 	}
 }
+
+// TestDecodeJSONRefusesReplacedText refuses invalid UTF-8 and lone UTF-16
+// surrogate escapes in the JSON shape and mapping forms, naming the byte
+// offset. encoding/json would decode either as U+FFFD without error
+// (encoding/json/decode.go:98-100 at go1.26.9), which the YAML and Turtle
+// readers refuse (issue #18). A surrogate pair and an escaped backslash
+// before a u still decode.
+func TestDecodeJSONRefusesReplacedText(t *testing.T) {
+	shape := func(member string) string {
+		return `{"node_shapes":[{"id":"urn:S","properties":[{"path":"urn:p","in":["` + member + `"]}]}]}`
+	}
+	mapping := func(name string) string {
+		return `{"predicates":[{"path_iri":"urn:p","name":"` + name + `"}]}`
+	}
+	tests := map[string]struct {
+		src    string
+		decode func(string) error
+		want   string
+	}{
+		"shapes invalid byte":         {shape("a\xffb"), decodeShapes, "byte offset 68: "},
+		"shapes truncated sequence":   {shape("\xe2\x82"), decodeShapes, "byte offset 67: "},
+		"shapes lone high surrogate":  {shape(`\ud800x`), decodeShapes, "byte offset 67: "},
+		"shapes lone low surrogate":   {shape(`a\udc00`), decodeShapes, "byte offset 68: "},
+		"shapes reversed pair":        {shape(`\ude00\ud83d`), decodeShapes, "byte offset 67: "},
+		"shapes high then non-low":    {shape(`\ud83d\u0041`), decodeShapes, "byte offset 67: "},
+		"shapes high then above low":  {shape(`\ud83d\ue000`), decodeShapes, "byte offset 67: "},
+		"shapes high then non-escape": {shape(`\ud83dA`), decodeShapes, "byte offset 67: "},
+		"shapes invalid byte escaped": {shape("\\\xff"), decodeShapes, "byte offset 68: the input is not valid UTF-8"},
+		"shapes escaped multibyte":    {shape("\\é"), decodeShapes, "invalid character 'Ã' in string escape code"},
+		"mapping invalid byte":        {mapping("\xc0\xaf"), decodeMapping, "byte offset 43: "},
+		"mapping lone high at end":    {mapping(`a.b.\ud800`), decodeMapping, "byte offset 47: "},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := tt.decode(tt.src); err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("err = %v, want containing %q", err, tt.want)
+			}
+		})
+	}
+	got, err := DecodeShapesJSON(strings.NewReader(shape(`\ud83d\ude00 \\ud800 é`)))
+	if err != nil {
+		t.Fatalf("pair and escaped backslash: %v", err)
+	}
+	if in := *got.NodeShapes[0].Properties[0].In; in[0] != `😀 \ud800 é` {
+		t.Fatalf("in = %q", in[0])
+	}
+	m, err := DecodeMappingJSON(strings.NewReader(mapping(`\ud83d\ude00`)))
+	if err != nil {
+		t.Fatalf("mapping pair: %v", err)
+	}
+	if m.Predicates[0].Name != "😀" {
+		t.Fatalf("name = %q", m.Predicates[0].Name)
+	}
+}
+
+func decodeShapes(src string) error {
+	_, err := DecodeShapesJSON(strings.NewReader(src))
+	return err
+}
+
+func decodeMapping(src string) error {
+	_, err := DecodeMappingJSON(strings.NewReader(src))
+	return err
+}
