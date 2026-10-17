@@ -29,8 +29,10 @@
 //
 // Everything else fails loudly with its line and column: SPARQL-style PREFIX
 // and BASE, single-quoted strings, prefixed-name escapes ('\' and '%' in a
-// local name), and any other unexpected character. A failure returns an
-// error; the reader never skips input.
+// local name), an IRI whose scheme RFC 3986 §3.1 does not allow (<0:>), and
+// any other unexpected character. Input that is not valid UTF-8 fails with the
+// byte offset of its first bad byte instead. A failure returns an error; the
+// reader never skips input.
 package turtle
 
 import (

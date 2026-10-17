@@ -74,10 +74,10 @@ to `design.md` in this change.
 
 ## 8. Documentation
 
-- [ ] 8.1 `docs/shacl-compilation.md` covers D17: the support matrix, datatype table, regex subset, mapping and
+- [x] 8.1 `docs/shacl-compilation.md` covers D17: the support matrix, datatype table, regex subset, mapping and
       contract rules, validation API, revision boundary, the `sh:rule` deferral, reproduction commands, and
       benchmarks. `task docs:check` passes
-- [ ] 8.2 `AGENTS.md` describes `shacl/` as present, and the `internal/turtle` and `packs/diekm` package comments
+- [x] 8.2 `AGENTS.md` describes `shacl/` as present, and the `internal/turtle` and `packs/diekm` package comments
       match the code
 
 ## 9. Verification

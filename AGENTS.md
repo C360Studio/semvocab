@@ -19,8 +19,10 @@ SemEngine's hot ingest or query paths.
 The bootstrap scope, phases, and acceptance criteria are issue #1 (`gh issue view 1`); read it before scoping work.
 Material ported from SemStreams comes from the frozen pin `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`, the same pin
 SemEngine extracts from. The Go code in the tree today is the `catalog/bfo` and `catalog/cco` catalogs, the `packs`
-and `packs/diekm` packs, test and fixture helpers under `internal/`, and the repository contract tests under
-`internal/harness`; do not describe the planned `shacl/` package as present.
+and `packs/diekm` packs, the `shacl` package (parses shapes, compiles them to a pack and projection contracts, and
+validates complete entity state; see `docs/shacl-compilation.md`), the Turtle reader `internal/turtle` that `shacl`
+uses, test and fixture helpers under `internal/`, and the repository contract tests under `internal/harness`. Not
+present: SHACL export shapes and external-validator agreement (#1 Phase 3) and `sh:rule` translation (#1 Phase 4).
 
 ## Commands
 
