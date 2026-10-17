@@ -233,4 +233,4 @@ with the byte offset where the limit was crossed, as `ParseTurtle` does, and SHA
 #### Scenario: A shapes document at the limit
 
 - **WHEN** a JSON shapes document is exactly 1,048,576 bytes long
-- **THEN** it decodes as it would without the cap
+- **THEN** it decodes without error

@@ -21,8 +21,9 @@ Material ported from SemStreams comes from the frozen pin `8b99efe9c66a4faa4fa50
 SemEngine extracts from. The Go code in the tree today is the `catalog/bfo` and `catalog/cco` catalogs, the `packs`
 and `packs/diekm` packs, the `shacl` package (parses shapes, compiles them to a pack and projection contracts, and
 validates complete entity state; see `docs/shacl-compilation.md`), the Turtle reader `internal/turtle` that `shacl`
-uses, test and fixture helpers under `internal/`, and the repository contract tests under `internal/harness`. Not
-present: SHACL export shapes and external-validator agreement (#1 Phase 3) and `sh:rule` translation (#1 Phase 4).
+uses, test and fixture helpers under `internal/`, and the repository contract tests under `internal/harness`. Export
+projection and external SHACL validation (#1 Phase 3) live in SemSPARQL, not here (ruling Q34 on #1). `sh:rule`
+translation (#1 Phase 4) is not present; it is #21, blocked on the upstream rule APIs.
 
 ## Commands
 
