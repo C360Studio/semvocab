@@ -69,7 +69,10 @@ A new public package `shacl` (the files #1 names) exports:
 - `Compile(pack vocabulary.PackSpec, shapes ShapeSet, m Mapping) (*Bundle, error)`;
 - `Bundle`, with `Pack()`, `Contracts()`, and `Unwritable()` returning copies, and
   `ValidateCandidateState(entityID string, triples []message.Triple) (Report, error)`;
-- `Report`, `Result`, and `CompileError`, whose `Issues` list each rejection.
+- `Report`, `Result`, and `CompileError`, whose `Issues` list each rejection. `Result` carries SHACL's focus node,
+  source shape, path, component, value, severity, and messages, plus a `Predicate` field (the dotted name). SHACL's
+  result has no such field; it is there because a closed-shape result can name a predicate the bundle has no IRI for
+  (D12), and its `Path` is then empty (task 6.1, `notes/6-validator.md`).
 
 Exported signatures name no `internal/` type. Importing the package registers nothing; there is no `Register…`
 function, because registration is SemEngine's `RegisterPack`, called by a composition root with `bundle.Pack()`.
@@ -116,26 +119,29 @@ conflict.
 ### D4. Supported profile
 
 The profile is the set of shapes the compiler accepts. Every `sh:` term in the vendored W3C vocabulary (183 terms) is
-classified in `docs/shacl-compilation.md` as *supported*, *ignored annotation*, or *rejected*. An `sh:` term absent
-from the vocabulary is rejected as unknown. Supported (SHACL Core section in brackets):
+classified in `docs/shacl-compilation.md` as *supported*, *ignored annotation*, or *rejected*. The 183 are `sh:` terms
+only. Each carries its section in the SHACL Recommendation, `AF` or `JS` for the two Working Group Notes, or "vocabulary
+only" for the eight terms the vocabulary declares and none of the three documents describes (`notes/5-compiler.md` §
+5.1). An `sh:` term absent from the vocabulary is rejected as unknown. Supported (SHACL Core section in brackets):
 
 - **Shapes:** `rdf:type sh:NodeShape` / `sh:PropertyShape` (optional); `sh:property` from a node shape to a property
   shape.
 - **Target:** `sh:targetClass` with an IRI (§2.1.3.2), bound by the mapping (D6).
 - **Path:** a predicate path, one IRI (§2.3.1.1).
-- **Cardinality** (§4.2): `sh:minCount` and `sh:maxCount`, each an `xsd:integer` literal (§4.2.1, §4.2.2). In the
-  model `MinCount` is an `int` (absent means 0) and `MaxCount` is a `*int` (nil means unbounded; 0 prohibits values).
-  Negative values, values above `math.MaxInt32`, and `minCount > maxCount` are rejected.
+- **Cardinality** (§4.2): `sh:minCount` and `sh:maxCount`, each an `xsd:integer` literal (§4.2.1, §4.2.2). In the model
+  `MinCount` is an `int` (absent means 0) and `MaxCount` is a `*int` (nil means unbounded; 0 prohibits values). Negative
+  values, values above `math.MaxInt32`, and `minCount > maxCount` are rejected.
 - **Datatype** (§4.1.2): `sh:datatype` from the D8 table. Any other datatype is rejected.
 - **Numeric bounds** (§4.3): `sh:minInclusive`, `sh:maxInclusive`, `sh:minExclusive`, `sh:maxExclusive` (D8).
 - **Pattern** (§4.4.3): `sh:pattern` in the regex subset (D10), with no `sh:flags` (Q15).
 - **Enumeration** (§4.8.3): `sh:in`, string-only (D11, Q16).
-- **Closed** (§4.8.1): `sh:closed true` with `sh:ignoredProperties` (D12, Q20). `sh:closed false` is accepted and
-  has no effect.
+- **Closed** (§4.8.1): `sh:closed true` with `sh:ignoredProperties` (D12, Q20). `sh:closed false` is accepted and has no
+  effect.
 - **Severity and messages:** `sh:severity` with `sh:Violation`, `sh:Warning`, or `sh:Info`, and `sh:message` string
   literals; both are copied into results. Any result makes `Conforms` false, whatever its severity (§3.6.1).
-- **Ignored annotations:** `sh:name`, `sh:description`, `sh:order`, `sh:defaultValue` (non-validating, §2.3.2),
-  `rdfs:label`, `rdfs:comment`.
+- **Ignored annotations:** `sh:name`, `sh:description`, `sh:order`, `sh:defaultValue` (non-validating, §2.3.2). These
+  four are the ignored class of the 183. `rdfs:label` and `rdfs:comment` are dropped the same way, but by the parser
+  (`shacl/parser.go`), not by the profile table, because they are not `sh:` terms.
 
 Rejected, each by its IRI with the shape and path where it appears:
 
@@ -157,8 +163,9 @@ Rejected, each by its IRI with the shape and path where it appears:
   list cell those shapes use is rejected. This covers `owl:imports`. A non-`sh:` predicate on a shape, other than
   the annotations above, is also rejected. Nothing is skipped.
 
-A compile collects every rejection before failing. `CompileError.Issues` lists them sorted by shape, path, and term,
-and no partial bundle is returned.
+A node shape with no `sh:targetClass` is also rejected: it would never apply, and its constraints would drop without a
+word (fail closed; `notes/5-compiler.md` § 5.2). A compile collects every rejection before failing.
+`CompileError.Issues` lists them sorted by shape, path, and term, and no partial bundle is returned.
 
 ### D5. Compilation inputs (Q14)
 
@@ -166,8 +173,8 @@ and no partial bundle is returned.
 units, or reification chain, and the pack that holds them is already the reviewed artifact (Phase 1,
 `packs/diekm/diekm.yaml`). The compiled pack is the base pack in its original entry order, with one change: a mapped
 predicate whose base `data_type` is empty takes the datatype its shapes imply (D8). A base `data_type` that disagrees
-with a shape, or two shapes that imply different datatypes for one predicate, fails compilation. That is the "conflicting
-global predicate metadata" case in #1. The compiled pack must pass `(*PackSpec).Validate`.
+with a shape, or two shapes that imply different datatypes for one predicate, fails compilation. That is the
+"conflicting global predicate metadata" case in #1. The compiled pack must pass `(*PackSpec).Validate`.
 
 ### D6. Mapping document (Q13, Q24)
 
@@ -175,7 +182,8 @@ The mapping is a SemVocab YAML or JSON document. The ruling (Q13) keeps it separ
 shapes file stays plain W3C SHACL that a Phase 3 external validator reads unchanged, and SemVocab mints no annotation
 namespace that would need its own provenance. Fields:
 
-- `entity_types`: each `class_iri` (an `sh:targetClass` value) with the list of `domain_type` keys it targets.
+- `entity_types`: each `class_iri` (an `sh:targetClass` value) with the list of domain-type keys it targets, in the
+  field `domain_types`.
 - `predicates`: each `path_iri` (an `sh:path` value) with exactly one dotted predicate `name`.
 - `contracts`: per `domain_type`, an optional `name`, `birth` predicates, and `groups` (`name` optional, `mode`
   required, `predicates`).
@@ -186,7 +194,8 @@ Rules, each failing compilation when broken:
 - **Explicit binding.** Every `sh:targetClass` and every `sh:path` in the shapes has a mapping row. The compiler never
   derives a dotted name from an IRI.
 - **Agreement with the pack.** A predicate a path maps to is in the base pack, and its `iri` equals the path. Export
-  writes that `iri` (`vocabulary/export/export.go:231-251`), so a mismatch would make native and exported graphs disagree.
+  writes that `iri` (`vocabulary/export/export.go:231-251`), so a mismatch would make native and exported graphs
+  disagree.
 - **Agreement with SHACL targeting.** Every `domain_type` listed for class C is a base-pack entity type whose
   `class_iri` is C or whose `superclasses` contain C. Every base-pack entity type that meets that condition is listed.
   SHACL targets instances of subclasses (§2.1.3.2), and Phase 1 packs carry full closures (Phase 0 design D5), so
@@ -213,11 +222,12 @@ For each mapped entity type with at least one predicate in `birth` or `groups`, 
   with a payload type (`contract.go:43-47`).
 
 Every contract passes `ValidateShape` (`contract.go:67-69`). Instead of `Validate`, the compiler checks that each
-contract predicate is declared in the compiled pack, which needs no registry. A predicate constrained by a shape for
-that entity type and absent from both birth and groups fails compilation (Q19). An entity type with no birth or
-group predicates gets no contract. It is listed in `Bundle.Unwritable()`, and `docs/shacl-compilation.md` explains
-why (Q18). DIEKM's `intel.observation` shape has no property shapes, so it is the first such case. Contracts, groups,
-and predicate lists are sorted by name.
+contract predicate is declared in the compiled pack, which needs no registry. Two contracts with one name fail, since
+SemEngine's `ValidateContracts` requires unique names (`contract.go:144-149`). A predicate constrained by a shape for
+that entity type and absent from both birth and groups fails compilation (Q19). An entity type with no birth or group
+predicates gets no contract. It is listed in `Bundle.Unwritable()`, and `docs/shacl-compilation.md` explains why (Q18).
+DIEKM's `intel.observation` shape has no property shapes, so it is the first such case. Contracts, groups, and predicate
+lists are sorted by name.
 
 ### D8. Datatype table and numeric bounds
 
@@ -230,10 +240,12 @@ and predicate lists are sorted by name.
 | `xsd:dateTime` | `datetime` | `xsd:dateTime` |
 | `rdf:JSON` | `json` | `rdf:JSON` |
 
-Every other datatype is rejected. That includes `xsd:float` and `xsd:decimal`: SemEngine's export never writes them
-for a native value, so a shape requiring either could never pass in Phase 3. It also includes the derived integer
-types and `rdf:langString`. `entity_id` has no `sh:datatype`, so such predicates take cardinality constraints only
-(Q17).
+Every other datatype is rejected. That includes `xsd:float` and `xsd:decimal`: SemEngine's export never writes them for
+a native value, so a shape requiring either could never pass in Phase 3. It also includes the derived integer types and
+`rdf:langString`. `entity_id` has no `sh:datatype`, so such predicates take cardinality constraints only (Q17). The
+check follows the mapped pack predicate, not the shape: on a path mapped to an `entity_id` predicate, `sh:datatype`, the
+four bounds, `sh:pattern`, and `sh:in` are each rejected with one issue (issue #13); `sh:severity` and `sh:message` stay
+accepted.
 
 A bound needs an `sh:datatype` on its property shape. It must be a literal of that same datatype, which must be
 `xsd:integer` or `xsd:double`; any other combination is rejected, because SPARQL numeric promotion would compare
@@ -257,13 +269,24 @@ Phase 3 results can agree:
   blank node in export (`object.go:151-157`, `341-365`). It therefore fails `sh:datatype xsd:string`.
 - On a predicate the bundle declares, a triple with a `Datatype` hint is accepted only when the hint names the XSD
   datatype the predicate's `data_type` exports as, or `@id` on an `entity_id` predicate.
+- That acceptance has one more condition. Export writes a hinted value's `%v` form, which can differ from the term the
+  `data_type` gives (`float64(2^53)` with `xsd:integer` is `"9.007199254740992e+15"^^xsd:integer`). A hint is accepted
+  only when the term export writes for it equals the term without it, so a hint confirms a term and never changes it;
+  otherwise it is an input error (`notes/6-validator.md` § 6.2).
 - On a predicate the bundle does not declare (another pack's), a hinted triple is accepted and its term is the one
   export writes with that hint: `@id` on a valid entity ID or blank-node label gives that IRI or blank node, and any
   other hint gives the `%v` lexical form with the hint as its datatype (`object.go:120-142`) (Q29). Such a predicate
   carries no constraint of its own, so the term matters only to closed shapes, which see it as a disallowed value.
 
+**Lexical forms (issue #14).** D9 keeps export's term even when export writes an ill-typed form under a supported
+datatype: a `dateTime` offset beyond ±14:00, or an `xsd:string` with a character outside XML 1.0's `Char`. So
+`sh:datatype` (§4.1.2) holds only when the literal has that datatype and its lexical form is in the datatype's lexical
+space (`shacl/lexical.go`). An ill-typed literal is a `sh:DatatypeConstraintComponent` result, not an input error.
+
 Each of these is checked against SemEngine's serializer by D15's agreement test. A nil object, an unsupported Go type,
-NaN or infinity, or any other hint on a declared predicate is an input error, not a violation. This is a deliberate
+NaN or infinity, a string object or hint that is not valid UTF-8 (ruling Q31, issue #15: export writes each bad byte as
+U+FFFD, which would merge distinct values), or any other hint on a declared predicate is an input error, not a
+violation. This is a deliberate
 difference from export: at the pin, export silently drops a triple whose object is nil, NaN, or infinite, writes an
 unsupported Go value (a struct) as a plain string from its `%v` form, and writes any `Datatype` hint verbatim, even an
 ill-typed one such as `"x"^^xsd:integer` (probe P5). The agreement test covers only the rows both accept, and asserts
@@ -275,15 +298,18 @@ the difference for these rows.
 Operators, whose syntax extends XML Schema Part 2 Appendix F. Handing the text to Go's `regexp.Compile` is not that.
 The compiler parses each pattern with its own allowlist and emits RE2:
 
-- **Accepted:** literals; `.`, translated to `[^\n\r]` because XSD's `.` excludes both characters; `^` and `$`;
-  `|`; capturing `( )`; `* + ? {n} {n,} {n,m}` and their reluctant forms; classes and negated classes with ranges;
-  single-character escapes; `\p{…}` and `\P{…}` for the 36 general categories XSD lists (Appendix F), checked by
-  name against that list, never by whether RE2 compiles them.
-- **Rejected by name:** `\d \D \w \W \s \S`. XSD's `\d` and `\w` are Unicode-wide while RE2's are ASCII-only, and
-  XSD's `\s` is `[ \t\n\r]` while RE2's adds `\f` (probe P4). Also rejected: `\i \I \c \C`; block escapes
-  `\p{Is…}`; names RE2 accepts that XSD does not list, such as `\p{Cs}` and script names like `\p{Greek}`;
-  back-references; `(?`; class subtraction `-[`, which RE2 compiles silently as a different class; any escape XSD
-  does not define (RE2 accepts `\x41`, `\A`, `\z`, `\b`); any `sh:flags`.
+- **Accepted:** literals; `.`, translated to `[^\n\r]` because XSD's `.` excludes both characters; `^` and `$`; `|`;
+  capturing `( )`; `* + ? {n} {n,} {n,m}` and their reluctant forms; classes and negated classes with ranges;
+  single-character escapes; `\p{…}` and `\P{…}` for the 36 general categories XSD lists (Appendix F), checked by name
+  against that list, never by whether RE2 compiles them.
+- **Rejected by name:** `\d \D \w \W \s \S`. XSD's `\d` and `\w` are Unicode-wide while RE2's are ASCII-only, and XSD's
+  `\s` is `[ \t\n\r]` while RE2's adds `\f` (probe P4). Also rejected: `\i \I \c \C`; block escapes `\p{Is…}`; names RE2
+  accepts that XSD does not list, such as `\p{Cs}` and script names like `\p{Greek}`; back-references; `(?`; class
+  subtraction `-[`, which RE2 compiles silently as a different class; any escape XSD does not define (RE2 accepts
+  `\x41`, `\A`, `\z`, `\b`); any `sh:flags`. Task 5.4 added: an unescaped `{`, `}`, `]` or `)` outside its syntax (F&O
+  §5.6.1.1 excludes them from normal characters); a quantifier on `^` or `$`, or after another quantifier; a range end
+  below its start; a repetition count above 1,000 and group nesting deeper than 1,000 (RE2's limits; XSD sets none); a
+  `-` in a class that is not first, last, or between a range's ends (`notes/5-compiler.md` § 5.4).
 
 Each claim on XSD or RE2 behaviour above was confirmed by probe P4 at go1.26.9 (`notes/1-probes.md`). Go 1.26.9's
 Unicode tables are version 15.0.0, so category membership follows Unicode 15.0; the support matrix says so. Agreement is

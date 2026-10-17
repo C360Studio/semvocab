@@ -17,7 +17,8 @@ accepted Turtle grammar, the datatype table, and the regex subset.
 
 `Compile` SHALL fail on every construct outside the profile, including every `sh:rule` input, unsupported targets,
 non-predicate paths, logical and SPARQL constraints, and unknown `sh:` terms. Each issue SHALL name the construct's
-IRI, its shape, and its path. `Compile` SHALL report every issue and SHALL return no partial bundle.
+IRI, its shape, and its path. A node shape with no `sh:targetClass` SHALL also fail. `Compile` SHALL report every
+issue and SHALL return no partial bundle.
 
 #### Scenario: A shape with a rule
 
@@ -32,8 +33,9 @@ IRI, its shape, and its path. `Compile` SHALL report every issue and SHALL retur
 
 ### Requirement: Bounded Turtle input
 
-`ParseTurtle` SHALL accept only the documented Turtle subset with absolute IRIs, and SHALL fail with a line and
-column on anything else, on input over 1 MiB, or on nesting deeper than 64 levels. It SHALL never skip input.
+`ParseTurtle` SHALL accept only the documented Turtle subset with absolute IRIs. It SHALL fail with a line and column
+on anything else or on nesting deeper than 64 levels, and with a byte offset on input over 1 MiB or input that is not
+valid UTF-8. It SHALL never skip input.
 
 #### Scenario: Deep nesting
 
@@ -89,8 +91,8 @@ registered.
 
 Each mapped entity type with birth or group predicates SHALL yield one contract with `EntityPattern`
 `*.*.*.<domain>.<type>.*`, mapping-supplied group modes, and explicit birth predicates, passing `ValidateShape`. Mode
-SHALL NOT be derived from `sh:maxCount`. Conflicting group modes SHALL fail. Other entity types SHALL be listed as
-unwritable.
+SHALL NOT be derived from `sh:maxCount`. Conflicting group modes and duplicate contract names SHALL fail. Other entity
+types SHALL be listed as unwritable.
 
 #### Scenario: The DIEKM platform pattern
 
@@ -104,8 +106,9 @@ unwritable.
 
 ### Requirement: Cardinality semantics
 
-An absent `sh:maxCount` SHALL mean unbounded and `sh:maxCount 0` SHALL prohibit values. Negative counts and a
-`sh:minCount` above `sh:maxCount` SHALL fail compilation. Counts SHALL be taken over distinct RDF terms.
+An absent `sh:maxCount` SHALL mean unbounded and `sh:maxCount 0` SHALL prohibit values. Negative counts, counts above
+2,147,483,647, and a `sh:minCount` above `sh:maxCount` SHALL fail compilation. Counts SHALL be taken over distinct RDF
+terms.
 
 #### Scenario: Maximum zero
 
@@ -115,8 +118,9 @@ An absent `sh:maxCount` SHALL mean unbounded and `sh:maxCount 0` SHALL prohibit 
 ### Requirement: Datatypes and numeric bounds
 
 `sh:datatype` SHALL accept only the published table. A numeric bound SHALL be a literal of its property's datatype,
-`xsd:integer` or `xsd:double`. Integer bounds SHALL be compared exactly, never through `float64`. A candidate value
-SHALL be typed as SemEngine's serializer at the pin would type it.
+`xsd:integer` or `xsd:double`. Integer bounds SHALL be compared exactly, never through `float64`. On a path mapped to an
+`entity_id` predicate, only cardinality SHALL be accepted. A candidate value SHALL be typed as SemEngine's serializer at
+the pin would type it, and `sh:datatype` SHALL also require a lexical form valid for the datatype.
 
 #### Scenario: A large integer bound
 
@@ -146,8 +150,9 @@ every construct whose meaning differs between XPath and Go's RE2, naming it.
 ### Requirement: Complete-candidate-state validation
 
 `ValidateCandidateState` SHALL take the complete post-mutation entity, not a patch. It SHALL return an error for a
-malformed entity ID, a mismatched subject, or an unsupported value. It SHALL run every constraint of every applicable
-shape, report `Targeted` false when none applies, and order results deterministically.
+malformed entity ID, a mismatched subject, or a value it cannot map to an RDF term (nil, NaN, infinity, an unsupported
+Go type, invalid UTF-8, or a hint that would change the term). It SHALL run every constraint of every applicable shape,
+report `Targeted` false when none applies, and order results deterministically.
 
 #### Scenario: Reconcile versus append
 
