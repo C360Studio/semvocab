@@ -86,4 +86,4 @@ to `design.md` in this change.
 
 ## 10. Archive
 
-- [ ] 10.1 `openspec archive phase-2-shacl-compilation` syncs the specs as the last content commit
+- [x] 10.1 `openspec archive phase-2-shacl-compilation` syncs the specs as the last content commit

@@ -19,10 +19,11 @@ This page describes the code as it is in the tree. It does not cover:
 - Shapes over reified paths (a triple about a triple), exporting shapes to an external validator, and checking this
   validator's results against an external one. None of these is present.
 
-A note on citations. The `phase-2-shacl-compilation` change in `openspec/changes/` holds the design (`design.md`,
-decisions D1–D17) and the probes (`notes/1-probes.md`, probes P1–P5) behind statements about libraries and standards
-below. Citations such as "probe P4" mean that note. The change directory moves to `openspec/changes/archive/` when
-the change is archived. SemEngine citations are `file:line` in SemEngine `v0.1.0-alpha.2`, the version `go.mod` pins.
+A note on citations. The archived change `openspec/changes/archive/2026-10-17-phase-2-shacl-compilation/` holds the
+design (`design.md`, decisions D1–D17) and the probes (`notes/1-probes.md`, probes P1–P5) behind statements about
+libraries and standards below. Citations such as "probe P4" mean that note. The current requirements are in
+`openspec/specs/shacl-compilation/spec.md`. SemEngine citations are `file:line` in SemEngine `v0.1.0-alpha.2`, the
+version `go.mod` pins.
 
 ## Quick start
 
