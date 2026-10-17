@@ -9,7 +9,7 @@
       is shown to fail the tests
 - [x] 1.3 `FuzzDecodeShapesJSON` asserts that an accepted input is valid UTF-8
 - [x] 1.4 `docs/shacl-compilation.md` states the rule
-- [ ] 1.5 `task verify` passes on a clean tree
+- [x] 1.5 `task verify` passes on a clean tree
 
 ## 2. Archive
 

@@ -24,3 +24,4 @@ Written 2026-10-17 with go1.26.9 darwin/arm64, at `2a0ae84` plus this change.
   one byte past a non-`\u` escape (the escaped-backslash acceptance fails), and removing the call (all 8).
 - **1.3:** `FuzzDecodeShapesJSON` asserts `utf8.Valid` on every accepted input; a local run of 20 s (about 1.27 M
   executions) found no failure.
+- **1.5:** `task verify` passed on a clean tree at `3fb4f25` (spec, docs, fmt, tidy, build, vet, lint, vuln, test:unit, test:repeat).
