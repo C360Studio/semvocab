@@ -2,15 +2,16 @@
 
 ## Context and Inventory
 
-Owner rulings R1–R3 on #26 (2026-10-27) fix the standards and delivery boundaries:
+Owner rulings R1–R3 on #26 (2026-10-27) and owner Phase 0 sign-off on PR #27 (`7ef6dc9de85507a0d6cfcc229796df0d8565e580`)
+fix the standards and delivery boundaries:
 
 - **R1 (Standards):** OGC SWE Common 3.0 (`OGC 24-014`, `3.0.0`) and SensorML 3.0 (`OGC 23-000`, `3.0.0`) from
   `opengeospatial/ogcapi-connected-systems` tag `v1.0.0` (`8e03b236a049849f2ccc24b4fd9fdce5ff69bed2`), paired with W3C
   SOSA/SSN + `ssn-system` 2017 Recommendation (`w3c/sdw` commit `cb31ee9de636a7101337815ba67ba9af4a7c1348`,
   `ssn/integrated/{sosa,ssn,ssn-system}.ttl`).
-- **R2 (Phasing):** Phase 0 lands provenance and ledger tests and stops at the draft PR for owner sign-off; Phase 1
-  delivers `catalog/{sosa,ssn,swe,sensorml}`, `packs/swe-core`, and vendored oracles; Phase 2 defers `packs/sensorml`
-  predicates, projections, and SHACL shapes until consumer entity types and fields settle.
+- **R2 (Phasing):** Phase 0 landed provenance and ledger tests and received owner sign-off; Phase 1 delivers
+  `catalog/{sosa,ssn,swe,sensorml}`, `packs/swe-core`, vendored oracles, and adopter documentation on PR #27; Phase 2
+  defers `packs/sensorml` predicates, projections, and SHACL shapes until consumer entity types and fields settle.
 - **R3 (IRI stems):** Mint SWE 3.0 and SensorML 3.0 RDF IRIs under `http://www.opengis.net/spec/SWE/3.0/` and
   `http://www.opengis.net/spec/sensorML/3.0/`, declared in the ledger as a C360 RDF convention over OGC's Clause 5
   normative specification base URIs (`http://www.opengis.net/spec/SWE/3.0` and
@@ -100,6 +101,16 @@ RFC 6690 Web Linking keys in `common/link.json` (`href`, `rel`, `hreflang`, `tit
 API link fields rather than SensorML 3.0 properties. All are recorded under `excluded_source_symbols` and excluded from
 admission.
 
+### D6: Phase 1 test oracles and shuffle-safe registry verification
+
+- `internal/oracle` extends `Release` with `SOSA2017`, `SSN2017`, and `SSNSystem2017` plus `LoadMerged` (checking
+  `sha256` against `pins.ontologies` before parsing), and adds a JSON Schema bundle loader (`SWE30`, `SensorML30`)
+  checking every file's `sha256` against `pins.schemas` before extracting object locations, `allOf` `$ref` parents, and
+  `properties` keys.
+- Because `task test:repeat` runs `-count=5 -shuffle=on` in a single process over SemEngine's process-global registries,
+  `packs` tests never assume `ssn-system`, `swe`, or `sml` are unregistered at test entry; they observe state before
+  and after mutations and assert compaction and idempotent re-registration directly.
+
 ## Declared Cost
 
 - SWE 3.0 and SensorML 3.0 IRIs under `http://www.opengis.net/spec/SWE/3.0/` and
@@ -108,11 +119,7 @@ admission.
 - Prefixing JSON Schema property constants with `Prop` (`swe.PropUOM`, `sensorml.PropLink`) differs from OWL catalogs
   (`sosa.MadeBySensor`, `cco.HasInput`), traded deliberately so object classes and property keys never collide in Go.
 
-## Phase 1 Acceptance Plan and Merge-Order Note
+## Merge-Order Note
 
-1. After owner sign-off on Phase 0, vendor `w3c/sdw` TTLs and `opengeospatial/ogcapi-connected-systems` JSON Schemas +
-   licenses under `internal/oracle/testdata/`, checking every byte against the ledger `sha256` before parsing.
-2. Implement `catalog/{sosa,ssn,swe,sensorml}` and `packs/swe-core` with oracle and SemEngine registration/rollback
-   tests.
-3. Open PR #25 bumps `@fission-ai/openspec` to `1.14.3` with zero file overlap; if PR #25 merges before Phase 0 lands,
-   merge `origin/main` into this branch (`git merge origin/main`) and re-run `task verify`.
+Open PR #25 bumps `@fission-ai/openspec` to `1.14.3` with zero file overlap; if PR #25 merges before PR #27 lands,
+merge `origin/main` into this branch (`git merge origin/main`, never rebase) and re-run `task verify`.

@@ -1,6 +1,7 @@
 # Tasks: swe-sensorml-3-provenance
 
-Each task names the outcome that proves it. Phase 0 stops at the draft PR for owner sign-off (ruling R2 on #26).
+Each task names the outcome that proves it. Phase 0 received owner sign-off on PR #27 (2026-10-27); Phase 1 delivers
+the catalogs, `swe-core` pack, vendored test oracles, and adopter documentation on PR #27.
 
 ## 1. Provenance and ledger schema
 
@@ -13,13 +14,33 @@ Each task names the outcome that proves it. Phase 0 stops at the draft PR for ow
 - [x] 1.4 `internal/ledger` decodes `pins.schemas`, `Ontology.Created`, and typed `SOSA`/`SSN`/`SWE`/`SensorML` source
       blocks strictly, and `TestAdmissionLedgerShape` + `TestAdmissionLedgerShapeSensitivity` enforce them
 
-## 2. Verification
+## 2. Vendored oracles and catalog packages
 
-- [x] 2.1 `task spec:check` and `task docs:check` pass
-- [x] 2.2 `task verify` passes on a clean tree
+- [ ] 2.1 `internal/oracle/testdata/w3c-sdw/` and `internal/oracle/testdata/ogcapi-connected-systems/` contain the
+      unmodified W3C TTLs, OGC 3.0 JSON Schemas, `LICENSE`, and `NOTICE` files; `internal/oracle` verifies every
+      `sha256` against the ledger before parsing and fails when a byte is altered or a file is unlisted
+- [ ] 2.2 `catalog/sosa` and `catalog/ssn` export the exact ledger-admitted constants (`sosa` constants only; `ssn`
+      covering `ssn` + `ssn-system` with `DirectParents`, `Parents`, and `IsA`), verified against the vendored W3C TTLs
+      with paired sensitivity tests
+- [ ] 2.3 `catalog/swe` and `catalog/sensorml` export the exact ledger-admitted classes (`PascalCase`), properties
+      (`Prop<PascalCase>`), and `SubClassOf`/`Parents`/`IsA` hierarchies (crossing from `sensorml` into `swe`),
+      verified against the vendored OGC 3.0 JSON Schemas with paired sensitivity tests
 
-## 3. Sign-off and archive
+## 3. Pack and adopter documentation
 
-- [ ] 3.1 `openspec archive swe-sensorml-3-provenance` moves the spec delta to `openspec/specs/` as the last content
-      commit after owner sign-off and cross-agent review
-      Hold: owner sign-off on Phase 0 draft PR (ruling R2 on #26) and cross-agent review before archive
+- [ ] 3.1 `packs/swe-core.yaml`, `packs.SWECoreSpec()`, and `packs.RegisterSWECore()` load and register `sosa`, `ssn`,
+      `ssn-system`, `swe`, and `sml` through SemEngine `v0.1.0-alpha.2`, compact `ssn-system` ahead of `ssn`, and leave
+      registry and prefix state unchanged on failure
+- [ ] 3.2 `README.md`, `docs/catalogs-and-packs.md`, and `AGENTS.md` describe the new catalogs and `swe-core` pack
+      accurately, with executed example output
+
+## 4. Verification
+
+- [ ] 4.1 `task spec:check` and `task docs:check` pass
+- [ ] 4.2 `task verify` passes on a clean tree
+
+## 5. Review and archive
+
+- [ ] 5.1 `openspec archive swe-sensorml-3-provenance` moves the spec deltas to `openspec/specs/` as the last content
+      commit after cross-agent review
+      Hold: cross-agent review of record on PR #27 before archive
