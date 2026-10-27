@@ -8,7 +8,8 @@ strings and does not import a catalog.
 Terms used below:
 
 - **IRI**: a global name for a term, written like a URL (`http://purl.obolibrary.org/obo/BFO_0000001`).
-- **Ontology**: a published set of IRIs with stated meanings. BFO and CCO are the two used here.
+- **Ontology**: a published set of IRIs with stated meanings. BFO, CCO, SOSA, SSN, and the SWE Common 3.0 / SensorML 3.0
+  schema catalogs are the ones used here.
 - **Entity type**: a SemEngine category of entity, written `<domain>.<type>`, such as `intel.platform`.
 - **Predicate**: a SemEngine property name of three dotted parts, such as `intel.role.assigned`.
 - **Prefix**: a short name for a namespace (`obo` for `http://purl.obolibrary.org/obo/`), used when RDF is written out.
@@ -80,6 +81,98 @@ Both hierarchies answer only for the admitted classes. A class that is real in t
 "outside the catalog", and the functions return nothing for it. The sources, releases, and licenses are in the
 package comments and in `docs/admission-ledger.yaml`.
 
+### `catalog/sosa`
+
+Constants for the W3C Sensor, Observation, Sample, and Actuator (SOSA) 2017 Recommendation terms, such as
+`sosa.Observation`, `sosa.Sensor`, `sosa.Sample`, `sosa.MadeBySensor`, `sosa.HasSimpleResult`, and `sosa.ResultTime`.
+`sosa.Namespace` is `http://www.w3.org/ns/sosa/`.
+
+`catalog/sosa` exports constants only and declares no hierarchy functions. Upstream `sosa.ttl` uses lightweight
+`schema:domainIncludes` and `schema:rangeIncludes` annotations rather than formal OWL class axioms, and asserts zero
+`rdfs:subClassOf` triples. Formal subclass relationships over SOSA terms are defined in `catalog/ssn`.
+
+### `catalog/ssn`
+
+Constants for the W3C Semantic Sensor Network (`ssn.Namespace`, `http://www.w3.org/ns/ssn/`) and SSN System
+Capabilities (`ssn.SystemsNamespace`, `http://www.w3.org/ns/ssn/systems/`) 2017 Recommendation terms.
+
+SSN introduces multiple inheritance: for instance, `sosa.Sample` has two direct superclasses (`sosa.FeatureOfInterest`
+and `sosa.Result`), and `ssn.Condition` and `ssn.SystemCapability` are both subclasses of `ssn.Property`. Because a
+class may have more than one parent, `catalog/ssn` exports `DirectParents` instead of a single-parent `SubClassOf`:
+
+- `DirectParents(iri)` returns a fresh copy of the direct named `rdfs:subClassOf` superclasses in document order (empty
+  for root classes, properties, and unknown IRIs).
+- `Parents(iri)` returns the breadth-first transitive closure of ancestors across SOSA, SSN, and `ssn-system`, without
+  duplicates or `owl:Thing`.
+- `IsA(child, parent)` reports whether `child` is `parent` or a subclass of `parent` in the integrated SOSA, SSN, and
+  `ssn-system` hierarchy.
+
+### `catalog/swe` and `catalog/sensorml`
+
+Constants for the OGC SWE Common Data Model 3.0 (`swe.Namespace`, `http://www.opengis.net/spec/SWE/3.0/`) and OGC
+SensorML 3.0 (`sensorml.Namespace`, `http://www.opengis.net/spec/sensorML/3.0/`).
+
+Three conventions govern these packages:
+
+1. **Naming**: object classes use `PascalCase` (`swe.Quantity`, `sensorml.PhysicalSystem`), while JSON property names
+   use `Prop<PascalCase>` (`swe.PropUOM`, `sensorml.PropPosition`). This prevents collisions between class and property
+   names that differ only by casing in JSON (such as class `CharacteristicList` vs property `characteristics`, or
+   property `label` vs `Label`), and ensures `swe.PropNamespace` does not collide with `swe.Namespace`.
+2. **Namespace honesty**: OGC 24-014 and OGC 23-000 publish JSON Schemas rather than an OWL ontology. Both
+   `http://www.opengis.net/spec/SWE/3.0/` and `http://www.opengis.net/spec/sensorML/3.0/` are local C360 RDF
+   conventions formed by appending `/` to OGC's specification base URIs (`http://www.opengis.net/spec/SWE/3.0` and
+   `http://www.opengis.net/spec/sensorML/3.0`); they are not certified OGC ontology IRIs and do not resolve on the web.
+3. **Hierarchy**: single-inheritance `allOf` chains in the 3.0 JSON Schemas, exposed through
+   `SubClassOf(iri) (string, bool)`, `Parents(iri) []string`, and `IsA(child, parent) bool`. SensorML process and
+   system classes descend from `sensorml.DescribedObject` (a root class in SensorML that declares no `allOf` parent),
+   so their ancestry ends within SensorML: `sensorml.IsA(sensorml.PhysicalSystem, swe.AbstractSWE)` is false. Seven
+   metadata classes (`CharacteristicList`, `CapabilityList`, `DerivedProperty`, `Event`, `ObservableProperty`,
+   `SpatialFrame`, and `TemporalFrame`) extend `swe.AbstractSweIdentifiable`; `sensorml`'s hierarchy continues into
+   `swe` across those classes up to `swe.AbstractSWE`.
+
+This program demonstrates multi-parent SSN lookup, SensorML process hierarchy, and the cross-catalog link into SWE:
+
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/c360studio/semvocab/catalog/sensorml"
+    "github.com/c360studio/semvocab/catalog/sosa"
+    "github.com/c360studio/semvocab/catalog/ssn"
+    "github.com/c360studio/semvocab/catalog/swe"
+)
+
+func main() {
+    for _, p := range ssn.DirectParents(sosa.Sample) {
+        fmt.Println(p)
+    }
+    fmt.Println(sensorml.IsA(sensorml.PhysicalSystem, swe.AbstractSWE))
+    for _, p := range sensorml.Parents(sensorml.PhysicalSystem) {
+        fmt.Println(p)
+    }
+    fmt.Println(sensorml.IsA(sensorml.CharacteristicList, swe.AbstractSWE))
+    for _, p := range sensorml.Parents(sensorml.CharacteristicList) {
+        fmt.Println(p)
+    }
+}
+```
+
+Output:
+
+```text
+http://www.w3.org/ns/sosa/FeatureOfInterest
+http://www.w3.org/ns/sosa/Result
+false
+http://www.opengis.net/spec/sensorML/3.0/AbstractPhysicalProcess
+http://www.opengis.net/spec/sensorML/3.0/AbstractProcess
+http://www.opengis.net/spec/sensorML/3.0/DescribedObject
+true
+http://www.opengis.net/spec/SWE/3.0/AbstractSweIdentifiable
+http://www.opengis.net/spec/SWE/3.0/AbstractSWE
+```
+
 ## Packs
 
 ### `bfo-cco-core`
@@ -88,6 +181,21 @@ package comments and in `docs/admission-ledger.yaml`.
 else: `obo` for the BFO namespace and `cco` for the CCO namespace. Register it so SemEngine's RDF output writes
 `obo:BFO_0000001` rather than the full IRI. The prefix is `obo`, not `bfo`, because BFO IRIs live under the namespace
 every OBO ontology shares.
+
+### `swe-core`
+
+`packs.SWECoreSpec()` decodes the embedded `packs/swe-core.yaml` (`swe-core` `1.0.0`). The pack declares five prefixes
+and no entity types or predicates:
+
+- `sosa` for `http://www.w3.org/ns/sosa/`
+- `ssn` for `http://www.w3.org/ns/ssn/`
+- `ssn-system` for `http://www.w3.org/ns/ssn/systems/`
+- `swe` for `http://www.opengis.net/spec/SWE/3.0/`
+- `sml` for `http://www.opengis.net/spec/sensorML/3.0/`
+
+SemEngine matches serializer prefixes longest-namespace-first (`vocabulary/export/prefix.go:121-145` at
+`v0.1.0-alpha.2`, tested in `TestSWECorePackLoadsAndRegisters`), so `http://www.w3.org/ns/ssn/systems/` terms are
+compacted under `ssn-system:` rather than the shorter `ssn:`.
 
 ### `diekm`
 
@@ -122,11 +230,12 @@ The steps are in `packs/diekm/diekm.yaml`.
 Each pack has a function that registers it with SemEngine's `vocabulary.RegisterPack`:
 
 - `packs.RegisterBFOCCOCore(opts ...vocabulary.PackOption) error`
+- `packs.RegisterSWECore(opts ...vocabulary.PackOption) error`
 - `diekm.Register(opts ...vocabulary.PackOption) error`
 
-Both also pass `vocabulary.WithPrefixRegistrar(export.RegisterPrefixes)`, so SemEngine's serializer learns the
+All three pass `vocabulary.WithPrefixRegistrar(export.RegisterPrefixes)`, so SemEngine's serializer learns the
 prefixes. Options you pass come after it; a later `WithPrefixRegistrar` replaces it. Call them from your program's
-start-up code. This program registers both and reads the result back:
+start-up code. This program registers them and reads the result back:
 
 ```go
 package main

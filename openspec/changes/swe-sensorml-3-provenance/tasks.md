@@ -16,28 +16,28 @@ the catalogs, `swe-core` pack, vendored test oracles, and adopter documentation 
 
 ## 2. Vendored oracles and catalog packages
 
-- [ ] 2.1 `internal/oracle/testdata/w3c-sdw/` and `internal/oracle/testdata/ogcapi-connected-systems/` contain the
+- [x] 2.1 `internal/oracle/testdata/w3c-sdw/` and `internal/oracle/testdata/ogcapi-connected-systems/` contain the
       unmodified W3C TTLs, OGC 3.0 JSON Schemas, `LICENSE`, and `NOTICE` files; `internal/oracle` verifies every
       `sha256` against the ledger before parsing and fails when a byte is altered or a file is unlisted
-- [ ] 2.2 `catalog/sosa` and `catalog/ssn` export the exact ledger-admitted constants (`sosa` constants only; `ssn`
+- [x] 2.2 `catalog/sosa` and `catalog/ssn` export the exact ledger-admitted constants (`sosa` constants only; `ssn`
       covering `ssn` + `ssn-system` with `DirectParents`, `Parents`, and `IsA`), verified against the vendored W3C TTLs
       with paired sensitivity tests
-- [ ] 2.3 `catalog/swe` and `catalog/sensorml` export the exact ledger-admitted classes (`PascalCase`), properties
+- [x] 2.3 `catalog/swe` and `catalog/sensorml` export the exact ledger-admitted classes (`PascalCase`), properties
       (`Prop<PascalCase>`), and `SubClassOf`/`Parents`/`IsA` hierarchies (crossing from `sensorml` into `swe`),
       verified against the vendored OGC 3.0 JSON Schemas with paired sensitivity tests
 
 ## 3. Pack and adopter documentation
 
-- [ ] 3.1 `packs/swe-core.yaml`, `packs.SWECoreSpec()`, and `packs.RegisterSWECore()` load and register `sosa`, `ssn`,
+- [x] 3.1 `packs/swe-core.yaml`, `packs.SWECoreSpec()`, and `packs.RegisterSWECore()` load and register `sosa`, `ssn`,
       `ssn-system`, `swe`, and `sml` through SemEngine `v0.1.0-alpha.2`, compact `ssn-system` ahead of `ssn`, and leave
       registry and prefix state unchanged on failure
-- [ ] 3.2 `README.md`, `docs/catalogs-and-packs.md`, and `AGENTS.md` describe the new catalogs and `swe-core` pack
+- [x] 3.2 `README.md`, `docs/catalogs-and-packs.md`, and `AGENTS.md` describe the new catalogs and `swe-core` pack
       accurately, with executed example output
 
 ## 4. Verification
 
-- [ ] 4.1 `task spec:check` and `task docs:check` pass
-- [ ] 4.2 `task verify` passes on a clean tree
+- [x] 4.1 `task spec:check` and `task docs:check` pass
+- [x] 4.2 `task verify` passes on a clean tree
 
 ## 5. Review and archive
 

@@ -1,0 +1,21 @@
+The files in this directory, other than this NOTICE, are copied unmodified
+from the Open Geospatial Consortium OGC API - Connected Systems repository and
+are used as test oracles. Each keeps its upstream path.
+
+Source:    https://github.com/opengeospatial/ogcapi-connected-systems
+Tag:       v1.0.0
+Commit:    8e03b236a049849f2ccc24b4fd9fdce5ff69bed2
+Standards:
+  - OGC 24-014, edition 3.0.0 — OGC SWE Common Data Model Encoding Standard
+    (swecommon/schemas/json/*.json)
+  - OGC 23-000, edition 3.0.0 — OGC SensorML: Model and XML/JSON Encoding
+    Standard (sensorml/schemas/json/*.json and referenced common/*.json)
+
+Files and sha256 digests:
+  Every vendored file and its sha256 digest is listed under
+  pins.schemas.swe-3.0 and pins.schemas.sensorml-3.0 in
+  docs/admission-ledger.yaml. No changes were made to the files.
+
+License:
+  OGC Software License, copied unmodified at LICENSE in this directory from the
+  repository root at commit 8e03b236a049849f2ccc24b4fd9fdce5ff69bed2.

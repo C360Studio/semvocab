@@ -1,0 +1,23 @@
+# swe-core: W3C SOSA/SSN (with ssn-system) 2017 and OGC SWE Common 3.0 /
+# SensorML 3.0 prefixes, and nothing else (design D4 of
+# openspec/changes/swe-sensorml-3-provenance; packs/sensorml predicates,
+# projections, and SHACL shapes are deferred to Phase 2 per owner ruling R2 on
+# semvocab#26).
+#
+# Prefix "ssn-system" (33 bytes) compacts http://www.w3.org/ns/ssn/systems/*
+# ahead of "ssn" (25 bytes). Prefixes "swe" and "sml" bind C360 RDF convention
+# stems over OGC 24-014 and OGC 23-000 Clause 5 specification base URIs rather
+# than externally certified OGC OWL ontologies (owner ruling R3 on semvocab#26).
+name: swe-core
+version: "1.0.0"
+prefixes:
+  - prefix: sosa
+    namespace: "http://www.w3.org/ns/sosa/"
+  - prefix: ssn
+    namespace: "http://www.w3.org/ns/ssn/"
+  - prefix: ssn-system
+    namespace: "http://www.w3.org/ns/ssn/systems/"
+  - prefix: swe
+    namespace: "http://www.opengis.net/spec/SWE/3.0/"
+  - prefix: sml
+    namespace: "http://www.opengis.net/spec/sensorML/3.0/"

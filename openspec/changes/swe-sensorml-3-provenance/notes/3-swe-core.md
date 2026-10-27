@@ -1,0 +1,29 @@
+# Notes: task 3.1 (swe-core pack)
+
+## Implementation choices and SemEngine v0.1.0-alpha.2 probes
+
+- **Entry points (`packs/packs.go`).** `SWECoreSpec()` decodes embedded `packs/swe-core.yaml` strictly through `loadYAML`
+  (`KnownFields(true)` + trailing-document check) like `BFOCCOCoreSpec()`. `RegisterSWECore(opts ...)` prepends
+  `vocabulary.WithPrefixRegistrar(export.RegisterPrefixes)` ahead of caller options (`vocabulary/pack.go:123` applies
+  options in order so a caller-supplied `WithPrefixRegistrar` overrides the default).
+- **Turtle vs JSON-LD compaction at SemEngine `v0.1.0-alpha.2` (`11da4721c2233a8e2b5b1d6236a97a44e06abbb6`).**
+  `(*prefixMap).compact` (`vocabulary/export/prefix.go:121-145`) selects the longest matching namespace
+  (`len(ns) > len(bestNS)`, breaking ties lexicographically by prefix), so `ssn-system`
+  (`http://www.w3.org/ns/ssn/systems/`, 33 bytes) wins over `ssn` (`http://www.w3.org/ns/ssn/`, 25 bytes). In
+  `export.Turtle` (`vocabulary/export/turtle.go:86-105`), both predicate IRIs and IRI objects are compacted
+  (`ssn-system:hasSystemCapability ssn-system:Accuracy`). In `export.JSONLD` (`vocabulary/export/jsonld.go:34-98`),
+  predicate keys are compacted via `pm.compact` (`"ssn-system:hasSystemCapability"`) and `@context` emits all five
+  registered prefixes (`sosa`, `ssn`, `ssn-system`, `swe`, `sml`), while `jsonldObjectValue` emits full `@id` strings
+  for resource objects (`{"@id": "http://www.w3.org/ns/ssn/systems/Accuracy"}`). `TestSWECorePackLoadsAndRegisters`
+  verifies both serialized forms and asserts RDF graph equality between Turtle and JSON-LD via `graphFromJSONLD`.
+- **Closure, idempotence, conflict, and atomic-failure coverage.** `packs_test.go` verifies `swe-core` prefixes against
+  `pins.ontologies` (`sosa-2017`, `ssn-2017`, `ssn-system-2017`) and `pins.schemas` (`swe-3.0`, `sensorml-3.0`) and
+  requires zero predicates, entity types, and projections (owner ruling R2). `registration_test.go` exercises repeated
+  `RegisterSWECore()` calls, rejecting conflicting `sml` prefix rebinding without mutating state, and rejecting malformed
+  `swe-core` copies (unknown YAML field and invalid predicate) with registry and serializer prefix state unchanged.
+
+## Shown able to fail (seeded, observed, and reverted)
+
+- `packs/swe-core.yaml`: changing `ssn` namespace from `http://www.w3.org/ns/ssn/` to `http://www.w3.org/ns/ssn#` fails
+  `TestPackSuperclassClosure` (`swe-core: prefix ssn = http://www.w3.org/ns/ssn#, ledger pin http://www.w3.org/ns/ssn/`)
+  and `TestSWECorePackLoadsAndRegisters`.
