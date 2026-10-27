@@ -23,10 +23,11 @@ Inventory read:
 - `C360Studio/semengine` at `v0.1.0-alpha.2` (`11da4721c2233a8e2b5b1d6236a97a44e06abbb6`): zero exported SOSA, SSN,
   `ssn-system`, SWE, or SensorML constants; built-in serializer prefixes `ssn` (`vocabulary/export/prefix.go:33`) and
   `sosa` (`:34`); prose mention at `vocabulary/doc.go:31`; zero `ssn-system`, `swe`, or `sml` prefixes.
-- `C360Studio/semstreams` at `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`: `vocabulary/README.md:28,364-366` doc examples
+- `C360Studio/semstreams` at `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`: `vocabulary/README.md:20,364-366` doc examples
   only; zero SOSA/SSN/SWE/SensorML Go symbols.
 - `C360Studio/semsparql` at `e7f827c445e0e11c990869f5ef70550a91880482` and `C360Studio/semconnect` at
-  `d0d06e00bf05a545f30ceea798db1c2b1ee47d4f` (`sosa_iris.go`, `swe_iris.go`, read-only consumer comparison).
+  `d0d06e00bf05a545f30ceea798db1c2b1ee47d4f` (`vocabulary/sosa/iris.go`, `vocabulary/swe/iris.go`, read-only consumer
+  comparison).
 
 ## Adopter Seams
 
@@ -91,12 +92,13 @@ carry `version_iri` or `created` rather than inventing a non-existent `version_i
 
 ### D5: Consumer and shared-schema exclusions
 
-`sosa:SamplingFeature` (`sosa_iris.go:49`) and `sosa:hasLocation` (`sosa_iris.go:124`) from `semconnect`
-(`d0d06e00bf05a545f30ceea798db1c2b1ee47d4f`) are absent from W3C 2017 `sosa.ttl`/`ssn.ttl`/`ssn-system.ttl`;
-`sosa:hasResultingSample` and `sosa:isSamplingResultOf` are commented out in `sosa.ttl:387-403`; `swe:nilValue`
-(`swe_iris.go:85`) is SWE 2.0 singular whereas SWE 3.0 defines `nilValues`; and RFC 5988 / RFC 6690 Web Linking keys
-in `common/link.json` (`href`, `rel`, `hreflang`, `title`, `uid`, `rt`, `if`) are generic OGC API link fields rather
-than SensorML 3.0 properties. All are recorded under `excluded_source_symbols` and excluded from admission.
+`sosa:SamplingFeature` (`vocabulary/sosa/iris.go:49`) and `sosa:hasLocation` (`vocabulary/sosa/iris.go:124`) from
+`semconnect` (`d0d06e00bf05a545f30ceea798db1c2b1ee47d4f`) are absent from W3C 2017 `sosa.ttl`, `ssn.ttl`, and
+`ssn-system.ttl`; `sosa:hasResultingSample` and `sosa:isSamplingResultOf` are commented out in `sosa.ttl:387-403`;
+`swe:nilValue` (`vocabulary/swe/iris.go:69`) is SWE 2.0 singular whereas SWE 3.0 defines `nilValues`; and RFC 5988 /
+RFC 6690 Web Linking keys in `common/link.json` (`href`, `rel`, `hreflang`, `title`, `uid`, `rt`, `if`) are generic OGC
+API link fields rather than SensorML 3.0 properties. All are recorded under `excluded_source_symbols` and excluded from
+admission.
 
 ## Declared Cost
 

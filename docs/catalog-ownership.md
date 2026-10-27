@@ -51,8 +51,8 @@ Schema.org, FOAF, SOSA, SSN, SWE Common, SensorML, GeoSPARQL, IANA, ACTR, AGNT o
 | schema | none | `schema` = `https://schema.org/` `prefix.go:30` | `http://schema.org/batteryLevel` `doc.go:62,89,127`, `registry.go:170,300` | 7 `Schema*`, mixed http/https | none | 7 | deferred |
 | sensorml | none | none | none | none | none | all SensorML 3.0 terms | new content from OGC 23-000 3.0.0 JSON Schemas (C360 RDF IRI convention) |
 | skos | `SkosNotation` `:24`, `SkosBroader` `:29`, `SkosNarrower` `:34`, `SkosRelated` `:39` | `skos` `prefix.go:27` | `doc.go:136`, `predicates.go:296` | 7 `Skos*` | 4 | `SkosPrefLabel`, `SkosAltLabel`, `SkosHiddenLabel` | use-semengine-symbol |
-| sosa | none | `sosa` `prefix.go:34` | `doc.go:31` (prose only) | `README.md:28,365-366` example only | none | all SOSA terms | new content from W3C SOSA 2017 (`w3c/sdw`) |
-| ssn | none | `ssn` `prefix.go:33` (no `ssn-system`) | `doc.go:31` (prose only) | `README.md:28,364` example only | none | all SSN + `ssn-system` terms | new content from W3C SSN + `ssn-system` 2017 (`w3c/sdw`) |
+| sosa | none | `sosa` `prefix.go:34` | `doc.go:31` (prose only) | `vocabulary/README.md:20,365-366` example only | none | all SOSA terms | new content from W3C SOSA 2017 (`w3c/sdw`) |
+| ssn | none | `ssn` `prefix.go:33` (no `ssn-system`) | `doc.go:31` (prose only) | `vocabulary/README.md:20,364` example only | none | all SSN + `ssn-system` terms | new content from W3C SSN + `ssn-system` 2017 (`w3c/sdw`) |
 | swe | none | none | none | none | none | all SWE Common 3.0 terms | new content from OGC 24-014 3.0.0 JSON Schemas (C360 RDF IRI convention) |
 
 ## Divergences to keep explicit

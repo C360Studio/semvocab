@@ -79,6 +79,13 @@ func checkEntries(l Ledger, add func(string, ...any)) {
 				add("entry %q: %s without semengine_overlap", e.Name(), e.Disposition)
 			}
 		}
+		for _, ref := range e.References {
+			_, inOnt := l.Pins.Ontologies[ref]
+			_, inSch := l.Pins.Schemas[ref]
+			if !inOnt && !inSch {
+				add("entry %q: references unpinned key %q", e.Name(), ref)
+			}
+		}
 	}
 	for _, c := range candidates {
 		if seen[c] != 1 {
@@ -181,36 +188,69 @@ func checkPinnedFiles(prefix string, files []FixtureFile, add func(string, ...an
 }
 
 func checkSources(l Ledger, add func(string, ...any)) {
+	checkOntPin := func(entry, key string) {
+		if _, ok := l.Pins.Ontologies[key]; !ok {
+			add("ledger %s source: unpinned ontology %q", entry, key)
+		}
+	}
+	checkSchemaPin := func(entry, key string) {
+		if _, ok := l.Pins.Schemas[key]; !ok {
+			add("ledger %s source: unpinned schema_bundle %q", entry, key)
+		}
+	}
+
 	if bfo, err := l.BFO(); err != nil {
 		add("%v", err)
-	} else if len(bfo.SymbolsAdmittedClasses) == 0 || len(bfo.SymbolsAdmittedRelations) == 0 {
-		add("ledger bfo source: empty admitted term list")
+	} else {
+		if len(bfo.SymbolsAdmittedClasses) == 0 || len(bfo.SymbolsAdmittedRelations) == 0 {
+			add("ledger bfo source: empty admitted term list")
+		}
+		if bfo.ExternalAdditions.Ontology != "" {
+			checkOntPin("bfo", bfo.ExternalAdditions.Ontology)
+		}
 	}
 	if cco, err := l.CCO(); err != nil {
 		add("%v", err)
-	} else if len(cco.AdmittedClasses) == 0 || len(cco.AdmittedProperties) == 0 {
-		add("ledger cco source: empty admitted term map")
+	} else {
+		if len(cco.AdmittedClasses) == 0 || len(cco.AdmittedProperties) == 0 {
+			add("ledger cco source: empty admitted term map")
+		}
+		checkOntPin("cco", cco.Ontology)
 	}
 	if sosa, err := l.SOSA(); err != nil {
 		add("%v", err)
-	} else if len(sosa.AdmittedClasses) == 0 || len(sosa.AdmittedObjectProperties) == 0 || len(sosa.AdmittedDatatypeProperties) == 0 {
-		add("ledger sosa source: empty admitted term map")
+	} else {
+		if len(sosa.AdmittedClasses) == 0 || len(sosa.AdmittedObjectProperties) == 0 || len(sosa.AdmittedDatatypeProperties) == 0 {
+			add("ledger sosa source: empty admitted term map")
+		}
+		checkOntPin("sosa", sosa.Ontology)
 	}
 	if ssn, err := l.SSN(); err != nil {
 		add("%v", err)
-	} else if len(ssn.Ontologies) == 0 || len(ssn.AdmittedClasses) == 0 || len(ssn.AdmittedObjectProperties) == 0 ||
-		len(ssn.AdmittedSystemClasses) == 0 || len(ssn.AdmittedSystemObjectProperties) == 0 {
-		add("ledger ssn source: empty admitted term map")
+	} else {
+		if len(ssn.Ontologies) == 0 || len(ssn.AdmittedClasses) == 0 || len(ssn.AdmittedObjectProperties) == 0 ||
+			len(ssn.AdmittedSystemClasses) == 0 || len(ssn.AdmittedSystemObjectProperties) == 0 {
+			add("ledger ssn source: empty admitted term map")
+		}
+		for _, ont := range ssn.Ontologies {
+			checkOntPin("ssn", ont)
+		}
 	}
 	if swe, err := l.SWE(); err != nil {
 		add("%v", err)
-	} else if len(swe.AdmittedClasses) == 0 || len(swe.AdmittedProperties) == 0 {
-		add("ledger swe source: empty admitted term map")
+	} else {
+		if len(swe.AdmittedClasses) == 0 || len(swe.AdmittedProperties) == 0 {
+			add("ledger swe source: empty admitted term map")
+		}
+		checkSchemaPin("swe", swe.SchemaBundle)
 	}
 	if sml, err := l.SensorML(); err != nil {
 		add("%v", err)
-	} else if len(sml.AdmittedClasses) == 0 || len(sml.AdmittedProperties) == 0 {
-		add("ledger sensorml source: empty admitted term map")
+	} else {
+		if len(sml.AdmittedClasses) == 0 || len(sml.AdmittedProperties) == 0 {
+			add("ledger sensorml source: empty admitted term map")
+		}
+		checkSchemaPin("sensorml", sml.SchemaBundle)
 	}
 }
 
@@ -366,6 +406,10 @@ func TestAdmissionLedgerShapeSensitivity(t *testing.T) {
 		{"missing schema bundle swe-3.0", func(s string) string {
 			return strings.Replace(s, "    swe-3.0:\n", "    swe-3.0-x:\n", 1)
 		}, "pins.schemas.swe-3.0 missing"},
+		{"missing required field in swe-3.0 schema bundle", func(s string) string {
+			return strings.Replace(s, "      spec_base_uri: http://www.opengis.net/spec/SWE/3.0\n",
+				"      spec_base_uri: \"\"\n", 1)
+		}, "pins.schemas.swe-3.0 lacks repository, tag, standard, edition, spec_base_uri, license, or vendored_at"},
 		{"short swe-3.0 commit", func(s string) string {
 			return strings.Replace(s, "      commit: 8e03b236a049849f2ccc24b4fd9fdce5ff69bed2\n      standard: OGC 24-014\n",
 				"      commit: 8e03b236\n      standard: OGC 24-014\n", 1)
@@ -395,9 +439,36 @@ func TestAdmissionLedgerShapeSensitivity(t *testing.T) {
 		{"unknown field in sosa source", func(s string) string {
 			return strings.Replace(s, "      ontology: sosa-2017\n", "      ontology: sosa-2017\n      unknown_sosa_key: 1\n", 1)
 		}, "field unknown_sosa_key not found"},
+		{"unknown field in ssn source", func(s string) string {
+			return strings.Replace(s, "      ontologies: [ssn-2017, ssn-system-2017]\n",
+				"      ontologies: [ssn-2017, ssn-system-2017]\n      unknown_ssn_key: 1\n", 1)
+		}, "field unknown_ssn_key not found"},
 		{"unknown field in swe source", func(s string) string {
 			return strings.Replace(s, "      schema_bundle: swe-3.0\n", "      schema_bundle: swe-3.0\n      unknown_swe_key: 1\n", 1)
 		}, "field unknown_swe_key not found"},
+		{"unknown field in sensorml source", func(s string) string {
+			return strings.Replace(s, "      schema_bundle: sensorml-3.0\n",
+				"      schema_bundle: sensorml-3.0\n      unknown_sensorml_key: 1\n", 1)
+		}, "field unknown_sensorml_key not found"},
+		{"empty admitted term map in sosa source", func(s string) string {
+			return strings.Replace(s,
+				"      admitted_datatype_properties: # Go name: [local name, rdfs:label]\n        HasSimpleResult: [hasSimpleResult, \"has simple result\"]\n        ResultTime: [resultTime, \"result time\"]\n",
+				"      admitted_datatype_properties: {}\n", 1)
+		}, "ledger sosa source: empty admitted term map"},
+		{"unresolved ontology pin key in sosa source", func(s string) string {
+			return strings.Replace(s, "      ontology: sosa-2017\n", "      ontology: sosa-9999\n", 1)
+		}, `ledger sosa source: unpinned ontology "sosa-9999"`},
+		{"unresolved ontology pin key in ssn source", func(s string) string {
+			return strings.Replace(s, "      ontologies: [ssn-2017, ssn-system-2017]\n",
+				"      ontologies: [ssn-2017, ssn-system-9999]\n", 1)
+		}, `ledger ssn source: unpinned ontology "ssn-system-9999"`},
+		{"unresolved schema_bundle pin key", func(s string) string {
+			return strings.Replace(s, "      schema_bundle: swe-3.0\n", "      schema_bundle: swe-9.9\n", 1)
+		}, `ledger swe source: unpinned schema_bundle "swe-9.9"`},
+		{"unresolved references pin key", func(s string) string {
+			return strings.Replace(s, "    references: [sosa-2017, ssn-2017, ssn-system-2017, swe-3.0, sensorml-3.0]\n",
+				"    references: [sosa-2017, ssn-2017, ssn-system-2017, swe-9.9, sensorml-3.0]\n", 1)
+		}, `entry "swe-core": references unpinned key "swe-9.9"`},
 		{"drop a fixture license", func(s string) string {
 			return strings.Replace(s, "      license: W3C Software and Document License", "      licence_removed: x\n      x: W3C Software and Document License", 1)
 		}, "field licence_removed not found"},

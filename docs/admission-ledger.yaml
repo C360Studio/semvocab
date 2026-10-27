@@ -606,7 +606,7 @@ entries:
       hierarchy: "none in catalog/sosa (sosa.ttl asserts zero rdfs:subClassOf triples; class axioms live in catalog/ssn)"
     excluded_source_symbols:
       - symbols: [SamplingFeature, HasLocation]
-        reason: "used in semconnect (d0d06e00bf05a545f30ceea798db1c2b1ee47d4f, sosa_iris.go:49,124); not declared in W3C 2017 sosa.ttl, ssn.ttl, or ssn-system.ttl"
+        reason: "used in semconnect (d0d06e00bf05a545f30ceea798db1c2b1ee47d4f, vocabulary/sosa/iris.go:49,124); not declared in W3C 2017 sosa.ttl, ssn.ttl, or ssn-system.ttl"
       - symbols: [hasResultingSample, isSamplingResultOf]
         reason: "commented out in sosa.ttl:387-403 and not asserted in the 2017 W3C Recommendation"
     rulings:
@@ -809,9 +809,9 @@ entries:
         reason: "JSON Schema discriminator keyword; represented by rdf:type in RDF"
       - symbols: [AnyComponent, AnySimpleComponent, AnyScalarComponent, NumberOrSpecial, DateTimeNumberOrSpecial,
           NameToken, EncodedValues, ElementCount, NilValuesText, NilValuesInteger, NilValuesNumber, NilValuesTime]
-        reason: "JSON Schema union, regex string, or typed array validation helpers rather than domain object classes"
+        reason: "JSON Schema union, regex string, typed array, or inline property-refinement validation helpers rather than domain object classes"
       - symbols: [NilValue]
-        reason: "SWE 2.0 singular term in semconnect (d0d06e00bf05a545f30ceea798db1c2b1ee47d4f, swe_iris.go:85); SWE Common 3.0 defines plural nilValues (PropNilValues)"
+        reason: "SWE 2.0 singular term in semconnect (d0d06e00bf05a545f30ceea798db1c2b1ee47d4f, vocabulary/swe/iris.go:69); SWE Common 3.0 defines plural nilValues (PropNilValues)"
     rulings:
       R1: "OGC SWE Common 3.0 (OGC 24-014, edition 3.0.0) from opengeospatial/ogcapi-connected-systems v1.0.0"
       R2: "Phase 0 records provenance and stops for owner sign-off; Phase 1 delivers catalog/swe"

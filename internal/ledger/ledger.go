@@ -164,7 +164,8 @@ type Exclusion struct {
 	Reason  string   `yaml:"reason"`
 }
 
-// PackNamespace is a pack's own namespace record.
+// PackNamespace records a pack's own namespace or a catalog's C360 RDF IRI
+// convention namespace declaration.
 type PackNamespace struct {
 	IRI        string `yaml:"iri"`
 	Authority  string `yaml:"authority"`
