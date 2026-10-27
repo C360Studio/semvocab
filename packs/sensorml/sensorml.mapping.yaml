@@ -1,0 +1,135 @@
+# Binds the SensorML shapes (sensorml.shacl.ttl) to the SensorML pack
+# (sensorml.yaml) for the SHACL compiler (semvocab#26 Phase 2; design D2, D3,
+# and D5 of openspec/changes/sensorml-pack).
+#
+# Each sh:targetClass targets exactly one csapi.* entity type, and each sh:path
+# binds 1-to-1 to its canonical sensorml.* predicate. All five entity types
+# carry birth: [sensorml.process.type] and one reconcile group (representation)
+# covering every remaining predicate constrained by their NodeShape.
+entity_types:
+  - class_iri: "http://www.opengis.net/spec/sensorML/3.0/PhysicalSystem"
+    domain_types: [csapi.system]
+  - class_iri: "http://www.opengis.net/spec/sensorML/3.0/SimpleProcess"
+    domain_types: [csapi.procedure]
+  - class_iri: "http://www.opengis.net/spec/sensorML/3.0/Deployment"
+    domain_types: [csapi.deployment]
+  - class_iri: "http://www.w3.org/ns/sosa/Sample"
+    domain_types: [csapi.samplingfeature]
+  - class_iri: "http://www.opengis.net/spec/sensorML/3.0/DerivedProperty"
+    domain_types: [csapi.property]
+predicates:
+  - path_iri: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    name: sensorml.process.type
+  - path_iri: "http://purl.org/dc/terms/identifier"
+    name: sensorml.process.uid
+  - path_iri: "http://purl.org/dc/terms/title"
+    name: sensorml.process.label
+  - path_iri: "http://purl.org/dc/terms/description"
+    name: sensorml.process.description
+  - path_iri: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+    name: sensorml.process.definition
+  - path_iri: "http://www.w3.org/ns/sosa/hosts"
+    name: sensorml.system.hosts
+  - path_iri: "http://www.w3.org/ns/sosa/isHostedBy"
+    name: sensorml.component.is-hosted-by
+  - path_iri: "http://www.w3.org/ns/ssn/hasSubSystem"
+    name: sensorml.process.has-sub-system
+  - path_iri: "http://www.w3.org/ns/sosa/usedProcedure"
+    name: sensorml.process.used-procedure
+  - path_iri: "http://www.opengis.net/spec/sensorML/3.0/attachedTo"
+    name: sensorml.process.attached-to
+  - path_iri: "http://www.opengis.net/spec/sensorML/3.0/position"
+    name: sensorml.process.position
+  - path_iri: "http://www.w3.org/2004/02/skos/core#notation"
+    name: sensorml.identifier.value
+  - path_iri: "http://www.w3.org/ns/ssn/systems/hasSystemCapability"
+    name: sensorml.capability.value
+  - path_iri: "http://www.w3.org/ns/ssn/hasProperty"
+    name: sensorml.characteristic.value
+  - path_iri: "http://www.w3.org/ns/ssn/deployedSystem"
+    name: sensorml.deployment.deployed-system
+  - path_iri: "http://www.w3.org/2004/02/skos/core#broader"
+    name: sensorml.deployment.parent
+  - path_iri: "http://www.w3.org/ns/sosa/isSampleOf"
+    name: sensorml.sampling.sampled-feature
+  - path_iri: "http://www.w3.org/ns/ssn/implements"
+    name: sensorml.sampling.hosted-procedure
+  - path_iri: "http://www.opengis.net/spec/sensorML/3.0/definition"
+    name: sensorml.property.definition
+  - path_iri: "http://www.opengis.net/spec/sensorML/3.0/baseProperty"
+    name: sensorml.property.base-property
+contracts:
+  - domain_type: csapi.system
+    birth: [sensorml.process.type]
+    groups:
+      - name: representation
+        mode: reconcile
+        predicates:
+          - sensorml.capability.value
+          - sensorml.characteristic.value
+          - sensorml.component.is-hosted-by
+          - sensorml.identifier.value
+          - sensorml.process.attached-to
+          - sensorml.process.definition
+          - sensorml.process.description
+          - sensorml.process.has-sub-system
+          - sensorml.process.label
+          - sensorml.process.position
+          - sensorml.process.uid
+          - sensorml.process.used-procedure
+          - sensorml.system.hosts
+  - domain_type: csapi.procedure
+    birth: [sensorml.process.type]
+    groups:
+      - name: representation
+        mode: reconcile
+        predicates:
+          - sensorml.capability.value
+          - sensorml.characteristic.value
+          - sensorml.identifier.value
+          - sensorml.process.definition
+          - sensorml.process.description
+          - sensorml.process.label
+          - sensorml.process.position
+          - sensorml.process.uid
+  - domain_type: csapi.deployment
+    birth: [sensorml.process.type]
+    groups:
+      - name: representation
+        mode: reconcile
+        predicates:
+          - sensorml.capability.value
+          - sensorml.characteristic.value
+          - sensorml.deployment.deployed-system
+          - sensorml.deployment.parent
+          - sensorml.identifier.value
+          - sensorml.process.definition
+          - sensorml.process.description
+          - sensorml.process.label
+          - sensorml.process.position
+          - sensorml.process.uid
+  - domain_type: csapi.samplingfeature
+    birth: [sensorml.process.type]
+    groups:
+      - name: representation
+        mode: reconcile
+        predicates:
+          - sensorml.component.is-hosted-by
+          - sensorml.process.definition
+          - sensorml.process.description
+          - sensorml.process.label
+          - sensorml.process.position
+          - sensorml.process.uid
+          - sensorml.sampling.hosted-procedure
+          - sensorml.sampling.sampled-feature
+  - domain_type: csapi.property
+    birth: [sensorml.process.type]
+    groups:
+      - name: representation
+        mode: reconcile
+        predicates:
+          - sensorml.process.description
+          - sensorml.process.label
+          - sensorml.process.uid
+          - sensorml.property.base-property
+          - sensorml.property.definition

@@ -1,0 +1,163 @@
+# SensorML 3.0 and SOSA/SSN vocabulary pack for OGC API — Connected Systems
+# Part 1 (OGC 23-001) resources (semvocab#26 Phase 2; owner rulings R1, R3, R4,
+# and R5).
+#
+# Namespace honesty (owner ruling R3 on semvocab#26): swe
+# (http://www.opengis.net/spec/SWE/3.0/) and sml
+# (http://www.opengis.net/spec/sensorML/3.0/) are unregistered C360 RDF
+# conventions over OGC 24-014 and OGC 23-000 Clause 5 specification base URIs;
+# they are not externally certified or dereferenceable OGC OWL ontologies.
+# Working-Draft OGC CS API Part 2 (OGC 23-002) csapi: terms are excluded (R4).
+#
+# Terms reference W3C SOSA/SSN + ssn-system 2017 and OGC SWE Common 3.0 +
+# SensorML 3.0, pinned in docs/admission-ledger.yaml (entry "pack:sensorml").
+# Superclasses list the breadth-first closure of each entity type's declared
+# parents plus the four cross-standard SensorML-to-SOSA/SSN local_assertions (R5).
+name: sensorml
+version: "1.0.0"
+prefixes:
+  - prefix: rdf
+    namespace: "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  - prefix: rdfs
+    namespace: "http://www.w3.org/2000/01/rdf-schema#"
+  # SemEngine pre-registers dc -> http://purl.org/dc/terms/ (design D4).
+  - prefix: dc
+    namespace: "http://purl.org/dc/terms/"
+  - prefix: skos
+    namespace: "http://www.w3.org/2004/02/skos/core#"
+  - prefix: sosa
+    namespace: "http://www.w3.org/ns/sosa/"
+  - prefix: ssn
+    namespace: "http://www.w3.org/ns/ssn/"
+  - prefix: ssn-system
+    namespace: "http://www.w3.org/ns/ssn/systems/"
+  - prefix: swe
+    namespace: "http://www.opengis.net/spec/SWE/3.0/"
+  - prefix: sml
+    namespace: "http://www.opengis.net/spec/sensorML/3.0/"
+entity_types:
+  - domain_type: csapi.system
+    class_iri: "http://www.opengis.net/spec/sensorML/3.0/PhysicalSystem"
+    superclasses:
+      - "http://www.opengis.net/spec/sensorML/3.0/AbstractPhysicalProcess"
+      - "http://www.w3.org/ns/ssn/System"
+      - "http://www.opengis.net/spec/sensorML/3.0/AbstractProcess"
+      - "http://www.opengis.net/spec/sensorML/3.0/DescribedObject"
+    description: "OGC API — Connected Systems Part 1 physical or virtual system"
+  - domain_type: csapi.procedure
+    class_iri: "http://www.opengis.net/spec/sensorML/3.0/SimpleProcess"
+    superclasses:
+      - "http://www.opengis.net/spec/sensorML/3.0/AbstractProcess"
+      - "http://www.w3.org/ns/sosa/Procedure"
+      - "http://www.opengis.net/spec/sensorML/3.0/DescribedObject"
+    description: "OGC API — Connected Systems Part 1 observation, sampling, or actuation procedure"
+  - domain_type: csapi.deployment
+    class_iri: "http://www.opengis.net/spec/sensorML/3.0/Deployment"
+    superclasses:
+      - "http://www.opengis.net/spec/sensorML/3.0/DescribedObject"
+      - "http://www.w3.org/ns/ssn/Deployment"
+    description: "OGC API — Connected Systems Part 1 system deployment"
+  - domain_type: csapi.samplingfeature
+    class_iri: "http://www.w3.org/ns/sosa/Sample"
+    superclasses:
+      - "http://www.w3.org/ns/sosa/FeatureOfInterest"
+      - "http://www.w3.org/ns/sosa/Result"
+    description: "OGC API — Connected Systems Part 1 sampling feature"
+  - domain_type: csapi.property
+    class_iri: "http://www.opengis.net/spec/sensorML/3.0/DerivedProperty"
+    superclasses:
+      - "http://www.opengis.net/spec/SWE/3.0/AbstractSweIdentifiable"
+      - "http://www.w3.org/ns/sosa/ObservableProperty"
+      - "http://www.opengis.net/spec/SWE/3.0/AbstractSWE"
+      - "http://www.w3.org/ns/ssn/Property"
+    description: "OGC API — Connected Systems Part 1 derived observable or controllable property"
+predicates:
+  - name: sensorml.process.type
+    description: "SensorML or SOSA resource type discriminator or class URI"
+    data_type: string
+    iri: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+  - name: sensorml.process.uid
+    description: "Globally unique URI identifier (uniqueId) of the resource"
+    data_type: string
+    iri: "http://purl.org/dc/terms/identifier"
+  - name: sensorml.process.label
+    description: "Human-readable label of the resource"
+    data_type: string
+    iri: "http://purl.org/dc/terms/title"
+  - name: sensorml.process.description
+    description: "Human-readable textual description of the resource"
+    data_type: string
+    iri: "http://purl.org/dc/terms/description"
+  - name: sensorml.process.definition
+    description: "Semantic definition URI classifying the process, deployment, or sampling feature"
+    data_type: string
+    iri: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+  - name: sensorml.system.hosts
+    description: "Hosted subsystem, component, or sampling feature entity"
+    data_type: entity_id
+    iri: "http://www.w3.org/ns/sosa/hosts"
+    inverse_of: sensorml.component.is-hosted-by
+  - name: sensorml.component.is-hosted-by
+    description: "Hosting parent system entity"
+    data_type: entity_id
+    iri: "http://www.w3.org/ns/sosa/isHostedBy"
+    inverse_of: sensorml.system.hosts
+  - name: sensorml.process.has-sub-system
+    description: "Component subsystem entity of a composite system"
+    data_type: entity_id
+    iri: "http://www.w3.org/ns/ssn/hasSubSystem"
+  - name: sensorml.process.used-procedure
+    description: "Procedure URI implemented or used by a system"
+    data_type: string
+    iri: "http://www.w3.org/ns/sosa/usedProcedure"
+  - name: sensorml.process.attached-to
+    description: "External platform or host URI to which a physical process is attached"
+    data_type: string
+    iri: "http://www.opengis.net/spec/sensorML/3.0/attachedTo"
+  - name: sensorml.process.position
+    description: "GeoJSON geometry, SensorML Pose, or SWE position document"
+    data_type: json
+    iri: "http://www.opengis.net/spec/sensorML/3.0/position"
+  - name: sensorml.identifier.value
+    description: "Additional discovery identifier or notation value"
+    iri: "http://www.w3.org/2004/02/skos/core#notation"
+  - name: sensorml.capability.value
+    description: "System capability value, projected via ssn-system:hasSystemCapability to sml:CapabilityList and swe:value"
+    iri: "http://www.w3.org/ns/ssn/systems/hasSystemCapability"
+    projection:
+      steps:
+        - predicate_iri: "http://www.w3.org/ns/ssn/systems/hasSystemCapability"
+          node_class_iri: "http://www.opengis.net/spec/sensorML/3.0/CapabilityList"
+          value_predicate_iri: "http://www.opengis.net/spec/SWE/3.0/value"
+  - name: sensorml.characteristic.value
+    description: "System characteristic value, projected via ssn:hasProperty to sml:CharacteristicList and swe:value"
+    iri: "http://www.w3.org/ns/ssn/hasProperty"
+    projection:
+      steps:
+        - predicate_iri: "http://www.w3.org/ns/ssn/hasProperty"
+          node_class_iri: "http://www.opengis.net/spec/sensorML/3.0/CharacteristicList"
+          value_predicate_iri: "http://www.opengis.net/spec/SWE/3.0/value"
+  - name: sensorml.deployment.deployed-system
+    description: "System URI deployed during a deployment"
+    data_type: string
+    iri: "http://www.w3.org/ns/ssn/deployedSystem"
+  - name: sensorml.deployment.parent
+    description: "Parent deployment entity containing a sub-deployment"
+    data_type: entity_id
+    iri: "http://www.w3.org/2004/02/skos/core#broader"
+  - name: sensorml.sampling.sampled-feature
+    description: "Domain feature of interest URI sampled by a sampling feature"
+    data_type: string
+    iri: "http://www.w3.org/ns/sosa/isSampleOf"
+  - name: sensorml.sampling.hosted-procedure
+    description: "Observation or sampling procedure URI hosted on a sampling feature"
+    data_type: string
+    iri: "http://www.w3.org/ns/ssn/implements"
+  - name: sensorml.property.definition
+    description: "Semantic property definition URI of a derived property"
+    data_type: string
+    iri: "http://www.opengis.net/spec/sensorML/3.0/definition"
+  - name: sensorml.property.base-property
+    description: "Base observable or actuatable property URI from which a derived property is derived"
+    data_type: string
+    iri: "http://www.opengis.net/spec/sensorML/3.0/baseProperty"

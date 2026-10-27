@@ -1,0 +1,309 @@
+# SHACL shapes for the SensorML 3.0 and SOSA/SSN vocabulary pack (semvocab#26
+# Phase 2). Compiled ahead of time within SemVocab's bounded SHACL profile:
+# sh:targetClass, sh:property, sh:path (single predicate IRI), sh:datatype,
+# sh:minCount, sh:maxCount, and XSD-subset sh:pattern. No sh:rule.
+#
+# Shapes are open (sh:closed omitted) so SemEngine framework predicates
+# (entity.indexing.profile, geo.location.*) do not trigger closed-shape
+# violations. IRI-capable string paths omit sh:datatype so both absolute URI
+# terms and non-whitespace tokens validate while retaining data_type: string
+# from sensorml.yaml (design D5).
+#
+# Namespace honesty (owner ruling R3 on semvocab#26):
+# http://www.opengis.net/spec/SWE/3.0/ (swe) and
+# http://www.opengis.net/spec/sensorML/3.0/ (sml) are unregistered C360 RDF
+# conventions over OGC 24-014 and OGC 23-000 Clause 5 specification base URIs,
+# not externally certified or dereferenceable OGC OWL ontologies.
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix ssn: <http://www.w3.org/ns/ssn/> .
+@prefix ssn-system: <http://www.w3.org/ns/ssn/systems/> .
+@prefix swe: <http://www.opengis.net/spec/SWE/3.0/> .
+@prefix sml: <http://www.opengis.net/spec/sensorML/3.0/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sml:PhysicalSystemShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass sml:PhysicalSystem ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:title ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path dc:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path rdfs:isDefinedBy ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sosa:hosts ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path sosa:isHostedBy ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn:hasSubSystem ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path sosa:usedProcedure ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sml:attachedTo ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sml:position ;
+        sh:datatype rdf:JSON ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn-system:hasSystemCapability ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn:hasProperty ;
+        sh:minCount 0
+    ] .
+
+# SimpleProcessShape prohibits sml:position via sh:maxCount 0 (OGC 23-001
+# /req/procedure/location).
+sml:SimpleProcessShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass sml:SimpleProcess ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:title ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path dc:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path rdfs:isDefinedBy ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sml:position ;
+        sh:maxCount 0
+    ] ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn-system:hasSystemCapability ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn:hasProperty ;
+        sh:minCount 0
+    ] .
+
+sml:DeploymentShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass sml:Deployment ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:title ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path dc:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path rdfs:isDefinedBy ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sml:position ;
+        sh:datatype rdf:JSON ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn-system:hasSystemCapability ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn:hasProperty ;
+        sh:minCount 0
+    ] ;
+    sh:property [
+        sh:path ssn:deployedSystem ;
+        sh:minCount 0 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path skos:broader ;
+        sh:maxCount 1
+    ] .
+
+# OGC CS API Part 1 samplingFeature.json requires uid and sampledFeature@link;
+# label (dc:title) is optional (sh:maxCount 1).
+sml:SamplingFeatureShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass sosa:Sample ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:identifier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:title ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path dc:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path rdfs:isDefinedBy ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sml:position ;
+        sh:datatype rdf:JSON ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path sosa:isHostedBy ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path sosa:isSampleOf ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path ssn:implements ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] .
+
+# SensorML 3.0 DerivedProperty.json requires label and baseProperty; uniqueId
+# (dc:identifier) is optional (sh:maxCount 1).
+sml:DerivedPropertyShape
+    rdf:type sh:NodeShape ;
+    sh:targetClass sml:DerivedProperty ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:identifier ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path dc:title ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path dc:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:pattern "(.|[\\n\\r])+"
+    ] ;
+    sh:property [
+        sh:path sml:definition ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
+        sh:path sml:baseProperty ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] .

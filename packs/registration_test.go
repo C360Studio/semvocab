@@ -5,8 +5,9 @@ package packs_test
 // therefore asserts the registry state it causes rather than restoring it.
 // Test-local entries use a key unique to the invocation (uniqueKey), so a
 // repeated run never sees an earlier run's entries; the embedded bfo-cco-core,
-// swe-core, and diekm packs are idempotent to re-register, and no test leaves a
-// DIEKM entry different from the pack once it finishes.
+// swe-core, diekm, and sensorml packs are idempotent to re-register, and no
+// test leaves a DIEKM or SensorML entry different from its pack once it
+// finishes.
 
 import (
 	"bytes"
@@ -32,6 +33,7 @@ import (
 	"github.com/c360studio/semvocab/internal/turtle"
 	"github.com/c360studio/semvocab/packs"
 	"github.com/c360studio/semvocab/packs/diekm"
+	smlpack "github.com/c360studio/semvocab/packs/sensorml"
 )
 
 const (
@@ -113,6 +115,18 @@ func diekmSpec(t *testing.T) vocabulary.PackSpec {
 	}
 	if spec.EntityTypes[0].DomainType != "intel.platform" {
 		t.Fatalf("seed expects intel.platform first, got %s", spec.EntityTypes[0].DomainType)
+	}
+	return spec
+}
+
+func sensormlSpec(t *testing.T) vocabulary.PackSpec {
+	t.Helper()
+	spec, err := smlpack.Spec()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if spec.EntityTypes[0].DomainType != "csapi.system" {
+		t.Fatalf("seed expects csapi.system first, got %s", spec.EntityTypes[0].DomainType)
 	}
 	return spec
 }
@@ -269,6 +283,7 @@ func TestPackRepeatedRegistration(t *testing.T) {
 		func() error { return packs.RegisterBFOCCOCore() },
 		func() error { return packs.RegisterSWECore() },
 		func() error { return diekm.Register() },
+		func() error { return smlpack.Register() },
 		func() error { return registerWithPrefixes(localPack(key, testNS+key, cco.Vehicle)) },
 	} {
 		if err := register(); err != nil {
@@ -283,6 +298,55 @@ func TestPackRepeatedRegistration(t *testing.T) {
 	if got := vocabulary.GetEntityTypeMetadata("semvocabtest." + key); got == nil ||
 		!slices.Equal(got.Superclasses, []string{cco.Vehicle}) {
 		t.Errorf("repeated registration changed superclasses: %+v", got)
+	}
+}
+
+// TestSWECoreAndSensorMLCoexist verifies the catalogs-and-packs scenario
+// "swe-core and sensorml coexist without prefix conflict" across both
+// registration orders.
+func TestSWECoreAndSensorMLCoexist(t *testing.T) {
+	if err := packs.RegisterSWECore(); err != nil {
+		t.Fatalf("RegisterSWECore first: %v", err)
+	}
+	if err := smlpack.Register(); err != nil {
+		t.Fatalf("sensorml.Register after RegisterSWECore: %v", err)
+	}
+	afterForward := observe(t)
+
+	if err := smlpack.Register(); err != nil {
+		t.Fatalf("sensorml.Register first: %v", err)
+	}
+	if err := packs.RegisterSWECore(); err != nil {
+		t.Fatalf("RegisterSWECore after sensorml.Register: %v", err)
+	}
+	assertUnchanged(t, afterForward, observe(t))
+
+	triples := []message.Triple{
+		{Subject: platformID, Predicate: "sensorml.process.label", Object: "Station 1"},
+		{Subject: platformID, Predicate: "sensorml.process.position", Object: `{"type":"Point","coordinates":[1,2]}`},
+		{Subject: platformID, Predicate: "sensorml.capability.value", Object: 5.0},
+		{Subject: platformID, Predicate: swe.PropValue, Object: 9.5},
+	}
+	turtleOut, err := export.SerializeToString(triples, export.Turtle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{
+		"@prefix dc: <http://purl.org/dc/terms/> .",
+		"@prefix ssn-system: <" + ssn.SystemsNamespace + "> .",
+		"@prefix swe: <" + swe.Namespace + "> .",
+		"@prefix sml: <" + sensorml.Namespace + "> .",
+		"dc:title",
+		"sml:position",
+		"ssn-system:hasSystemCapability",
+		"swe:value",
+	} {
+		if !strings.Contains(turtleOut, s) {
+			t.Errorf("Turtle output lacks %q:\n%s", s, turtleOut)
+		}
+	}
+	if strings.Contains(turtleOut, "dcterms:") || strings.Contains(turtleOut, "ssn:systems/") {
+		t.Errorf("Turtle output contains ambiguous prefix:\n%s", turtleOut)
 	}
 }
 
@@ -403,9 +467,17 @@ func TestPackAtomicFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The DIEKM cases change intel.platform's description in a pack that then
-	// fails; with DIEKM registered first, a leak would show as a changed entry.
+	sensormlYAML, err := os.ReadFile("sensorml/sensorml.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The DIEKM and SensorML cases change an entity type's description in a pack
+	// that then fails; with both packs registered first, a leak would show as a
+	// changed entry.
 	if err := diekm.Register(); err != nil {
+		t.Fatal(err)
+	}
+	if err := smlpack.Register(); err != nil {
 		t.Fatal(err)
 	}
 	tests := []struct {
@@ -439,6 +511,40 @@ func TestPackAtomicFailure(t *testing.T) {
 			steps[len(steps)-1].ValuePredicateIRI = ""
 			return registerWithPrefixes(spec)
 		}, "requires value_predicate_iri"},
+		{"sensorml: unknown YAML field", func(string) error {
+			_, err := vocabulary.LoadPackYAML(bytes.NewReader(append(sensormlYAML, []byte("unexpected_field: 1\n")...)))
+			return err
+		}, "unexpected_field"},
+		{"sensorml: invalid predicate after changed entries", func(key string) error {
+			spec := sensormlSpec(t)
+			spec.EntityTypes[0].Description = "leaked " + key
+			spec.Prefixes = append(spec.Prefixes, vocabulary.PrefixSpec{Prefix: "semvocabatomic", Namespace: atomicNS})
+			spec.Predicates = append(spec.Predicates, vocabulary.PredicateSpec{Name: "sensorml.capability.bad_name"})
+			return registerWithPrefixes(spec)
+		}, "segment_character"},
+		{"sensorml: projection without a terminal value predicate", func(key string) error {
+			spec := sensormlSpec(t)
+			spec.EntityTypes[0].Description = "leaked " + key
+			idx := slices.IndexFunc(spec.Predicates, func(p vocabulary.PredicateSpec) bool {
+				return p.Name == "sensorml.capability.value"
+			})
+			spec.Predicates[idx].Projection.Steps[0].ValuePredicateIRI = ""
+			return registerWithPrefixes(spec)
+		}, "requires value_predicate_iri"},
+		{"sensorml: conflicting sml prefix rebinding", func(key string) error {
+			spec := sensormlSpec(t)
+			spec.EntityTypes[0].Description = "leaked " + key
+			idx := slices.IndexFunc(spec.Prefixes, func(p vocabulary.PrefixSpec) bool { return p.Prefix == "sml" })
+			spec.Prefixes[idx].Namespace = "http://example.org/not-sml/"
+			return registerWithPrefixes(spec)
+		}, `prefix "sml" already bound`},
+		{"sensorml: conflicting dc prefix rebinding", func(key string) error {
+			spec := sensormlSpec(t)
+			spec.EntityTypes[0].Description = "leaked " + key
+			idx := slices.IndexFunc(spec.Prefixes, func(p vocabulary.PrefixSpec) bool { return p.Prefix == "dc" })
+			spec.Prefixes[idx].Namespace = "http://purl.org/dc/elements/1.1/"
+			return registerWithPrefixes(spec)
+		}, `prefix "dc" already bound`},
 		{"unknown JSON field", func(string) error {
 			_, err := vocabulary.LoadPackJSON(strings.NewReader(`{"name": "x", "unexpected_field": 1}`))
 			return err
