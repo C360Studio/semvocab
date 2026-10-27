@@ -108,18 +108,27 @@ func parityProblems(in inputs) []string {
 			add("%s (%s) has rdfs:label %q in sosa.ttl, ledger records %q", name, iri, labels, label)
 		}
 	}
+	admittedIRIs := make(map[string]bool, 36)
 	for name, v := range in.src.AdmittedClasses {
 		check(name, v[0], v[1], oracle.OWLClass)
 		iri := in.namespace + v[0]
+		admittedIRIs[iri] = true
 		if supers := in.release.DirectSuperclasses(iri); len(supers) != 0 {
 			add("sosa.ttl asserts unexpected rdfs:subClassOf on %s: %v", iri, supers)
 		}
 	}
 	for name, v := range in.src.AdmittedObjectProperties {
 		check(name, v[0], v[1], oracle.OWLObjectProp)
+		admittedIRIs[in.namespace+v[0]] = true
 	}
 	for name, v := range in.src.AdmittedDatatypeProperties {
 		check(name, v[0], v[1], oracle.OWLDataProp)
+		admittedIRIs[in.namespace+v[0]] = true
+	}
+	for _, s := range in.release.SubjectsWithPrefix(in.namespace) {
+		if !admittedIRIs[s] {
+			add("unadmitted sosa.ttl subject %s", s)
+		}
 	}
 	return bad
 }
@@ -164,6 +173,9 @@ func TestCatalogParitySensitivity(t *testing.T) {
 			in.pkg.Exported = append(in.pkg.Exported, "Parents")
 			sort.Strings(in.pkg.Exported)
 		}, "hierarchy function Parents exported"},
+		{"unadmitted sosa.ttl subject", func(in *inputs) {
+			delete(in.src.AdmittedClasses, "Sensor")
+		}, "unadmitted sosa.ttl subject http://www.w3.org/ns/sosa/Sensor"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

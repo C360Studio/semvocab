@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/c360studio/semvocab/internal/ledger"
@@ -148,6 +149,20 @@ func (g *Graph) objects(s, p string) []turtle.Term {
 			out = append(out, t.O)
 		}
 	}
+	return out
+}
+
+// SubjectsWithPrefix returns every subject IRI in g that starts with prefix,
+// excluding prefix itself (such as an owl:Ontology namespace IRI), in
+// lexicographic order.
+func (g *Graph) SubjectsWithPrefix(prefix string) []string {
+	var out []string
+	for s := range g.bySubject {
+		if strings.HasPrefix(s, prefix) && s != prefix {
+			out = append(out, s)
+		}
+	}
+	slices.Sort(out)
 	return out
 }
 

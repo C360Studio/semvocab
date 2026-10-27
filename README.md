@@ -182,7 +182,7 @@ entity against the shapes.
 
 MIT, see [LICENSE](LICENSE). The upstream terms keep their own licenses: BFO 2020 (CC BY 4.0), CCO v2.2 (BSD 3-Clause),
 W3C SOSA and SSN 2017 (W3C 2015 Software and Document License and OGC Software License), and OGC SWE Common 3.0 and
-SensorML 3.0 (OGC Software License; Apache-2.0 on the OGC 3.0 JSON Schema repository). Notices are in the package
+SensorML 3.0 (OGC Software License). Notices are in the package
 comments of `catalog/bfo`, `catalog/cco`, `catalog/sosa`, `catalog/ssn`, `catalog/swe`, and `catalog/sensorml`, and in
 `internal/oracle/testdata/*/NOTICE`.
 
