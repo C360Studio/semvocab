@@ -41,6 +41,5 @@ the catalogs, `swe-core` pack, vendored test oracles, and adopter documentation 
 
 ## 5. Review and archive
 
-- [ ] 5.1 `openspec archive swe-sensorml-3-provenance` moves the spec deltas to `openspec/specs/` as the last content
+- [x] 5.1 `openspec archive swe-sensorml-3-provenance` moves the spec deltas to `openspec/specs/` as the last content
       commit after cross-agent review
-      Hold: cross-agent review of record on PR #27 before archive
