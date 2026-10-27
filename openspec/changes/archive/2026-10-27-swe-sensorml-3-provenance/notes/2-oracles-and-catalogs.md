@@ -7,14 +7,14 @@
   single JSON type. Decoding into `schemaNode` avoids untyped map walks and naturally prevents `Event.json:48` (which
   declares a domain property literally named `"properties"`) from having its nested schema attributes (`description`,
   `type`, `items`) mistaken for domain property names.
-- **Implicit object classes and pure `$ref` aliases in OGC 3.0 schemas.** Four classes omit top-level `"type": "object"`
+- **Implicit object classes and pure `$ref` aliases in OGC 3.0 schemas.** Six classes omit top-level `"type": "object"`
   while declaring `"properties"` or inheriting object type via `allOf`: `DataArray.json`, `Deployment.json`, and
   `Pose.json#/$defs/{PositionGeo,PositionXYZ,AnglesYPR,Quaternion}`. Sub-branches in `Pose.json` (`GeoPose`,
   `RelativePose`) and `AggregateProcess.json` (`Link`) carry `"properties": {"type": {"const": "<Class>"}}`. Meanwhile,
   `sweCommonDefs.json` and `commonDefs.json` expose pure `$ref` aliases (`Ref != ""` with no `Type`, `Properties`,
   `AllOf`, `OneOf`, or `AnyOf`). `isPureRefAlias` excludes those wrapper aliases from standalone object class matching
   while `resolveRef` follows relative `$ref` chains across `common/`, `swecommon/`, and `sensorml/` to the canonical
-  target (for example `swecommon/schemas/json/sweCommonDefs.json#/$defs/AbstractSWEIdentifiable` ->
+  target (for example `sensorml/schemas/json/sweCommonDefs.json#/$defs/AbstractSWEIdentifiable` ->
   `swecommon/schemas/json/AbstractSweIdentifiable.json`).
 - **Per-class location/parent checks and domain-wide property-set comparison (`internal/oracle/schema.go`).**
   `HasObjectClass`, `DirectParent`, and `Closure` verify each ledger-admitted class at its recorded
