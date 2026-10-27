@@ -42,8 +42,36 @@ type Pins struct {
 		License  string   `yaml:"license"`
 		GoMod    string   `yaml:"go_mod"`
 	} `yaml:"semengine"`
-	Ontologies map[string]Ontology   `yaml:"ontologies"`
-	Fixtures   map[string]FixtureSet `yaml:"fixtures"`
+	Ontologies map[string]Ontology     `yaml:"ontologies"`
+	Schemas    map[string]SchemaBundle `yaml:"schemas"`
+	Fixtures   map[string]FixtureSet   `yaml:"fixtures"`
+}
+
+// SchemaBundle is one pinned external schema bundle (such as OGC Draft 2020-12
+// JSON Schemas), with per-file sha256 digests.
+type SchemaBundle struct {
+	Repository    string        `yaml:"repository"`
+	Tag           string        `yaml:"tag"`
+	Commit        string        `yaml:"commit"`
+	Standard      string        `yaml:"standard"`
+	Edition       string        `yaml:"edition"`
+	SpecBaseURI   string        `yaml:"spec_base_uri"`
+	License       string        `yaml:"license"`
+	VendoredAt    string        `yaml:"vendored_at"`
+	ChosenBecause string        `yaml:"chosen_because"`
+	Note          string        `yaml:"note"`
+	Files         []FixtureFile `yaml:"files"`
+}
+
+// File returns the pinned schema file at path, by its path in the source
+// repository.
+func (b SchemaBundle) File(path string) (FixtureFile, bool) {
+	for _, f := range b.Files {
+		if f.Path == path {
+			return f, true
+		}
+	}
+	return FixtureFile{}, false
 }
 
 // FixtureSet is one pinned set of vendored external test fixtures: files
@@ -82,6 +110,7 @@ type Ontology struct {
 	File          string `yaml:"file"`
 	SHA256        string `yaml:"sha256"`
 	VersionIRI    string `yaml:"version_iri"`
+	Created       string `yaml:"created"`
 	Namespace     string `yaml:"namespace"`
 	DependsOn     string `yaml:"depends_on"`
 	License       string `yaml:"license"`
@@ -166,6 +195,51 @@ type CCOSource struct {
 	Hierarchy             string               `yaml:"hierarchy"`
 }
 
+// SOSASource is the source block of the sosa entry. Admitted maps take a Go
+// name to [IRI local name, rdfs:label].
+type SOSASource struct {
+	Ontology                   string               `yaml:"ontology"`
+	GoNameMapping              string               `yaml:"go_name_mapping"`
+	AdmittedClasses            map[string][2]string `yaml:"admitted_classes"`
+	AdmittedObjectProperties   map[string][2]string `yaml:"admitted_object_properties"`
+	AdmittedDatatypeProperties map[string][2]string `yaml:"admitted_datatype_properties"`
+	Hierarchy                  string               `yaml:"hierarchy"`
+}
+
+// SSNSource is the source block of the ssn entry (covering both ssn-2017 and
+// ssn-system-2017). Admitted maps take a Go name to [IRI local name, rdfs:label].
+type SSNSource struct {
+	Ontologies                     []string             `yaml:"ontologies"`
+	GoNameMapping                  string               `yaml:"go_name_mapping"`
+	AdmittedClasses                map[string][2]string `yaml:"admitted_classes"`
+	AdmittedObjectProperties       map[string][2]string `yaml:"admitted_object_properties"`
+	AdmittedSystemClasses          map[string][2]string `yaml:"admitted_system_classes"`
+	AdmittedSystemObjectProperties map[string][2]string `yaml:"admitted_system_object_properties"`
+	Hierarchy                      string               `yaml:"hierarchy"`
+}
+
+// SWESource is the source block of the swe entry. AdmittedClasses maps a Go
+// name to [JSON Schema local name, schema location, direct parent];
+// AdmittedProperties maps a Prop<PascalCase> Go name to its JSON property key.
+type SWESource struct {
+	SchemaBundle       string               `yaml:"schema_bundle"`
+	GoNameMapping      string               `yaml:"go_name_mapping"`
+	AdmittedClasses    map[string][3]string `yaml:"admitted_classes"`
+	AdmittedProperties map[string]string    `yaml:"admitted_properties"`
+	Hierarchy          string               `yaml:"hierarchy"`
+}
+
+// SensorMLSource is the source block of the sensorml entry. AdmittedClasses
+// maps a Go name to [JSON Schema local name, schema location, direct parent];
+// AdmittedProperties maps a Prop<PascalCase> Go name to its JSON property key.
+type SensorMLSource struct {
+	SchemaBundle       string               `yaml:"schema_bundle"`
+	GoNameMapping      string               `yaml:"go_name_mapping"`
+	AdmittedClasses    map[string][3]string `yaml:"admitted_classes"`
+	AdmittedProperties map[string]string    `yaml:"admitted_properties"`
+	Hierarchy          string               `yaml:"hierarchy"`
+}
+
 // Path is the absolute path of docs/admission-ledger.yaml in this checkout.
 func Path() string {
 	_, file, _, _ := runtime.Caller(0)
@@ -214,10 +288,37 @@ func (l Ledger) CCO() (CCOSource, error) {
 	return s, l.decodeSource("cco", &s)
 }
 
+// SOSA decodes the sosa entry's source block.
+func (l Ledger) SOSA() (SOSASource, error) {
+	var s SOSASource
+	return s, l.decodeSource("sosa", &s)
+}
+
+// SSN decodes the ssn entry's source block.
+func (l Ledger) SSN() (SSNSource, error) {
+	var s SSNSource
+	return s, l.decodeSource("ssn", &s)
+}
+
+// SWE decodes the swe entry's source block.
+func (l Ledger) SWE() (SWESource, error) {
+	var s SWESource
+	return s, l.decodeSource("swe", &s)
+}
+
+// SensorML decodes the sensorml entry's source block.
+func (l Ledger) SensorML() (SensorMLSource, error) {
+	var s SensorMLSource
+	return s, l.decodeSource("sensorml", &s)
+}
+
 func (l Ledger) decodeSource(name string, out any) error {
 	e, err := l.Entry(name)
 	if err != nil {
 		return err
+	}
+	if e.Source.IsZero() {
+		return fmt.Errorf("ledger %s source: missing source block", name)
 	}
 	// Re-encode the node so the strict decoder applies to the source block too.
 	raw, err := yaml.Marshal(&e.Source)

@@ -45,7 +45,7 @@ Inventory read:
 
 SWE Common 3.0 and SensorML 3.0 are Draft 2020-12 JSON Schema encoding bundles, not OWL ontologies. Recording them
 under `pins.schemas` (`SchemaBundle`) rather than `pins.ontologies` preserves the distinction in structure as well as
-prose. `swe-3.0` pins all 22 `swecommon/schemas/json/*.json` files plus `LICENSE`; `sensorml-3.0` pins all 20
+prose. `swe-3.0` pins all 23 `swecommon/schemas/json/*.json` files plus `LICENSE`; `sensorml-3.0` pins all 20
 `sensorml/schemas/json/*.json` files plus `common/{link,timeInstant,timeInstantOrNow,timePeriod}.json` (referenced via
 `../../../common/` from `sensorml/schemas/json/commonDefs.json`) plus `LICENSE`.
 
