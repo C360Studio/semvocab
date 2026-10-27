@@ -4,9 +4,9 @@ package packs_test
 // task test:repeat runs these tests five times in one process. Each test
 // therefore asserts the registry state it causes rather than restoring it.
 // Test-local entries use a key unique to the invocation (uniqueKey), so a
-// repeated run never sees an earlier run's entries; the embedded bfo-cco-core
-// and diekm packs are idempotent to re-register, and no test leaves a DIEKM
-// entry different from the pack once it finishes.
+// repeated run never sees an earlier run's entries; the embedded bfo-cco-core,
+// swe-core, and diekm packs are idempotent to re-register, and no test leaves a
+// DIEKM entry different from the pack once it finishes.
 
 import (
 	"bytes"
@@ -25,6 +25,10 @@ import (
 	"github.com/c360studio/semengine/vocabulary/export"
 	"github.com/c360studio/semvocab/catalog/bfo"
 	"github.com/c360studio/semvocab/catalog/cco"
+	"github.com/c360studio/semvocab/catalog/sensorml"
+	"github.com/c360studio/semvocab/catalog/sosa"
+	"github.com/c360studio/semvocab/catalog/ssn"
+	"github.com/c360studio/semvocab/catalog/swe"
 	"github.com/c360studio/semvocab/internal/turtle"
 	"github.com/c360studio/semvocab/packs"
 	"github.com/c360studio/semvocab/packs/diekm"
@@ -67,7 +71,17 @@ func observe(t *testing.T, namespaces ...string) registryState {
 		s.entityTypes[k] = *vocabulary.GetEntityTypeMetadata(k)
 	}
 	var probe []message.Triple
-	for _, ns := range append([]string{bfo.Namespace, cco.Namespace, diekmNS}, namespaces...) {
+	defaultProbeNS := []string{
+		bfo.Namespace,
+		cco.Namespace,
+		diekmNS,
+		sosa.Namespace,
+		ssn.Namespace,
+		ssn.SystemsNamespace,
+		swe.Namespace,
+		sensorml.Namespace,
+	}
+	for _, ns := range append(defaultProbeNS, namespaces...) {
 		probe = append(probe, message.Triple{Subject: platformID, Predicate: ns + "probe", Object: "x"})
 	}
 	out, err := export.SerializeToString(probe, export.Turtle)
@@ -144,6 +158,93 @@ func TestBFOCCOCorePackLoadsAndRegisters(t *testing.T) {
 	}
 }
 
+func TestSWECorePackLoadsAndRegisters(t *testing.T) {
+	data, err := os.ReadFile("swe-core.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec, err := vocabulary.LoadPackYAML(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if embedded, err := packs.SWECoreSpec(); err != nil || !reflect.DeepEqual(embedded, spec) {
+		t.Fatalf("SWECoreSpec() = %+v, %v; want the committed YAML %+v", embedded, err, spec)
+	}
+	want := []vocabulary.PrefixSpec{
+		{Prefix: "sosa", Namespace: sosa.Namespace},
+		{Prefix: "ssn", Namespace: ssn.Namespace},
+		{Prefix: "ssn-system", Namespace: ssn.SystemsNamespace},
+		{Prefix: "swe", Namespace: swe.Namespace},
+		{Prefix: "sml", Namespace: sensorml.Namespace},
+	}
+	if !slices.Equal(spec.Prefixes, want) || len(spec.Predicates)+len(spec.EntityTypes) != 0 {
+		t.Fatalf("swe-core = %+v, want only prefixes %v", spec, want)
+	}
+	if err := registerWithPrefixes(spec); err != nil {
+		t.Fatal(err)
+	}
+	if err := packs.RegisterSWECore(); err != nil {
+		t.Fatal(err)
+	}
+	triples := []message.Triple{
+		{Subject: platformID, Predicate: sosa.Observes, Object: sosa.ObservableProperty},
+		{Subject: platformID, Predicate: ssn.HasSubSystem, Object: observeID, Datatype: message.EntityReferenceDatatype},
+		{Subject: platformID, Predicate: ssn.HasSystemCapability, Object: ssn.Accuracy},
+		{Subject: platformID, Predicate: swe.PropUOM, Object: swe.Quantity},
+		{Subject: platformID, Predicate: sensorml.PropLink, Object: sensorml.PhysicalSystem},
+	}
+	turtleOut, err := export.SerializeToString(triples, export.Turtle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{
+		"@prefix sosa: <" + sosa.Namespace + "> .",
+		"@prefix ssn: <" + ssn.Namespace + "> .",
+		"@prefix ssn-system: <" + ssn.SystemsNamespace + "> .",
+		"@prefix swe: <" + swe.Namespace + "> .",
+		"@prefix sml: <" + sensorml.Namespace + "> .",
+		"sosa:observes sosa:ObservableProperty",
+		"ssn:hasSubSystem",
+		"ssn-system:hasSystemCapability ssn-system:Accuracy",
+		"swe:uom swe:Quantity",
+		"sml:link sml:PhysicalSystem",
+	} {
+		if !strings.Contains(turtleOut, s) {
+			t.Errorf("Turtle output lacks %q:\n%s", s, turtleOut)
+		}
+	}
+	if strings.Contains(turtleOut, "ssn:systems/") || strings.Contains(turtleOut, "<"+ssn.SystemsNamespace+"Accuracy>") {
+		t.Errorf("ssn-system IRI was not compacted under ssn-system:\n%s", turtleOut)
+	}
+
+	jsonldOut, err := export.SerializeToString(triples, export.JSONLD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{
+		`"sosa": "` + sosa.Namespace + `"`,
+		`"ssn": "` + ssn.Namespace + `"`,
+		`"ssn-system": "` + ssn.SystemsNamespace + `"`,
+		`"swe": "` + swe.Namespace + `"`,
+		`"sml": "` + sensorml.Namespace + `"`,
+		`"sosa:observes"`,
+		`"ssn:hasSubSystem"`,
+		`"ssn-system:hasSystemCapability"`,
+		`"swe:uom"`,
+		`"sml:link"`,
+	} {
+		if !strings.Contains(jsonldOut, s) {
+			t.Errorf("JSON-LD output lacks %q:\n%s", s, jsonldOut)
+		}
+	}
+	if strings.Contains(jsonldOut, `"ssn:systems/`) {
+		t.Errorf("JSON-LD compacted ssn-system predicate under ssn:\n%s", jsonldOut)
+	}
+	if got, wantGraph := graphFromJSONLD(t, jsonldOut), graphFromTurtle(t, turtleOut); !slices.Equal(got, wantGraph) {
+		t.Errorf("JSON-LD graph differs from Turtle graph:\n got: %q\nwant: %q", got, wantGraph)
+	}
+}
+
 // localPack is a test-only pack with one prefix, entity type, and predicate,
 // all under keys unique to the call.
 func localPack(key, classIRI string, superclasses ...string) vocabulary.PackSpec {
@@ -166,6 +267,7 @@ func TestPackRepeatedRegistration(t *testing.T) {
 	key := uniqueKey("repeat")
 	for _, register := range []func() error{
 		func() error { return packs.RegisterBFOCCOCore() },
+		func() error { return packs.RegisterSWECore() },
 		func() error { return diekm.Register() },
 		func() error { return registerWithPrefixes(localPack(key, testNS+key, cco.Vehicle)) },
 	} {
@@ -192,6 +294,9 @@ func TestPackConflictingRegistration(t *testing.T) {
 	if err := packs.RegisterBFOCCOCore(); err != nil {
 		t.Fatal(err)
 	}
+	if err := packs.RegisterSWECore(); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("prefix rebinding fails atomically", func(t *testing.T) {
 		key := uniqueKey("rebind")
@@ -203,6 +308,18 @@ func TestPackConflictingRegistration(t *testing.T) {
 			t.Fatalf("RegisterPack = %v, want the obo rebinding refused", err)
 		}
 		assertUnchanged(t, before, observe(t, testNS, "http://example.org/not-obo/"))
+	})
+
+	t.Run("swe-core prefix rebinding fails atomically", func(t *testing.T) {
+		key := uniqueKey("rebindswe")
+		pack := localPack(key, testNS+key)
+		pack.Prefixes = append(pack.Prefixes, vocabulary.PrefixSpec{Prefix: "ssn-system", Namespace: "http://example.org/not-ssn-system/"})
+		before := observe(t, testNS, "http://example.org/not-ssn-system/")
+		err := registerWithPrefixes(pack)
+		if err == nil || !strings.Contains(err.Error(), `prefix "ssn-system" already bound`) {
+			t.Fatalf("RegisterPack = %v, want the ssn-system rebinding refused", err)
+		}
+		assertUnchanged(t, before, observe(t, testNS, "http://example.org/not-ssn-system/"))
 	})
 
 	t.Run("diekm prefix rebinding fails atomically", func(t *testing.T) {
@@ -278,6 +395,10 @@ func TestPackAtomicFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sweCoreYAML, err := os.ReadFile("swe-core.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
 	diekmYAML, err := os.ReadFile("diekm/diekm.yaml")
 	if err != nil {
 		t.Fatal(err)
@@ -294,6 +415,10 @@ func TestPackAtomicFailure(t *testing.T) {
 	}{
 		{"unknown YAML field", func(string) error {
 			_, err := vocabulary.LoadPackYAML(bytes.NewReader(append(yamlData, []byte("unexpected_field: 1\n")...)))
+			return err
+		}, "unexpected_field"},
+		{"swe-core: unknown YAML field", func(string) error {
+			_, err := vocabulary.LoadPackYAML(bytes.NewReader(append(sweCoreYAML, []byte("unexpected_field: 1\n")...)))
 			return err
 		}, "unexpected_field"},
 		{"diekm: unknown YAML field", func(string) error {

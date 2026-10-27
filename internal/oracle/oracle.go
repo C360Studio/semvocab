@@ -1,11 +1,11 @@
-// Package oracle loads the vendored ontology release files under testdata/
-// (BFO 2020 core and the CCO v2.2 merged file) for tests. Each file's sha256
-// is checked against docs/admission-ledger.yaml before it is parsed, so a test
-// never trusts a file the ledger does not pin. License notices sit beside each
-// file (testdata/*/NOTICE, testdata/cco-2.2/LICENSE). The vendored W3C SHACL
-// fixtures are read through ReadFixture, which checks each file's sha256
-// against the ledger's pins.fixtures before returning it. Production code must
-// not import this package.
+// Package oracle loads the vendored ontology release files and schema bundles
+// under testdata/ (BFO 2020 core, CCO v2.2 merged, W3C 2017 SOSA/SSN/SSN-System,
+// OGC 3.0 SWE Common and SensorML JSON Schemas, and W3C SHACL fixtures) for
+// tests. Each file's sha256 is checked against docs/admission-ledger.yaml
+// before it is parsed or returned, so a test never trusts a file the ledger
+// does not pin. License notices sit beside each vendored tree
+// (testdata/*/NOTICE, testdata/*/LICENSE). Production code must not import this
+// package.
 package oracle
 
 import (
@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/c360studio/semvocab/internal/ledger"
@@ -40,13 +41,19 @@ type Release string
 
 // The vendored releases.
 const (
-	BFO2020 Release = "bfo-2020"
-	CCO22   Release = "cco-2.2"
+	BFO2020       Release = "bfo-2020"
+	CCO22         Release = "cco-2.2"
+	SOSA2017      Release = "sosa-2017"
+	SSN2017       Release = "ssn-2017"
+	SSNSystem2017 Release = "ssn-system-2017"
 )
 
 var files = map[Release]string{
-	BFO2020: filepath.Join("bfo-2020", "bfo-core.ttl"),
-	CCO22:   filepath.Join("cco-2.2", "CommonCoreOntologiesMerged.ttl"),
+	BFO2020:       filepath.Join("bfo-2020", "bfo-core.ttl"),
+	CCO22:         filepath.Join("cco-2.2", "CommonCoreOntologiesMerged.ttl"),
+	SOSA2017:      filepath.Join("w3c-sdw", "ssn", "integrated", "sosa.ttl"),
+	SSN2017:       filepath.Join("w3c-sdw", "ssn", "integrated", "ssn.ttl"),
+	SSNSystem2017: filepath.Join("w3c-sdw", "ssn", "integrated", "ssn-system.ttl"),
 }
 
 // Graph is a parsed release file indexed by subject.
@@ -69,6 +76,24 @@ func Load(r Release) (*Graph, error) {
 	res := v.(*loadResult)
 	res.once.Do(func() { res.graph, res.err = load(r) })
 	return res.graph, res.err
+}
+
+// LoadMerged loads every release in releases (verifying each sha256 against
+// pins.ontologies) and merges their triples in argument order so
+// DirectSuperclasses and Closure evaluate over an integrated owl:imports
+// closure.
+func LoadMerged(releases ...Release) (*Graph, error) {
+	merged := &Graph{bySubject: map[string][]turtle.Triple{}}
+	for _, r := range releases {
+		g, err := Load(r)
+		if err != nil {
+			return nil, err
+		}
+		for s, ts := range g.bySubject {
+			merged.bySubject[s] = append(merged.bySubject[s], ts...)
+		}
+	}
+	return merged, nil
 }
 
 // Path is the absolute path of a vendored release file.
@@ -127,6 +152,20 @@ func (g *Graph) objects(s, p string) []turtle.Term {
 	return out
 }
 
+// SubjectsWithPrefix returns every subject IRI in g that starts with prefix,
+// excluding prefix itself (such as an owl:Ontology namespace IRI), in
+// lexicographic order.
+func (g *Graph) SubjectsWithPrefix(prefix string) []string {
+	var out []string
+	for s := range g.bySubject {
+		if strings.HasPrefix(s, prefix) && s != prefix {
+			out = append(out, s)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
 // Types returns the rdf:type IRIs asserted for iri.
 func (g *Graph) Types(iri string) []string {
 	var out []string
@@ -141,15 +180,21 @@ func (g *Graph) Types(iri string) []string {
 // HasType reports whether iri is declared with rdf:type typ.
 func (g *Graph) HasType(iri, typ string) bool { return slices.Contains(g.Types(iri), typ) }
 
-// Labels returns the lexical forms of every rdfs:label of iri.
-func (g *Graph) Labels(iri string) []string {
+// LiteralObjects returns the lexical forms of every literal object of (s, p, ?o)
+// in document order.
+func (g *Graph) LiteralObjects(s, p string) []string {
 	var out []string
-	for _, o := range g.objects(iri, RDFSLabel) {
+	for _, o := range g.objects(s, p) {
 		if o.Kind == turtle.Literal {
 			out = append(out, o.Value)
 		}
 	}
 	return out
+}
+
+// Labels returns the lexical forms of every rdfs:label of iri.
+func (g *Graph) Labels(iri string) []string {
+	return g.LiteralObjects(iri, RDFSLabel)
 }
 
 // Deprecated reports whether iri carries owl:deprecated true.

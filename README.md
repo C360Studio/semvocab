@@ -17,7 +17,8 @@ terms with agreed meanings; an IRI is a term's global name, written like a URL
 Someone has to write those registrations, and they have to be right: the IRIs must come from a real ontology release,
 and the entity types must sit under the right ontology classes. SemVocab holds that work so you do not repeat it:
 
-- the IRI constants and class hierarchy for two ontologies, BFO 2020 and CCO v2.2 (catalogs);
+- the IRI constants and class hierarchies for six ontologies and schemas: BFO 2020, CCO v2.2, W3C SOSA and SSN (2017
+  Recommendation), and OGC SWE Common 3.0 and SensorML 3.0 (catalogs);
 - vocabulary packs, which are files that register entity types and predicates with SemEngine in one step;
 - a compiler that reads SHACL shapes (a W3C format for stating what values an entity's properties may hold) and
   produces a pack, contracts, and a validator for one entity's complete state. A contract tells SemEngine which
@@ -34,7 +35,11 @@ external validator, and checking this repository's validator against one; none o
 | --- | --- |
 | `catalog/bfo` | IRI constants for the admitted Basic Formal Ontology (BFO 2020) classes and relations, and `SubClassOf`, `Parents`, `IsA` |
 | `catalog/cco` | The same for the admitted Common Core Ontologies (CCO v2.2) classes and object properties; its hierarchy continues into `catalog/bfo` |
-| `packs` | `bfo-cco-core`, a pack that declares the `obo` and `cco` prefixes; `RegisterBFOCCOCore` |
+| `catalog/sosa` | IRI constants for the W3C Sensor, Observation, Sample, and Actuator (SOSA, 2017) classes and properties (constants only; SOSA declares no subclass axioms) |
+| `catalog/ssn` | IRI constants for the W3C Semantic Sensor Network (`ssn:`) and SSN System Capabilities (`ssn-system:`) 2017 ontologies, and `DirectParents`, `Parents`, `IsA` (continuing into `catalog/sosa`) |
+| `catalog/swe` | IRI constants for the OGC SWE Common Data Model 3.0 object classes and JSON properties (`Prop*`), and `SubClassOf`, `Parents`, `IsA` |
+| `catalog/sensorml` | The same for OGC SensorML 3.0 object classes and JSON properties (`Prop*`); its hierarchy continues into `catalog/swe` |
+| `packs` | `bfo-cco-core` (`RegisterBFOCCOCore`, `obo` and `cco` prefixes) and `swe-core` (`RegisterSWECore`, `sosa`, `ssn`, `ssn-system`, `swe`, and `sml` prefixes) |
 | `packs/diekm` | The DIEKM pack (`intel.platform`, `intel.observation`, and two predicates), its SHACL shapes, and the mapping that binds them |
 | `shacl` | Parses shapes (Turtle, a text format for RDF; JSON; YAML), compiles them with a mapping, validates an entity's state |
 
@@ -151,6 +156,12 @@ entity against the shapes.
   provenance is in [docs/catalog-ownership.md](docs/catalog-ownership.md) and `docs/admission-ledger.yaml`.
 - `https://w3id.org/c360/diekm#` is a vocabulary local to C360. It is not a registered or certified ontology, and its
   IRIs do not resolve.
+- `http://www.opengis.net/spec/SWE/3.0/` and `http://www.opengis.net/spec/sensorML/3.0/` are local C360 RDF conventions
+  built over OGC's specification base URIs (`http://www.opengis.net/spec/SWE/3.0` and
+  `http://www.opengis.net/spec/sensorML/3.0`) because OGC 24-014 and OGC 23-000 publish JSON Schemas rather than OWL
+  ontologies; they are not registered or certified OGC ontologies and their IRIs do not resolve.
+- A SensorML domain pack (entity types, three-part predicates, and SHACL shapes over these catalogs) is not yet
+  present.
 - The SHACL compiler reads a fixed part of SHACL and rejects everything else by name, so a shapes file written for
   another tool may not compile. The accepted and rejected terms are listed in
   [docs/shacl-compilation.md](docs/shacl-compilation.md).
@@ -169,8 +180,11 @@ entity against the shapes.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The BFO 2020 and CCO v2.2 terms keep their own licenses (CC BY 4.0 and BSD 3-Clause);
-the notices are in the package comments of `catalog/bfo` and `catalog/cco`.
+MIT, see [LICENSE](LICENSE). The upstream terms keep their own licenses: BFO 2020 (CC BY 4.0), CCO v2.2 (BSD 3-Clause),
+W3C SOSA and SSN 2017 (W3C 2015 Software and Document License and OGC Software License), and OGC SWE Common 3.0 and
+SensorML 3.0 (OGC Software License). Notices are in the package
+comments of `catalog/bfo`, `catalog/cco`, `catalog/sosa`, `catalog/ssn`, `catalog/swe`, and `catalog/sensorml`, and in
+`internal/oracle/testdata/*/NOTICE`.
 
 ## Contributing
 

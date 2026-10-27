@@ -14,7 +14,8 @@ import (
 
 // TestVendoredReleasesMatchLedger loads each vendored file, which checks its
 // sha256 against the ledger pin before parsing, and requires the release's
-// own ontology header to name the pinned version IRI.
+// own ontology header to name the pinned version IRI or dcterms:created date
+// and vann:preferredNamespaceUri.
 func TestVendoredReleasesMatchLedger(t *testing.T) {
 	l, err := ledger.Load()
 	if err != nil {
@@ -37,6 +38,41 @@ func TestVendoredReleasesMatchLedger(t *testing.T) {
 		if !found {
 			t.Errorf("%s declares no owl:versionIRI %s", r, versionIRI)
 		}
+	}
+	const (
+		dctermsCreated = "http://purl.org/dc/terms/created"
+		vannPrefNSURI  = "http://purl.org/vocab/vann/preferredNamespaceUri"
+	)
+	for _, r := range []Release{SOSA2017, SSN2017, SSNSystem2017} {
+		g, err := Load(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pin := l.Pins.Ontologies[string(r)]
+		if got := g.LiteralObjects(pin.Namespace, dctermsCreated); !slices.Equal(got, []string{pin.Created}) {
+			t.Errorf("%s dcterms:created = %q, want [%q]", r, got, pin.Created)
+		}
+		if got := g.LiteralObjects(pin.Namespace, vannPrefNSURI); !slices.Equal(got, []string{pin.Namespace}) {
+			t.Errorf("%s vann:preferredNamespaceUri = %q, want [%q]", r, got, pin.Namespace)
+		}
+	}
+	merged, err := LoadMerged(SOSA2017, SSN2017, SSNSystem2017)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const (
+		sosaSample  = "http://www.w3.org/ns/sosa/Sample"
+		sosaFOI     = "http://www.w3.org/ns/sosa/FeatureOfInterest"
+		sosaResult  = "http://www.w3.org/ns/sosa/Result"
+		ssnProperty = "http://www.w3.org/ns/ssn/Property"
+		sysAccuracy = "http://www.w3.org/ns/ssn/systems/Accuracy"
+		sysProp     = "http://www.w3.org/ns/ssn/systems/SystemProperty"
+	)
+	if got := merged.DirectSuperclasses(sosaSample); !slices.Equal(got, []string{sosaFOI, sosaResult}) {
+		t.Errorf("merged DirectSuperclasses(Sample) = %v, want [%s %s]", got, sosaFOI, sosaResult)
+	}
+	if got := merged.Closure(sysAccuracy); !slices.Equal(got, []string{sysProp, ssnProperty}) {
+		t.Errorf("merged Closure(Accuracy) = %v, want [%s %s]", got, sysProp, ssnProperty)
 	}
 }
 
@@ -168,4 +204,107 @@ func TestVerifySHA256RejectsEveryByteFlip(t *testing.T) {
 			t.Fatalf("byte %d xor %#x passed the digest check", i, delta)
 		}
 	})
+}
+
+// TestSchemaBundlesMatchLedger requires the vendored OGC Connected Systems tree
+// (excluding NOTICE) to equal the union of pins.schemas.swe-3.0.files and
+// pins.schemas.sensorml-3.0.files, every listed file in both bundles to pass
+// ReadSchemaFile, and both bundles to parse cleanly via LoadSchemaCatalog.
+func TestSchemaBundlesMatchLedger(t *testing.T) {
+	l, err := ledger.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	const wantVendoredAt = "internal/oracle/testdata/ogcapi-connected-systems"
+	listedSet := map[string]bool{}
+	for _, b := range []SchemaBundle{SWE30, SensorML30} {
+		pin, ok := l.Pins.Schemas[string(b)]
+		if !ok {
+			t.Fatalf("ledger pins no schema bundle %q", b)
+		}
+		if pin.VendoredAt != wantVendoredAt {
+			t.Errorf("%s vendored_at = %q, want %q", b, pin.VendoredAt, wantVendoredAt)
+		}
+		for _, f := range pin.Files {
+			listedSet[f.Path] = true
+			if _, err := ReadSchemaFile(b, f.Path); err != nil {
+				t.Errorf("%s: %v", b, err)
+			}
+		}
+		if _, err := LoadSchemaCatalog(b); err != nil {
+			t.Errorf("LoadSchemaCatalog(%s): %v", b, err)
+		}
+	}
+	root := SchemaRoot(SWE30)
+	var onDisk []string
+	err = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		if rel != "NOTICE" {
+			onDisk = append(onDisk, filepath.ToSlash(rel))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var listed []string
+	for p := range listedSet {
+		listed = append(listed, p)
+	}
+	slices.Sort(onDisk)
+	slices.Sort(listed)
+	if !slices.Equal(onDisk, listed) {
+		t.Errorf("vendored schema files differ from the ledger union:\non disk: %q\nledger:  %q", onDisk, listed)
+	}
+}
+
+// TestReadSchemaFileRefusesAlteredOrUnlisted flips one byte of a vendored
+// schema file in a temp copy and requires readSchemaFile to fail on the digest,
+// and requires a path the ledger does not list to fail before any read.
+func TestReadSchemaFileRefusesAlteredOrUnlisted(t *testing.T) {
+	l, err := ledger.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin := l.Pins.Schemas[string(SWE30)]
+	const target = "swecommon/schemas/json/Quantity.json"
+	data, err := os.ReadFile(filepath.Join(SchemaRoot(SWE30), filepath.FromSlash(target)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "swecommon", "schemas", "json"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(b []byte) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(target)), b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(data)
+	if _, err := readSchemaFile(root, pin, target); err != nil {
+		t.Fatalf("unaltered copy: %v", err)
+	}
+	altered := slices.Clone(data)
+	altered[len(altered)/2] ^= 0x01
+	write(altered)
+	if _, err := readSchemaFile(root, pin, target); err == nil || !strings.Contains(err.Error(), "does not match") {
+		t.Fatalf("altered copy: err = %v, want a sha256 mismatch", err)
+	}
+	if _, err := readSchemaFile(root, pin, "swecommon/schemas/json/Unlisted.json"); err == nil || !strings.Contains(err.Error(), "not listed") {
+		t.Fatalf("unlisted path: err = %v, want not listed", err)
+	}
+	if _, err := readSchemaFile(root, pin, "../LICENSE"); err == nil || !strings.Contains(err.Error(), "not listed") {
+		t.Fatalf("traversal path: err = %v, want not listed", err)
+	}
+	if _, err := ReadSchemaFile("unknown", target); err == nil || !strings.Contains(err.Error(), "no schema bundle") {
+		t.Fatalf("unknown bundle: err = %v, want no schema bundle", err)
+	}
 }

@@ -9,6 +9,10 @@ import (
 	"github.com/c360studio/semengine/vocabulary"
 	"github.com/c360studio/semvocab/catalog/bfo"
 	"github.com/c360studio/semvocab/catalog/cco"
+	"github.com/c360studio/semvocab/catalog/sensorml"
+	"github.com/c360studio/semvocab/catalog/sosa"
+	"github.com/c360studio/semvocab/catalog/ssn"
+	"github.com/c360studio/semvocab/catalog/swe"
 	"github.com/c360studio/semvocab/internal/ledger"
 	"github.com/c360studio/semvocab/internal/oracle"
 	"github.com/c360studio/semvocab/packs"
@@ -26,6 +30,7 @@ var declaredParents = map[string]map[string][]string{
 		"intel.observation": {cco.ActOfObservation, bfo.Process},
 	},
 	"bfo-cco-core": {},
+	"swe-core":     {},
 }
 
 type embeddedPack struct {
@@ -35,6 +40,7 @@ type embeddedPack struct {
 
 var embedded = []embeddedPack{
 	{"bfo-cco-core", packs.BFOCCOCoreSpec},
+	{"swe-core", packs.SWECoreSpec},
 	{"diekm", diekm.Spec},
 }
 
@@ -110,13 +116,25 @@ func closureProblems(name string, spec vocabulary.PackSpec, l ledger.Ledger, rel
 	var bad []string
 	add := func(format string, args ...any) { bad = append(bad, fmt.Sprintf(name+": "+format, args...)) }
 
-	// Prefix namespaces equal the ontology pins and the catalogs.
+	// Prefix namespaces equal the ontology/schema pins and the catalogs.
 	pins := map[string]string{
-		"obo": l.Pins.Ontologies["bfo-2020"].Namespace,
-		"cco": l.Pins.Ontologies["cco-2.2"].Namespace,
+		"obo":        l.Pins.Ontologies["bfo-2020"].Namespace,
+		"cco":        l.Pins.Ontologies["cco-2.2"].Namespace,
+		"sosa":       l.Pins.Ontologies["sosa-2017"].Namespace,
+		"ssn":        l.Pins.Ontologies["ssn-2017"].Namespace,
+		"ssn-system": l.Pins.Ontologies["ssn-system-2017"].Namespace,
 	}
-	if pins["obo"] != bfo.Namespace || pins["cco"] != cco.Namespace {
-		add("ledger pins %v disagree with catalog namespaces %s, %s", pins, bfo.Namespace, cco.Namespace)
+	if e, err := l.Entry("swe"); err == nil {
+		pins["swe"] = e.Namespace.IRI
+	}
+	if e, err := l.Entry("sensorml"); err == nil {
+		pins["sml"] = e.Namespace.IRI
+	}
+	if pins["obo"] != bfo.Namespace || pins["cco"] != cco.Namespace ||
+		pins["sosa"] != sosa.Namespace || pins["ssn"] != ssn.Namespace ||
+		pins["ssn-system"] != ssn.SystemsNamespace ||
+		pins["swe"] != swe.Namespace || pins["sml"] != sensorml.Namespace {
+		add("ledger pins %v disagree with catalog namespaces", pins)
 	}
 	if e, err := l.Entry("diekm"); err == nil {
 		pins["diekm"] = e.Namespace.IRI
@@ -284,4 +302,15 @@ func TestPackSuperclassClosureSensitivity(t *testing.T) {
 			}
 		})
 	}
+	t.Run("swe-core wrong prefix namespace", func(t *testing.T) {
+		spec, err := packs.SWECoreSpec()
+		if err != nil {
+			t.Fatal(err)
+		}
+		spec.Prefixes[3].Namespace = "http://www.opengis.net/swe/2.0/"
+		got := strings.Join(closureProblems("swe-core", spec, l, release), "\n")
+		if !strings.Contains(got, "swe-core: prefix swe = http://www.opengis.net/swe/2.0/") {
+			t.Fatalf("seeded fault not named; got:\n%s", got)
+		}
+	})
 }

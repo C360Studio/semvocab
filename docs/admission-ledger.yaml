@@ -1,4 +1,4 @@
-# SemVocab admission ledger (issue #1, Phase 0).
+# SemVocab admission ledger (issue #1, Phase 0; issue #26, Phase 0).
 # One entry per candidate catalog or pack. Every admitted term names a source at an exact revision.
 # Field meanings are in `fields:` below; disposition values are in `dispositions:`.
 schema_version: 1
@@ -6,13 +6,14 @@ schema_version: 1
 fields:
   disposition: one value from `dispositions`
   semengine_overlap: SemEngine symbols at the pin, as file:line; empty when none
-  source: where admitted terms come from (pinned SemStreams path+symbols, or external release)
+  source: where admitted terms come from (pinned SemStreams path+symbols, external ontology release, or external schema bundle)
   admitted_terms: the exact terms admitted; nothing outside this list may be added without a ledger change
   excluded_source_symbols: source symbols deliberately not admitted, each with a reason
+  namespace: honesty declaration for C360-local pack IRIs or C360 RDF IRI conventions over non-RDF specification base URIs
   license: license and attribution obligation of the source
   test_oracle: the independent fixture the tests compare against
   deferral_reason: why a deferred entry is deferred (required when disposition is deferred)
-  phase: the issue #1 phase that delivers the entry
+  phase: the issue phase that delivers the entry
 
 dispositions:
   use-semengine-symbol: consumers use SemEngine's exported symbol directly; SemVocab adds no API
@@ -69,6 +70,182 @@ pins:
         the SemStreams pin and by issue #1 and semsparql#1 text. No 1.x IRI is admitted. CCO publishes no 1.x→2.x
         crosswalk; the mapping in the cco entry was derived by identical rdfs:label + definition between v1.7 and
         v2.0, then by IRI identity from v2.0 to v2.2.
+    sosa-2017:
+      repository: https://github.com/w3c/sdw
+      release: REC-vocab-ssn-20171019 # W3C Recommendation 2017-10-19 (https://www.w3.org/TR/2017/REC-vocab-ssn-20171019/); byte-identical to https://www.w3.org/ns/sosa/ Turtle
+      commit: cb31ee9de636a7101337815ba67ba9af4a7c1348
+      file: ssn/integrated/sosa.ttl
+      sha256: c70b0d1c843c0047e4c98e0a89392e46a05752ff6365bda7f7f55303905a0392
+      created: "2017-04-17"
+      namespace: http://www.w3.org/ns/sosa/
+      license: >-
+        W3C Software and Document License (2015) and OGC Software License, Copyright 2017 W3C/OGC
+        (dcterms:license in file); notices retained with vendored fixtures
+      chosen_because: "owner ruling R1 on #26 (2026-10-27): W3C SOSA/SSN 2017 Recommendation paired with OGC SWE Common 3.0 and SensorML 3.0"
+      note: >-
+        Omits owl:versionIRI; asserts dcterms:created "2017-04-17"^^xsd:date. Asserts zero rdfs:subClassOf triples
+        (schema:domainIncludes/rangeIncludes only).
+    ssn-2017:
+      repository: https://github.com/w3c/sdw
+      release: REC-vocab-ssn-20171019
+      commit: cb31ee9de636a7101337815ba67ba9af4a7c1348
+      file: ssn/integrated/ssn.ttl
+      sha256: 184d86189191146e314cc52b1bceb96fca11e70aacbc160d71588102a5153eb9
+      created: "2017-04-17"
+      namespace: http://www.w3.org/ns/ssn/
+      depends_on: "sosa-2017 (owl:imports http://www.w3.org/ns/sosa/; adds rdfs:subClassOf axioms on sosa:* classes)"
+      license: >-
+        W3C Software and Document License (2015) and OGC Software License, Copyright 2017 W3C/OGC
+        (dcterms:license in file); notices retained with vendored fixtures
+      chosen_because: "owner ruling R1 on #26 (2026-10-27): W3C SOSA/SSN 2017 Recommendation"
+      note: >-
+        Omits owl:versionIRI; asserts dcterms:created "2017-04-17"^^xsd:date. Byte-identical to https://www.w3.org/ns/ssn/
+        Turtle. Asserts multi-parent sosa:Sample rdfs:subClassOf sosa:FeatureOfInterest, sosa:Result.
+    ssn-system-2017:
+      repository: https://github.com/w3c/sdw
+      release: REC-vocab-ssn-20171019
+      commit: cb31ee9de636a7101337815ba67ba9af4a7c1348
+      file: ssn/integrated/ssn-system.ttl
+      sha256: 1750d2b3bb5635261586ef49ecd43278942e84e3328b172a046011b18a11af02
+      created: "2017-05-14"
+      namespace: http://www.w3.org/ns/ssn/systems/
+      depends_on: "ssn-2017 (owl:imports http://www.w3.org/ns/ssn/)"
+      license: >-
+        W3C Software and Document License (2015) and OGC Software License, Copyright 2017 W3C/OGC
+        (dcterms:license in file); notices retained with vendored fixtures
+      chosen_because: "owner ruling R1 on #26 (2026-10-27): W3C SOSA/SSN + ssn-system 2017 Recommendation"
+      note: >-
+        Omits owl:versionIRI; asserts dcterms:created "2017-05-14"^^xsd:date. Byte-identical to
+        https://www.w3.org/ns/ssn/systems/ Turtle.
+  # Pinned non-OWL schema bundles (issue #26, owner ruling R1). Files are copied unmodified with their upstream paths
+  # under vendored_at in Phase 1; tests verify each sha256 before parsing.
+  schemas:
+    swe-3.0:
+      repository: https://github.com/opengeospatial/ogcapi-connected-systems
+      tag: v1.0.0
+      commit: 8e03b236a049849f2ccc24b4fd9fdce5ff69bed2
+      standard: OGC 24-014
+      edition: "3.0.0"
+      spec_base_uri: http://www.opengis.net/spec/SWE/3.0
+      license: OGC Software License (LICENSE at revision); notice retained with vendored fixtures
+      vendored_at: internal/oracle/testdata/ogcapi-connected-systems
+      chosen_because: "owner ruling R1 on #26 (2026-10-27): OGC SWE Common Data Model 3.0 (OGC 24-014, edition 3.0.0)"
+      note: >-
+        Draft 2020-12 JSON Schema encoding bundle (not an OGC OWL ontology); all 23 swecommon/schemas/json/*.json files
+        plus LICENSE.
+      files:
+        - path: LICENSE
+          sha256: b3b9a76d230f057844d004c374406453d92f863caecaa42ccd9c7863e143fed1
+        - path: swecommon/schemas/json/AbstractDataComponent.json
+          sha256: 468e11b9fff5a712428628a4a373f7f550ff89a59f30e5af10017fb22e58e661
+        - path: swecommon/schemas/json/AbstractSimpleComponent.json
+          sha256: ed64ba08d5912ed73f1e398433cec9dde802594dcdc870570c1d1b406dc769f6
+        - path: swecommon/schemas/json/AbstractSweIdentifiable.json
+          sha256: 22130e687acfa3efbddacc75b0107c99db0e72988acef33163457af767e284d9
+        - path: swecommon/schemas/json/Boolean.json
+          sha256: b99cd49310470954efae79d7c9c16eed3b2016ac5d3a8cc772c4bed870a4d270
+        - path: swecommon/schemas/json/Category.json
+          sha256: a2a84571faa9f85e9dd8e807d9c6e6e7e1c3a7e6fd43abe2eb24774db4b9e285
+        - path: swecommon/schemas/json/CategoryRange.json
+          sha256: d1da1b034cca3cddfa7a93aec2aa68f83cfc9c1a626f553500bd81ece1438baa
+        - path: swecommon/schemas/json/Count.json
+          sha256: e6a69ff929cccf0fc9116f0c45f66c3ab1c988c4531ffe16ff0a09435b742467
+        - path: swecommon/schemas/json/CountRange.json
+          sha256: 30683b196454d51f416e953cc1a7286baf6e187b1f85daa2602bd658e90c133a
+        - path: swecommon/schemas/json/DataArray.json
+          sha256: 2ed614d7bcfd45c7cc5b53d9f267f3667548a8193cb3ff9b066588cdc422bd0c
+        - path: swecommon/schemas/json/DataChoice.json
+          sha256: 27e3efed2a28b47e4adde2ba77ac8ac607f1800244f119187994344157013652
+        - path: swecommon/schemas/json/DataRecord.json
+          sha256: 64feeb694269cb3eedf428f57458e870003c88c7924e079f0f2bca8c8ca51917
+        - path: swecommon/schemas/json/DataStream.json
+          sha256: aab223f3c7a9b85668d97252a7a79edbf0d03f0f27baf0eef4256afe1abf21e1
+        - path: swecommon/schemas/json/Geometry.json
+          sha256: 16796a79e8d112cfab9e6f802356e362ba86f6b58702e8ab5c47983c0b2b8de7
+        - path: swecommon/schemas/json/Matrix.json
+          sha256: adedf240f30ddfb216cff4faaee671ebd70d601a74d1c874600ce3bbc25ad6e4
+        - path: swecommon/schemas/json/Quantity.json
+          sha256: dc23d3496ae02a6d1de756d441aa12f248e74a1ff3feafda826640af04115b52
+        - path: swecommon/schemas/json/QuantityRange.json
+          sha256: 758bc4fee2a9aeb07b7fd8e4886b886633c09657b71f489c67b657bb2f54c108
+        - path: swecommon/schemas/json/Text.json
+          sha256: ead9ac23d8b7b5c0a217a775d1d445589978cdbfb398cbf07a346b68e29993d3
+        - path: swecommon/schemas/json/Time.json
+          sha256: 9b3043fe48fabee3b79e4552a05a3f8afd41f46b898579923471c9249a3665b2
+        - path: swecommon/schemas/json/TimeRange.json
+          sha256: b108d7db771965f1b049ddb0a771c7e05338db55518563c7e20a983cb46ccf80
+        - path: swecommon/schemas/json/Vector.json
+          sha256: 1ead8c287384f6043fe35d91f7590398e6c189455a1d33b6b8f6828eaea1380f
+        - path: swecommon/schemas/json/basicTypes.json
+          sha256: 13d915858e4f3ca4259c8c8c77a0eb4e9546f7678d0eed0584d020f102cdf2ff
+        - path: swecommon/schemas/json/encodings.json
+          sha256: 9d432bbec5ffebeda21d612ab1ec6b22d4e8011ac967820ba17c07b0391e73ab
+        - path: swecommon/schemas/json/sweCommon.json
+          sha256: efc265b38f3fd540693e8a352f463f1c9a98667ddb55d6d42f6cc00e08edcc14
+    sensorml-3.0:
+      repository: https://github.com/opengeospatial/ogcapi-connected-systems
+      tag: v1.0.0
+      commit: 8e03b236a049849f2ccc24b4fd9fdce5ff69bed2
+      standard: OGC 23-000
+      edition: "3.0.0"
+      spec_base_uri: http://www.opengis.net/spec/sensorML/3.0
+      license: OGC Software License (LICENSE at revision); notice retained with vendored fixtures
+      vendored_at: internal/oracle/testdata/ogcapi-connected-systems
+      chosen_because: "owner ruling R1 on #26 (2026-10-27): OGC SensorML 3.0 (OGC 23-000, edition 3.0.0)"
+      note: >-
+        Draft 2020-12 JSON Schema encoding bundle (not an OGC OWL ontology); all 20 sensorml/schemas/json/*.json files,
+        the 4 referenced common/*.json files, plus LICENSE.
+      files:
+        - path: LICENSE
+          sha256: b3b9a76d230f057844d004c374406453d92f863caecaa42ccd9c7863e143fed1
+        - path: common/link.json
+          sha256: 3191268fa550fde1bc8e487457ccc6d795cdeb5e447e452e1220db441fd723ce
+        - path: common/timeInstant.json
+          sha256: 6ebf86e747c4aafbcd2eb05172193f5c03ad69df7e4ecd467dd3c27b0967e1ac
+        - path: common/timeInstantOrNow.json
+          sha256: 29111db71007bd1638993a8777704971b9d25f81173688eeb9ab538150309bf8
+        - path: common/timePeriod.json
+          sha256: 92715bd7e479b3fd1d0a9c4ccd743d58c39e9b5521db3c5923221090988c20e5
+        - path: sensorml/schemas/json/AbstractPhysicalProcess.json
+          sha256: 797b538d2aac9d23958d6e584ee070635e893a4e2d7b2d358d29c0c91d7aeef7
+        - path: sensorml/schemas/json/AbstractProcess.json
+          sha256: 0e36b3f28b601f535130df1ccef4d51e74bd51b7f0b95d112ce8c73ea510d200
+        - path: sensorml/schemas/json/AggregateProcess.json
+          sha256: 245715c95625189a0954184ef7be883fed520421c66884b56587788a977d3f50
+        - path: sensorml/schemas/json/ContactLink.json
+          sha256: 8a5a0550d837aaa8a3a3548c4afb661db2e272c7235a4c805172b9f555fa8433
+        - path: sensorml/schemas/json/DeployedSystem.json
+          sha256: 17d9a6e2473e473b8b94255adb943bc4ddc5a27e6abeabe6359894bf6541f8c1
+        - path: sensorml/schemas/json/Deployment.json
+          sha256: d0ebea7055822ec9bf4b579f4e085ce7bfa7c23f01cb815317f090bf31ec42d0
+        - path: sensorml/schemas/json/DerivedProperty.json
+          sha256: 30783624a8bf5e143b297875b4bd89f897de5f2ae8be722e78cd07f4cef60f72
+        - path: sensorml/schemas/json/DescribedObject.json
+          sha256: 82e98f218f272837f6b98258c0c94281670cb82f5693644d326247170b33202f
+        - path: sensorml/schemas/json/Document.json
+          sha256: 582293e1991b5b1a541dd7aea666baf847a152ecfe716ba455022c4dd1ae4cd9
+        - path: sensorml/schemas/json/Event.json
+          sha256: 763e76bde1313c9b79fe54341af676e32684c7e4050938fe902689efd1034307
+        - path: sensorml/schemas/json/LegalConstraint.json
+          sha256: 723b0c78a182aabf75039bf50c699ee5c21343b5a3c61376bd39ddb599385839
+        - path: sensorml/schemas/json/Mode.json
+          sha256: f84c071398e3e0b4518d2e22919fe374279930f7bae8ac31a828975d573915ef
+        - path: sensorml/schemas/json/PhysicalComponent.json
+          sha256: f3a5828dd86ceb3384857e01dbdf79ae5d461c455dc557ab13f6484f40698958
+        - path: sensorml/schemas/json/PhysicalSystem.json
+          sha256: fcc2750b2744204872bdcd89b2556f0bc6975bb4b58a848764e5a9903d29f17c
+        - path: sensorml/schemas/json/Pose.json
+          sha256: 9430d372c32390fa08077da454f2fef7b73f052c7d7cff2525ac68ec2f7d453d
+        - path: sensorml/schemas/json/ResponsibleParty.json
+          sha256: 0cdc7a11dc8d276ea81817e436f60337c376be8b24fc55c0526a08211bf534c2
+        - path: sensorml/schemas/json/Settings.json
+          sha256: d673a5520f0d3cca282ae4ecaa5a17e541009f6b263b15e0967e1ac9b8e1f969
+        - path: sensorml/schemas/json/SimpleProcess.json
+          sha256: dbce6b24b8ba837dd7bebfbb78f4da51a98b257d281b6b682dc4b384d10bba06
+        - path: sensorml/schemas/json/commonDefs.json
+          sha256: ea589c10831b44c82666be300830762b549b697b5a8cc8ef03a2bbf925ad5b03
+        - path: sensorml/schemas/json/sweCommonDefs.json
+          sha256: 290cb94d81595031e9bdd08903ee4711e25d4de8c5ef8cfdd1cfdad70c8825ce
   # Vendored external test fixtures (phase-2-shacl-compilation, owner ruling Q21). Files are copied unmodified with
   # their upstream paths under vendored_at; tests check each sha256 before reading (internal/oracle ReadFixture).
   fixtures:
@@ -379,18 +556,440 @@ entries:
     deferral_reason: no consumer caller
 
   - catalog: sosa
-    disposition: deferred
-    phase: null
-    semengine_overlap: "serializer prefix sosa at export/prefix.go:34 only"
-    source_available: "none in code at the SemStreams pin (vocabulary/README.md:365-366 doc example only)"
-    deferral_reason: "no pinned source and no consumer; a future entry needs the W3C SOSA/SSN release and a consumer"
+    disposition: new-content
+    phase: 1
+    semengine_overlap: "no exported constant; serializer prefix sosa at vocabulary/export/prefix.go:34; doc mention at vocabulary/doc.go:31"
+    source:
+      ontology: sosa-2017
+      go_name_mapping: >-
+        Standard PascalCase Go symbol names for classes and properties in sosa-2017 (http://www.w3.org/ns/sosa/). Each
+        entry records [IRI local name, rdfs:label] verified against sosa.ttl.
+      admitted_classes: # Go name: [local name, rdfs:label]
+        ActuatableProperty: [ActuatableProperty, "Actuatable Property"]
+        Actuation: [Actuation, "Actuation"]
+        Actuator: [Actuator, "Actuator"]
+        FeatureOfInterest: [FeatureOfInterest, "Feature Of Interest"]
+        ObservableProperty: [ObservableProperty, "Observable Property"]
+        Observation: [Observation, "Observation"]
+        Platform: [Platform, "Platform"]
+        Procedure: [Procedure, "Procedure"]
+        Result: [Result, "Result"]
+        Sample: [Sample, "Sample"]
+        Sampler: [Sampler, "Sampler"]
+        Sampling: [Sampling, "Sampling"]
+        Sensor: [Sensor, "Sensor"]
+      admitted_object_properties: # Go name: [local name, rdfs:label]
+        ActsOnProperty: [actsOnProperty, "acts on property"]
+        HasFeatureOfInterest: [hasFeatureOfInterest, "has feature of interest"]
+        HasResult: [hasResult, "has result"]
+        HasSample: [hasSample, "has sample"]
+        Hosts: [hosts, "hosts"]
+        IsActedOnBy: [isActedOnBy, "is acted on by"]
+        IsFeatureOfInterestOf: [isFeatureOfInterestOf, "is feature of interest of"]
+        IsHostedBy: [isHostedBy, "is hosted by"]
+        IsObservedBy: [isObservedBy, "is observed by"]
+        IsResultOf: [isResultOf, "is result of"]
+        IsSampleOf: [isSampleOf, "is sample of"]
+        MadeActuation: [madeActuation, "made actuation"]
+        MadeByActuator: [madeByActuator, "made by actuator"]
+        MadeBySampler: [madeBySampler, "made by sampler"]
+        MadeBySensor: [madeBySensor, "made by sensor"]
+        MadeObservation: [madeObservation, "made observation"]
+        MadeSampling: [madeSampling, "made sampling"]
+        ObservedProperty: [observedProperty, "observed property"]
+        Observes: [observes, "observes"]
+        PhenomenonTime: [phenomenonTime, "phenomenon time"]
+        UsedProcedure: [usedProcedure, "used procedure"]
+      admitted_datatype_properties: # Go name: [local name, rdfs:label]
+        HasSimpleResult: [hasSimpleResult, "has simple result"]
+        ResultTime: [resultTime, "result time"]
+      hierarchy: "none in catalog/sosa (sosa.ttl asserts zero rdfs:subClassOf triples; class axioms live in catalog/ssn)"
+    excluded_source_symbols:
+      - symbols: [SamplingFeature, HasLocation]
+        reason: "used in semconnect (d0d06e00bf05a545f30ceea798db1c2b1ee47d4f, vocabulary/sosa/iris.go:49,124); not declared in W3C 2017 sosa.ttl, ssn.ttl, or ssn-system.ttl"
+      - symbols: [hasResultingSample, isSamplingResultOf]
+        reason: "commented out in sosa.ttl:387-403 and not asserted in the 2017 W3C Recommendation"
+    rulings:
+      R1: "W3C SOSA/SSN 2017 Recommendation (w3c/sdw at cb31ee9de636a7101337815ba67ba9af4a7c1348)"
+      R2: "Phase 0 records provenance and stops for owner sign-off; Phase 1 delivers catalog/sosa"
+    license: "W3C Software and Document License (2015) and OGC Software License, Copyright 2017 W3C/OGC; retain notices"
+    test_oracle: >-
+      sosa-2017 sosa.ttl at the recorded sha256: every admitted IRI is declared with the expected owl:Class,
+      owl:ObjectProperty, or owl:DatatypeProperty rdf:type and rdfs:label, and zero undeclared sosa:* terms exist in
+      the file
 
   - catalog: ssn
-    disposition: deferred
-    phase: null
-    semengine_overlap: "serializer prefix ssn at export/prefix.go:33 only"
-    source_available: "none in code (vocabulary/README.md:364 doc example only)"
-    deferral_reason: same as sosa
+    disposition: new-content
+    phase: 1
+    semengine_overlap: "no exported constant; serializer prefix ssn at vocabulary/export/prefix.go:33 (no ssn-system prefix); doc mention at vocabulary/doc.go:31"
+    source:
+      ontologies: [ssn-2017, ssn-system-2017]
+      go_name_mapping: >-
+        Standard PascalCase Go symbol names across Namespace (http://www.w3.org/ns/ssn/) and SystemsNamespace
+        (http://www.w3.org/ns/ssn/systems/); all 52 class and property Go names are disjoint across both modules.
+      admitted_classes: # ssn-2017 Go name: [local name, rdfs:label]
+        Deployment: [Deployment, "Deployment"]
+        Input: [Input, "Input"]
+        Output: [Output, "Output"]
+        Property: [Property, "Property"]
+        Stimulus: [Stimulus, "Stimulus"]
+        System: [System, "System"]
+      admitted_object_properties: # ssn-2017 Go name: [local name, rdfs:label]
+        DeployedOnPlatform: [deployedOnPlatform, "deployed on platform"]
+        DeployedSystem: [deployedSystem, "deployed system"]
+        Detects: [detects, "detects"]
+        ForProperty: [forProperty, "for property"]
+        HasDeployment: [hasDeployment, "has deployment"]
+        HasInput: [hasInput, "has input"]
+        HasOutput: [hasOutput, "has output"]
+        HasProperty: [hasProperty, "has property"]
+        HasSubSystem: [hasSubSystem, "has subsystem"]
+        ImplementedBy: [implementedBy, "implemented by"]
+        Implements: [implements, "implements"]
+        InDeployment: [inDeployment, "in deployment"]
+        IsPropertyOf: [isPropertyOf, "is property of"]
+        IsProxyFor: [isProxyFor, "is proxy for"]
+        WasOriginatedBy: [wasOriginatedBy, "was originated by"]
+      admitted_system_classes: # ssn-system-2017 Go name: [local name, rdfs:label]
+        Accuracy: [Accuracy, "Accuracy"]
+        ActuationRange: [ActuationRange, "Actuation Range"]
+        BatteryLifetime: [BatteryLifetime, "Battery Lifetime"]
+        Condition: [Condition, "Condition"]
+        DetectionLimit: [DetectionLimit, "Detection Limit"]
+        Drift: [Drift, "Drift"]
+        Frequency: [Frequency, "Frequency"]
+        Latency: [Latency, "Latency"]
+        MaintenanceSchedule: [MaintenanceSchedule, "Maintenance Schedule"]
+        MeasurementRange: [MeasurementRange, "Measurement Range"]
+        OperatingPowerRange: [OperatingPowerRange, "Operating Power Range"]
+        OperatingProperty: [OperatingProperty, "Operating Property"]
+        OperatingRange: [OperatingRange, "Operating Range"]
+        Precision: [Precision, "Precision"]
+        Resolution: [Resolution, "Resolution"]
+        ResponseTime: [ResponseTime, "Response Time"]
+        Selectivity: [Selectivity, "Selectivity"]
+        Sensitivity: [Sensitivity, "Sensitivity"]
+        SurvivalProperty: [SurvivalProperty, "Survival Property"]
+        SurvivalRange: [SurvivalRange, "Survival Range"]
+        SystemCapability: [SystemCapability, "System Capability"]
+        SystemLifetime: [SystemLifetime, "System Lifetime"]
+        SystemProperty: [SystemProperty, "System Property"]
+      admitted_system_object_properties: # ssn-system-2017 Go name: [local name, rdfs:label]
+        HasOperatingProperty: [hasOperatingProperty, "has operating property"]
+        HasOperatingRange: [hasOperatingRange, "has operating range"]
+        HasSurvivalProperty: [hasSurvivalProperty, "has survival property"]
+        HasSurvivalRange: [hasSurvivalRange, "has survival range"]
+        HasSystemCapability: [hasSystemCapability, "has system capability"]
+        HasSystemProperty: [hasSystemProperty, "has system property"]
+        InCondition: [inCondition, "in condition"]
+        QualityOfObservation: [qualityOfObservation, "quality of observation"]
+      hierarchy: >-
+        DirectParents, Parents, IsA over the integrated sosa-2017 + ssn-2017 + ssn-system-2017 named rdfs:subClassOf
+        closure (including multi-parent sosa:Sample -> [sosa:FeatureOfInterest, sosa:Result])
+    rulings:
+      R1: "W3C SOSA/SSN + ssn-system 2017 Recommendation (w3c/sdw at cb31ee9de636a7101337815ba67ba9af4a7c1348)"
+      R2: "Phase 0 records provenance and stops for owner sign-off; Phase 1 delivers catalog/ssn"
+    license: "W3C Software and Document License (2015) and OGC Software License, Copyright 2017 W3C/OGC; retain notices"
+    test_oracle: >-
+      ssn-2017 ssn.ttl and ssn-system-2017 ssn-system.ttl at the recorded sha256 digests: every admitted IRI is declared
+      with the expected rdf:type and rdfs:label; DirectParents and Parents equal the asserted named rdfs:subClassOf
+      graph and breadth-first closure across sosa + ssn + ssn-system
+
+  - catalog: swe
+    disposition: new-content
+    phase: 1
+    semengine_overlap: "none (no SWE constant or swe serializer prefix at 11da4721c2233a8e2b5b1d6236a97a44e06abbb6)"
+    namespace:
+      iri: http://www.opengis.net/spec/SWE/3.0/
+      authority: C360 (RDF convention over OGC 24-014 Clause 5 base URI)
+      registered: false
+      statement: "A C360 RDF convention over OGC SWE Common 3.0's Clause 5 normative specification base URI (http://www.opengis.net/spec/SWE/3.0). OGC 24-014 publishes Draft 2020-12 JSON Schemas rather than an OWL ontology; these IRIs are not an externally certified or dereferenceable OGC OWL ontology (owner ruling R3 on #26)."
+    source:
+      schema_bundle: swe-3.0
+      go_name_mapping: >-
+        Object classes use PascalCase Go names matching their JSON Schema file/type/$defs identifier (preserving
+        AbstractSweIdentifiable from AbstractSweIdentifiable.json); JSON property keys use Prop<PascalCase> Go names so
+        property constants never collide with Namespace or class constants; IRI local names match the exact JSON Schema
+        local names.
+      admitted_classes: # Go name: [JSON Schema local name, schema location, direct parent]
+        AbstractSWE: [AbstractSWE, "swecommon/schemas/json/basicTypes.json#/$defs/AbstractSWE", ""]
+        AbstractSweIdentifiable: [AbstractSweIdentifiable, "swecommon/schemas/json/AbstractSweIdentifiable.json", AbstractSWE]
+        AbstractDataComponent: [AbstractDataComponent, "swecommon/schemas/json/AbstractDataComponent.json", AbstractSweIdentifiable]
+        AbstractSimpleComponent: [AbstractSimpleComponent, "swecommon/schemas/json/AbstractSimpleComponent.json", AbstractDataComponent]
+        Boolean: [Boolean, "swecommon/schemas/json/Boolean.json", AbstractSimpleComponent]
+        Count: [Count, "swecommon/schemas/json/Count.json", AbstractSimpleComponent]
+        Quantity: [Quantity, "swecommon/schemas/json/Quantity.json", AbstractSimpleComponent]
+        Time: [Time, "swecommon/schemas/json/Time.json", AbstractSimpleComponent]
+        Category: [Category, "swecommon/schemas/json/Category.json", AbstractSimpleComponent]
+        Text: [Text, "swecommon/schemas/json/Text.json", AbstractSimpleComponent]
+        CountRange: [CountRange, "swecommon/schemas/json/CountRange.json", AbstractSimpleComponent]
+        QuantityRange: [QuantityRange, "swecommon/schemas/json/QuantityRange.json", AbstractSimpleComponent]
+        TimeRange: [TimeRange, "swecommon/schemas/json/TimeRange.json", AbstractSimpleComponent]
+        CategoryRange: [CategoryRange, "swecommon/schemas/json/CategoryRange.json", AbstractSimpleComponent]
+        DataRecord: [DataRecord, "swecommon/schemas/json/DataRecord.json", AbstractDataComponent]
+        Vector: [Vector, "swecommon/schemas/json/Vector.json", AbstractDataComponent]
+        AbstractArray: [AbstractArray, "swecommon/schemas/json/DataArray.json#/$defs/AbstractArray", AbstractDataComponent]
+        DataArray: [DataArray, "swecommon/schemas/json/DataArray.json", AbstractArray]
+        Matrix: [Matrix, "swecommon/schemas/json/Matrix.json", AbstractArray]
+        DataChoice: [DataChoice, "swecommon/schemas/json/DataChoice.json", AbstractDataComponent]
+        Geometry: [Geometry, "swecommon/schemas/json/Geometry.json", AbstractDataComponent]
+        DataStream: [DataStream, "swecommon/schemas/json/DataStream.json", AbstractSweIdentifiable]
+        UnitReference: [UnitReference, "swecommon/schemas/json/basicTypes.json#/$defs/UnitReference", ""]
+        AllowedTokens: [AllowedTokens, "swecommon/schemas/json/basicTypes.json#/$defs/AllowedTokens", ""]
+        AllowedValues: [AllowedValues, "swecommon/schemas/json/basicTypes.json#/$defs/AllowedValues", ""]
+        AllowedTimes: [AllowedTimes, "swecommon/schemas/json/basicTypes.json#/$defs/AllowedTimes", ""]
+        SoftNamedProperty: [SoftNamedProperty, "swecommon/schemas/json/basicTypes.json#/$defs/SoftNamedProperty", ""]
+        AssociationAttributeGroup: [AssociationAttributeGroup, "swecommon/schemas/json/basicTypes.json#/$defs/AssociationAttributeGroup", ""]
+        AbstractEncoding: [AbstractEncoding, "swecommon/schemas/json/encodings.json#/$defs/AbstractEncoding", AbstractSWE]
+        TextEncoding: [TextEncoding, "swecommon/schemas/json/encodings.json#/$defs/TextEncoding", AbstractEncoding]
+        JSONEncoding: [JSONEncoding, "swecommon/schemas/json/encodings.json#/$defs/JSONEncoding", AbstractEncoding]
+        XMLEncoding: [XMLEncoding, "swecommon/schemas/json/encodings.json#/$defs/XMLEncoding", AbstractEncoding]
+        BinaryEncoding: [BinaryEncoding, "swecommon/schemas/json/encodings.json#/$defs/BinaryEncoding", AbstractEncoding]
+        Block: [Block, "swecommon/schemas/json/encodings.json#/$defs/Block", AbstractSWE]
+        Component: [Component, "swecommon/schemas/json/encodings.json#/$defs/Component", AbstractSWE]
+      admitted_properties: # Go name: JSON Schema property key
+        PropArcrole: arcrole
+        PropAxisID: axisID
+        PropBitLength: bitLength
+        PropBlockSeparator: blockSeparator
+        PropByteEncoding: byteEncoding
+        PropByteLength: byteLength
+        PropByteOrder: byteOrder
+        PropChoiceValue: choiceValue
+        PropCode: code
+        PropCodeSpace: codeSpace
+        PropCollapseWhiteSpaces: collapseWhiteSpaces
+        PropCompression: compression
+        PropConstraint: constraint
+        PropCoordinates: coordinates
+        PropDataType: dataType
+        PropDecimalSeparator: decimalSeparator
+        PropDefinition: definition
+        PropDescription: description
+        PropElementCount: elementCount
+        PropElementType: elementType
+        PropEncoding: encoding
+        PropEncryption: encryption
+        PropFields: fields
+        PropGeomTypes: geomTypes
+        PropHref: href
+        PropID: id
+        PropIntervals: intervals
+        PropItems: items
+        PropLabel: label
+        PropLocalFrame: localFrame
+        PropMembers: members
+        PropName: name
+        PropNamespace: namespace
+        PropNilValues: nilValues
+        PropOptional: optional
+        PropPaddingBytesAfter: paddingBytes-after
+        PropPaddingBytesBefore: paddingBytes-before
+        PropPattern: pattern
+        PropReason: reason
+        PropRecordsAsArrays: recordsAsArrays
+        PropRef: ref
+        PropReferenceFrame: referenceFrame
+        PropReferenceTime: referenceTime
+        PropRole: role
+        PropSignificantBits: significantBits
+        PropSignificantFigures: significantFigures
+        PropSRS: srs
+        PropSymbol: symbol
+        PropTitle: title
+        PropTokenSeparator: tokenSeparator
+        PropUOM: uom
+        PropUpdatable: updatable
+        PropValue: value
+        PropValues: values
+        PropVectorsAsArrays: vectorsAsArrays
+      hierarchy: "SubClassOf, Parents, IsA from JSON Schema allOf object inheritance chains"
+    excluded_source_symbols:
+      - symbols: [type]
+        reason: "JSON Schema discriminator keyword; represented by rdf:type in RDF"
+      - symbols: [AnyComponent, AnySimpleComponent, AnyScalarComponent, NumberOrSpecial, DateTimeNumberOrSpecial,
+          NameToken, EncodedValues, ElementCount, NilValuesText, NilValuesInteger, NilValuesNumber, NilValuesTime]
+        reason: "JSON Schema union, regex string, typed array, or inline property-refinement validation helpers rather than domain object classes"
+      - symbols: [NilValue]
+        reason: "SWE 2.0 singular term in semconnect (d0d06e00bf05a545f30ceea798db1c2b1ee47d4f, vocabulary/swe/iris.go:69); SWE Common 3.0 defines plural nilValues (PropNilValues)"
+    rulings:
+      R1: "OGC SWE Common 3.0 (OGC 24-014, edition 3.0.0) from opengeospatial/ogcapi-connected-systems v1.0.0"
+      R2: "Phase 0 records provenance and stops for owner sign-off; Phase 1 delivers catalog/swe"
+      R3: "Mint IRIs under http://www.opengis.net/spec/SWE/3.0/ as an explicit C360 RDF convention (registered: false)"
+    license: "OGC Software License (opengeospatial/ogcapi-connected-systems LICENSE); retain notice"
+    test_oracle: >-
+      swe-3.0 JSON Schema files at the recorded sha256 digests: every admitted class resolves to its recorded schema
+      location and allOf parent; every non-type property key across swecommon/schemas/json/*.json equals the admitted
+      property set
+
+  - catalog: sensorml
+    disposition: new-content
+    phase: 1
+    semengine_overlap: "none (no SensorML constant or sml serializer prefix at 11da4721c2233a8e2b5b1d6236a97a44e06abbb6)"
+    namespace:
+      iri: http://www.opengis.net/spec/sensorML/3.0/
+      authority: C360 (RDF convention over OGC 23-000 Clause 5 base URI)
+      registered: false
+      statement: "A C360 RDF convention over OGC SensorML 3.0's Clause 5 normative specification base URI (http://www.opengis.net/spec/sensorML/3.0). OGC 23-000 publishes Draft 2020-12 JSON Schemas rather than an OWL ontology; these IRIs are not an externally certified or dereferenceable OGC OWL ontology (owner ruling R3 on #26)."
+    source:
+      schema_bundle: sensorml-3.0
+      go_name_mapping: >-
+        Object classes use PascalCase Go names matching their JSON Schema file/type/$defs identifier; JSON property keys
+        use Prop<PascalCase> Go names (avoiding collisions such as Link vs PropLink and preserving upstream spelling
+        organisationName in PropOrganisationName); cross-catalog parents into catalog/swe use the swe: prefix in this
+        table and resolve to swe.AbstractSweIdentifiable in Go.
+      admitted_classes: # Go name: [JSON Schema local name, schema location, direct parent]
+        DescribedObject: [DescribedObject, "sensorml/schemas/json/DescribedObject.json", ""]
+        AbstractProcess: [AbstractProcess, "sensorml/schemas/json/AbstractProcess.json", DescribedObject]
+        AbstractPhysicalProcess: [AbstractPhysicalProcess, "sensorml/schemas/json/AbstractPhysicalProcess.json", AbstractProcess]
+        SimpleProcess: [SimpleProcess, "sensorml/schemas/json/SimpleProcess.json", AbstractProcess]
+        AggregateProcess: [AggregateProcess, "sensorml/schemas/json/AggregateProcess.json", AbstractProcess]
+        PhysicalComponent: [PhysicalComponent, "sensorml/schemas/json/PhysicalComponent.json", AbstractPhysicalProcess]
+        PhysicalSystem: [PhysicalSystem, "sensorml/schemas/json/PhysicalSystem.json", AbstractPhysicalProcess]
+        Deployment: [Deployment, "sensorml/schemas/json/Deployment.json", DescribedObject]
+        DeployedSystem: [DeployedSystem, "sensorml/schemas/json/DeployedSystem.json", ""]
+        DerivedProperty: [DerivedProperty, "sensorml/schemas/json/DerivedProperty.json", "swe:AbstractSweIdentifiable"]
+        Mode: [Mode, "sensorml/schemas/json/Mode.json", DescribedObject]
+        Settings: [Settings, "sensorml/schemas/json/Settings.json", ""]
+        GeoPose: [GeoPose, "sensorml/schemas/json/Pose.json", ""]
+        RelativePose: [RelativePose, "sensorml/schemas/json/Pose.json", ""]
+        PositionGeo: [PositionGeo, "sensorml/schemas/json/Pose.json#/$defs/PositionGeo", ""]
+        PositionXYZ: [PositionXYZ, "sensorml/schemas/json/Pose.json#/$defs/PositionXYZ", ""]
+        AnglesYPR: [AnglesYPR, "sensorml/schemas/json/Pose.json#/$defs/AnglesYPR", ""]
+        Quaternion: [Quaternion, "sensorml/schemas/json/Pose.json#/$defs/Quaternion", ""]
+        Event: [Event, "sensorml/schemas/json/Event.json", "swe:AbstractSweIdentifiable"]
+        ResponsibleParty: [ResponsibleParty, "sensorml/schemas/json/ResponsibleParty.json", ""]
+        Contact: [Contact, "sensorml/schemas/json/ResponsibleParty.json#/$defs/Contact", ""]
+        Phone: [Phone, "sensorml/schemas/json/ResponsibleParty.json#/$defs/Phone", ""]
+        Address: [Address, "sensorml/schemas/json/ResponsibleParty.json#/$defs/Address", ""]
+        ContactLink: [ContactLink, "sensorml/schemas/json/ContactLink.json", ""]
+        Document: [Document, "sensorml/schemas/json/Document.json", ""]
+        LegalConstraint: [LegalConstraint, "sensorml/schemas/json/LegalConstraint.json", ""]
+        CodeListValue: [CodeListValue, "sensorml/schemas/json/LegalConstraint.json#/$defs/CodeListValue", ""]
+        CharacteristicList: [CharacteristicList, "sensorml/schemas/json/DescribedObject.json#/$defs/CharacteristicList", "swe:AbstractSweIdentifiable"]
+        CapabilityList: [CapabilityList, "sensorml/schemas/json/DescribedObject.json#/$defs/CapabilityList", "swe:AbstractSweIdentifiable"]
+        SpatialFrame: [SpatialFrame, "sensorml/schemas/json/AbstractPhysicalProcess.json#/$defs/SpatialFrame", "swe:AbstractSweIdentifiable"]
+        TemporalFrame: [TemporalFrame, "sensorml/schemas/json/AbstractPhysicalProcess.json#/$defs/TemporalFrame", "swe:AbstractSweIdentifiable"]
+        ProcessMethod: [ProcessMethod, "sensorml/schemas/json/SimpleProcess.json#/$defs/ProcessMethod", ""]
+        ObservableProperty: [ObservableProperty, "sensorml/schemas/json/commonDefs.json#/$defs/ObservableProperty", "swe:AbstractSweIdentifiable"]
+        Term: [Term, "sensorml/schemas/json/commonDefs.json#/$defs/Term", ""]
+        Link: [Link, "sensorml/schemas/json/AggregateProcess.json", ""]
+      admitted_properties: # Go name: JSON Schema property key
+        PropAccessConstraints: accessConstraints
+        PropAddress: address
+        PropAdministrativeArea: administrativeArea
+        PropAlgorithm: algorithm
+        PropAngles: angles
+        PropAttachedTo: attachedTo
+        PropAxes: axes
+        PropBaseProperty: baseProperty
+        PropCapabilities: capabilities
+        PropCharacteristics: characteristics
+        PropCity: city
+        PropClassifiers: classifiers
+        PropCodeSpace: codeSpace
+        PropComponents: components
+        PropConditions: conditions
+        PropConfiguration: configuration
+        PropConnections: connections
+        PropContactInfo: contactInfo
+        PropContactInstructions: contactInstructions
+        PropContacts: contacts
+        PropCountry: country
+        PropDefinition: definition
+        PropDeliveryPoint: deliveryPoint
+        PropDeployedSystems: deployedSystems
+        PropDescription: description
+        PropDestination: destination
+        PropDocumentation: documentation
+        PropDocuments: documents
+        PropElectronicMailAddress: electronicMailAddress
+        PropFacsimile: facsimile
+        PropFeaturesOfInterest: featuresOfInterest
+        PropH: h
+        PropHistory: history
+        PropHoursOfService: hoursOfService
+        PropID: id
+        PropIdentifiers: identifiers
+        PropIndividualName: individualName
+        PropInputs: inputs
+        PropKeywords: keywords
+        PropLabel: label
+        PropLang: lang
+        PropLat: lat
+        PropLegalConstraints: legalConstraints
+        PropLink: link
+        PropLocalReferenceFrames: localReferenceFrames
+        PropLocalTimeFrames: localTimeFrames
+        PropLocation: location
+        PropLon: lon
+        PropLTPReferenceFrame: ltpReferenceFrame
+        PropMethod: method
+        PropModes: modes
+        PropName: name
+        PropObjectType: objectType
+        PropOrganisationName: organisationName
+        PropOrigin: origin
+        PropOtherConstraints: otherConstraints
+        PropOutputs: outputs
+        PropParameters: parameters
+        PropPhone: phone
+        PropPitch: pitch
+        PropPlatform: platform
+        PropPosition: position
+        PropPositionName: positionName
+        PropPostalCode: postalCode
+        PropProperties: properties
+        PropQualifiers: qualifiers
+        PropQuaternion: quaternion
+        PropRef: ref
+        PropReferenceFrame: referenceFrame
+        PropRole: role
+        PropRoll: roll
+        PropSecurityConstraints: securityConstraints
+        PropSetArrayValues: setArrayValues
+        PropSetConstraints: setConstraints
+        PropSetModes: setModes
+        PropSetStatus: setStatus
+        PropSetValues: setValues
+        PropSource: source
+        PropStatistic: statistic
+        PropSystem: system
+        PropTime: time
+        PropTypeOf: typeOf
+        PropUniqueID: uniqueId
+        PropUseConstraints: useConstraints
+        PropUseLimitations: useLimitations
+        PropValidTime: validTime
+        PropValue: value
+        PropVoice: voice
+        PropW: w
+        PropWebsite: website
+        PropX: x
+        PropY: y
+        PropYaw: yaw
+        PropZ: z
+      hierarchy: "SubClassOf, Parents, IsA from JSON Schema allOf object inheritance chains (crossing into catalog/swe via swe:AbstractSweIdentifiable)"
+    excluded_source_symbols:
+      - symbols: [type]
+        reason: "JSON Schema discriminator keyword; represented by rdf:type in RDF"
+      - symbols: [Pose, Position, FeatureList, InputList, OutputList, ParameterList, ModeChoice, IOComponentChoice,
+          ComponentList, ConnectionList, XLink, TimeInstant, TimePeriod, TimeInstantOrPeriod, AnyProperty, PathRef]
+        reason: "JSON Schema oneOf unions and array/string/link validation wrappers rather than SensorML domain object classes"
+      - symbols: [AbstractSWE, AbstractSWEIdentifiable, DataRecord, Vector, Matrix, DataArray, Text, Category,
+          SoftNamedProperty, AnySimpleComponent, AnyComponent, AnyConstraint]
+        reason: "sweCommonDefs.json $ref and oneOf aliases to swe-3.0 definitions (AbstractSWEIdentifiable aliases swe.AbstractSweIdentifiable)"
+      - symbols: [href, rel, hreflang, title, uid, rt, if]
+        reason: "RFC 5988 and RFC 6690 Web Linking keys in shared common/link.json rather than SensorML 3.0 domain properties"
+    rulings:
+      R1: "OGC SensorML 3.0 (OGC 23-000, edition 3.0.0) from opengeospatial/ogcapi-connected-systems v1.0.0"
+      R2: "Phase 0 records provenance and stops for owner sign-off; Phase 1 delivers catalog/sensorml; Phase 2 defers packs/sensorml"
+      R3: "Mint IRIs under http://www.opengis.net/spec/sensorML/3.0/ as an explicit C360 RDF convention (registered: false)"
+    license: "OGC Software License (opengeospatial/ogcapi-connected-systems LICENSE); retain notice"
+    test_oracle: >-
+      sensorml-3.0 JSON Schema files at the recorded sha256 digests: every admitted class resolves to its recorded
+      schema location and allOf parent (including cross-catalog swe.AbstractSweIdentifiable -> swe.AbstractSWE); every
+      non-type property key across sensorml/schemas/json/*.json equals the admitted property set
 
   - catalog: geosparql
     disposition: deferred
@@ -471,3 +1070,23 @@ entries:
     references: [bfo-2020, cco-2.2]
     license: MIT (SemVocab); references CC-BY-4.0 / BSD-3-Clause ontologies
     test_oracle: "loads and registers through SemEngine v0.1.0-alpha.2; namespaces equal the ontology pins"
+
+  - pack: swe-core
+    disposition: new-content
+    phase: 1
+    files: [packs/swe-core.yaml]
+    contents: >-
+      prefixes sosa (http://www.w3.org/ns/sosa/), ssn (http://www.w3.org/ns/ssn/), ssn-system
+      (http://www.w3.org/ns/ssn/systems/), swe (http://www.opengis.net/spec/SWE/3.0/), and sml
+      (http://www.opengis.net/spec/sensorML/3.0/); packs/sensorml predicates, projections, and SHACL shapes deferred to
+      Phase 2 (owner ruling R2 on #26)
+    references: [sosa-2017, ssn-2017, ssn-system-2017, swe-3.0, sensorml-3.0]
+    rulings:
+      R1: "W3C SOSA/SSN + ssn-system 2017 Recommendation and OGC SWE Common 3.0 + SensorML 3.0"
+      R2: "Phase 1 delivers packs/swe-core prefix pack; packs/sensorml deferred to Phase 2"
+      R3: "swe and sml prefixes bind C360 RDF convention stems over OGC Clause 5 specification base URIs"
+    license: "MIT (SemVocab); references W3C/OGC 2017 ontologies and OGC Software License 3.0 schemas"
+    test_oracle: >-
+      loads and registers through SemEngine v0.1.0-alpha.2 (vocabulary.LoadPackYAML + vocabulary.RegisterPack with
+      export.RegisterPrefixes); namespaces equal the ledger pins and C360 RDF convention stems; compacts ssn-system
+      ahead of ssn; rolls back atomically on rejected load
