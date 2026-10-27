@@ -1,0 +1,179 @@
+# The SensorML shapes of packs/sensorml/sensorml.shacl.ttl in SemVocab's YAML
+# shape form, written by hand from the Turtle for multi-format compilation parity.
+node_shapes:
+  - id: "http://www.opengis.net/spec/sensorML/3.0/DeploymentShape"
+    target_classes: ["http://www.opengis.net/spec/sensorML/3.0/Deployment"]
+    properties:
+      - path: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/identifier"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/title"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        min_count: 1
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://purl.org/dc/terms/description"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/position"
+        datatype: "http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON"
+        max_count: 1
+      - path: "http://www.w3.org/2004/02/skos/core#notation"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/systems/hasSystemCapability"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/hasProperty"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/deployedSystem"
+        min_count: 0
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.w3.org/2004/02/skos/core#broader"
+        max_count: 1
+
+  - id: "http://www.opengis.net/spec/sensorML/3.0/DerivedPropertyShape"
+    target_classes: ["http://www.opengis.net/spec/sensorML/3.0/DerivedProperty"]
+    properties:
+      - path: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/identifier"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/title"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        min_count: 1
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://purl.org/dc/terms/description"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/definition"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/baseProperty"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+
+  - id: "http://www.opengis.net/spec/sensorML/3.0/PhysicalSystemShape"
+    target_classes: ["http://www.opengis.net/spec/sensorML/3.0/PhysicalSystem"]
+    properties:
+      - path: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/identifier"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/title"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        min_count: 1
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://purl.org/dc/terms/description"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.w3.org/ns/sosa/hosts"
+        min_count: 0
+      - path: "http://www.w3.org/ns/sosa/isHostedBy"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/hasSubSystem"
+        min_count: 0
+      - path: "http://www.w3.org/ns/sosa/usedProcedure"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/attachedTo"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/position"
+        datatype: "http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON"
+        max_count: 1
+      - path: "http://www.w3.org/2004/02/skos/core#notation"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/systems/hasSystemCapability"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/hasProperty"
+        min_count: 0
+
+  - id: "http://www.opengis.net/spec/sensorML/3.0/SamplingFeatureShape"
+    target_classes: ["http://www.w3.org/ns/sosa/Sample"]
+    properties:
+      - path: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/identifier"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/title"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://purl.org/dc/terms/description"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/position"
+        datatype: "http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON"
+        max_count: 1
+      - path: "http://www.w3.org/ns/sosa/isHostedBy"
+        max_count: 1
+      - path: "http://www.w3.org/ns/sosa/isSampleOf"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.w3.org/ns/ssn/implements"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+
+  - id: "http://www.opengis.net/spec/sensorML/3.0/SimpleProcessShape"
+    target_classes: ["http://www.opengis.net/spec/sensorML/3.0/SimpleProcess"]
+    properties:
+      - path: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/identifier"
+        min_count: 1
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://purl.org/dc/terms/title"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        min_count: 1
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://purl.org/dc/terms/description"
+        datatype: "http://www.w3.org/2001/XMLSchema#string"
+        max_count: 1
+        pattern: '(.|[\n\r])+'
+      - path: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+        max_count: 1
+        pattern: '^[^ \t\n\r]+$'
+      - path: "http://www.opengis.net/spec/sensorML/3.0/position"
+        max_count: 0
+      - path: "http://www.w3.org/2004/02/skos/core#notation"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/systems/hasSystemCapability"
+        min_count: 0
+      - path: "http://www.w3.org/ns/ssn/hasProperty"
+        min_count: 0
