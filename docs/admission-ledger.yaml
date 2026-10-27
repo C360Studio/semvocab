@@ -1078,8 +1078,8 @@ entries:
     contents: >-
       prefixes sosa (http://www.w3.org/ns/sosa/), ssn (http://www.w3.org/ns/ssn/), ssn-system
       (http://www.w3.org/ns/ssn/systems/), swe (http://www.opengis.net/spec/SWE/3.0/), and sml
-      (http://www.opengis.net/spec/sensorML/3.0/); packs/sensorml predicates, projections, and SHACL shapes deferred to
-      Phase 2 (owner ruling R2 on #26)
+      (http://www.opengis.net/spec/sensorML/3.0/); packs/sensorml predicates, projections, and SHACL shapes delivered in
+      pack sensorml in Phase 2 (owner rulings R2 and R4 on #26)
     references: [sosa-2017, ssn-2017, ssn-system-2017, swe-3.0, sensorml-3.0]
     rulings:
       R1: "W3C SOSA/SSN + ssn-system 2017 Recommendation and OGC SWE Common 3.0 + SensorML 3.0"
@@ -1090,3 +1090,43 @@ entries:
       loads and registers through SemEngine v0.1.0-alpha.2 (vocabulary.LoadPackYAML + vocabulary.RegisterPack with
       export.RegisterPrefixes); namespaces equal the ledger pins and C360 RDF convention stems; compacts ssn-system
       ahead of ssn; rolls back atomically on rejected load
+
+  - pack: sensorml
+    disposition: new-content
+    phase: 2
+    files: [packs/sensorml/sensorml.yaml, packs/sensorml/sensorml.shacl.ttl, packs/sensorml/sensorml.mapping.yaml]
+    contents: >-
+      9 prefixes (rdf, rdfs, dc, skos, sosa, ssn, ssn-system, swe, sml), 5 OGC CS API Part 1 entity types
+      (csapi.system, csapi.procedure, csapi.deployment, csapi.samplingfeature, csapi.property), 20 sensorml.*
+      predicates, 2 1-step ProjectionSpec chains (sml:CapabilityList, sml:CharacteristicList), 5 open SHACL shapes, and
+      5 reconcile projection contracts; pack: sensorml mints zero new namespaces (reusing standard W3C/DCMI/SKOS
+      namespaces and the C360 RDF IRI conventions declared on catalog: swe and catalog: sensorml) and admits zero
+      Working-Draft CS API Part 2 csapi: IRIs
+    references: [sosa-2017, ssn-2017, ssn-system-2017, swe-3.0, sensorml-3.0]
+    referenced_terms_verified: [dc:description, dc:identifier, dc:title, rdf:type, rdfs:isDefinedBy, skos:broader,
+      skos:notation, sml:AbstractPhysicalProcess, sml:AbstractProcess, sml:CapabilityList, sml:CharacteristicList,
+      sml:Deployment, sml:DerivedProperty, sml:DescribedObject, sml:PhysicalSystem, sml:SimpleProcess, sml:attachedTo,
+      sml:baseProperty, sml:definition, sml:position, sosa:FeatureOfInterest, sosa:ObservableProperty, sosa:Procedure,
+      sosa:Result, sosa:Sample, sosa:hosts, sosa:isHostedBy, sosa:isSampleOf, sosa:usedProcedure, ssn:Deployment,
+      ssn:Property, ssn:System, ssn:deployedSystem, ssn:hasProperty, ssn:hasSubSystem, ssn:implements,
+      ssn-system:hasSystemCapability, swe:AbstractSWE, swe:AbstractSweIdentifiable, swe:value]
+    local_assertions:
+      - "sml:PhysicalSystem rdfs:subClassOf ssn:System (owner ruling R5 on #26; aligns OGC SensorML 3.0 PhysicalSystem with W3C SSN System)"
+      - "sml:SimpleProcess rdfs:subClassOf sosa:Procedure (owner ruling R5 on #26; aligns OGC SensorML 3.0 SimpleProcess with W3C SOSA Procedure without polluting PhysicalSystem via AbstractProcess)"
+      - "sml:Deployment rdfs:subClassOf ssn:Deployment (owner ruling R5 on #26; aligns OGC SensorML 3.0 Deployment with W3C SSN Deployment)"
+      - "sml:DerivedProperty rdfs:subClassOf sosa:ObservableProperty (owner ruling R5 on #26; aligns OGC SensorML 3.0 DerivedProperty with W3C SOSA ObservableProperty, inheriting ssn:Property)"
+    excluded_source_symbols:
+      - symbols: ["csapi:*", datastream, controlstream, observation, command, systemevent, systemhistory, feasibility]
+        reason: "OGC API - Connected Systems Part 2 (OGC 23-002) remains an unpublished Working Draft; deferred to semconnect or a separate packs/csapi follow-up (owner ruling R4 on #26)"
+      - symbols: ["sosa:SamplingFeature", "sosa:hasLocation"]
+        reason: "not declared in W3C SOSA/SSN 2017 Recommendation; pack sensorml uses sosa:Sample and sml:position instead"
+    rulings:
+      R1: "W3C SOSA/SSN + ssn-system 2017 Recommendation and OGC SWE Common 3.0 + SensorML 3.0"
+      R3: "swe and sml prefixes bind C360 RDF convention stems over OGC Clause 5 specification base URIs"
+      R4: "Scope packs/sensorml strictly to published SensorML 3.0 + SOSA/SSN (5 Part 1 resources, sensorml.* predicates, and Part 1 association predicates); keep Working-Draft CS API Part 2 in semconnect or packs/csapi"
+      R5: "Use csapi.<type> entity-type keys with dual SensorML 3.0 + SOSA/SSN closures via local_assertions"
+      R6: "Phase 2a records OpenSpec design and admission-ledger.yaml updates and pauses for owner sign-off before Phase 2b implementation"
+    license: "MIT (SemVocab), Copyright (c) 2026 Complete 360 Studio; references W3C/OGC 2017 ontologies and OGC Software License 3.0 schemas"
+    test_oracle: >-
+      packs/packs_test.go, packs/registration_test.go, and packs/sensorml/sensorml_test.go verified against
+      oracle.LoadMerged, oracle.LoadSchemaCatalog, SemEngine v0.1.0-alpha.2, and shacl.Compile

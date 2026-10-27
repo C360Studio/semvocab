@@ -124,11 +124,11 @@ func loadSchemaCatalog(b SchemaBundle) (*SchemaCatalog, error) {
 	if !ok {
 		return nil, fmt.Errorf("oracle: ledger pins no schema bundle %q", b)
 	}
-	sweEntry, err := l.Entry("swe")
+	sweEntry, err := l.Catalog("swe")
 	if err != nil {
 		return nil, err
 	}
-	smlEntry, err := l.Entry("sensorml")
+	smlEntry, err := l.Catalog("sensorml")
 	if err != nil {
 		return nil, err
 	}

@@ -124,10 +124,10 @@ func closureProblems(name string, spec vocabulary.PackSpec, l ledger.Ledger, rel
 		"ssn":        l.Pins.Ontologies["ssn-2017"].Namespace,
 		"ssn-system": l.Pins.Ontologies["ssn-system-2017"].Namespace,
 	}
-	if e, err := l.Entry("swe"); err == nil {
+	if e, err := l.Catalog("swe"); err == nil {
 		pins["swe"] = e.Namespace.IRI
 	}
-	if e, err := l.Entry("sensorml"); err == nil {
+	if e, err := l.Catalog("sensorml"); err == nil {
 		pins["sml"] = e.Namespace.IRI
 	}
 	if pins["obo"] != bfo.Namespace || pins["cco"] != cco.Namespace ||
@@ -136,7 +136,7 @@ func closureProblems(name string, spec vocabulary.PackSpec, l ledger.Ledger, rel
 		pins["swe"] != swe.Namespace || pins["sml"] != sensorml.Namespace {
 		add("ledger pins %v disagree with catalog namespaces", pins)
 	}
-	if e, err := l.Entry("diekm"); err == nil {
+	if e, err := l.Pack("diekm"); err == nil {
 		pins["diekm"] = e.Namespace.IRI
 	}
 	for _, p := range spec.Prefixes {
@@ -148,7 +148,7 @@ func closureProblems(name string, spec vocabulary.PackSpec, l ledger.Ledger, rel
 		}
 	}
 
-	entry, err := l.Entry(name)
+	entry, err := l.Pack(name)
 	if err != nil {
 		add("%v", err)
 		return bad
