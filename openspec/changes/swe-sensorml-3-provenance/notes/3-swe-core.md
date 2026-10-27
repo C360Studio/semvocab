@@ -19,8 +19,11 @@
 - **Closure, idempotence, conflict, and atomic-failure coverage.** `packs_test.go` verifies `swe-core` prefixes against
   `pins.ontologies` (`sosa-2017`, `ssn-2017`, `ssn-system-2017`) and `pins.schemas` (`swe-3.0`, `sensorml-3.0`) and
   requires zero predicates, entity types, and projections (owner ruling R2). `registration_test.go` exercises repeated
-  `RegisterSWECore()` calls, rejecting conflicting `sml` prefix rebinding without mutating state, and rejecting malformed
-  `swe-core` copies (unknown YAML field and invalid predicate) with registry and serializer prefix state unchanged.
+  `RegisterSWECore()` calls (`TestPackRepeatedRegistration`), rejecting conflicting `ssn-system` prefix rebinding
+  without mutating registry or serializer prefix state (`TestPackConflictingRegistration` /
+  `"swe-core prefix rebinding fails atomically"`), and rejecting a malformed `swe-core.yaml` copy carrying an unknown
+  YAML field (`TestPackAtomicFailure` / `"swe-core: unknown YAML field"`), alongside the suite's DIEKM and generic
+  invalid-predicate, missing-terminal-value-predicate, and invalid-superclass-IRI atomic-failure cases.
 
 ## Shown able to fail (seeded, observed, and reverted)
 

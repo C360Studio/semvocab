@@ -16,11 +16,14 @@
   while `resolveRef` follows relative `$ref` chains across `common/`, `swecommon/`, and `sensorml/` to the canonical
   target (for example `swecommon/schemas/json/sweCommonDefs.json#/$defs/AbstractSWEIdentifiable` ->
   `swecommon/schemas/json/AbstractSweIdentifiable.json`).
-- **Property inheritance closure in `DeclaredProperties`.** `DeclaredProperties` walks `properties`, `allOf`, `oneOf`,
-  `anyOf`, and resolved `$ref` targets recursively (`visited` guarded) so both locally declared and inherited properties
-  are visible, while catalog parity tests check each ledger-recorded property directly on its recorded `schema_path` and
-  verify that every domain schema file in `swecommon/schemas/json/` and `sensorml/schemas/json/` has full class and
-  property coverage in the admission ledger.
+- **Per-class location/parent checks and domain-wide property-set comparison (`internal/oracle/schema.go`).**
+  `HasObjectClass`, `DirectParent`, and `Closure` verify each ledger-admitted class at its recorded
+  `[local, schema_path, direct_parent]` tuple, using `resolveRef` (`visited`-guarded) to follow relative `$ref` chains
+  across `common/`, `swecommon/`, and `sensorml/`. Separately, `DeclaredProperties` walks AST `properties`, `$defs`,
+  `allOf`, `oneOf`, `anyOf`, and `items` nodes across the bundle's own domain schema directory
+  (`swecommon/schemas/json/` or `sensorml/schemas/json/`, without resolving `$ref` targets) to return the sorted unique
+  JSON property keys declared in that domain, which `swe_test.go` and `sensorml_test.go` compare as an exact set against
+  the ledger's `admitted_properties` map union `{"type"}`.
 - **`ssn.DirectParents` slice immutability.** `ssn.DirectParents(iri)` returns `slices.Clone(directParents[iri])` so a
   caller mutating the returned slice (`sosa.Sample` has two parents: `sosa.FeatureOfInterest` and `sosa.Result`) cannot
   corrupt package hierarchy state; `TestCatalogHierarchyMatchesRelease` asserts both multi-parent order and slice copy
