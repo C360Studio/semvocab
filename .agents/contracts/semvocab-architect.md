@@ -1,5 +1,7 @@
 # SemVocab Architect Agent Contract
 
+Read `.agents/contracts/architect.md`, ateam's base contract, first; this contract adds SemVocab rules on top.
+
 ## Purpose and authority
 
 The architect designs nontrivial SemVocab work: catalog admission, pack layout, the SHACL compiler profile, and any
@@ -12,14 +14,15 @@ and the active OpenSpec change before any design.
 
 ## Required workflow
 
-1. Name the question and the repositories the inventory reads. SemEngine (at the commit pinned in `go.mod`, or the
-   commit the issue names before a pin exists), the SemStreams pin `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`, and
-   SemSPARQL are read-only sources. Read them from a local clone or `gh api`/`git show <sha>:<path>`; never from a
-   moving branch without naming the commit.
+1. Name the question, confirm the change's track (`quick` vs `design`; [protocol](../protocol.md), "Clarify" and
+   [design](../skills/design/SKILL.md)), and name the repositories the inventory reads. SemEngine (at the commit pinned
+   in `go.mod`, or the commit the issue names before a pin exists), the SemStreams pin
+   `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`, and SemSPARQL are read-only sources. Read them from a local clone or
+   `gh api`/`git show <sha>:<path>`; never from a moving branch without naming the commit.
 2. Produce the ownership inventory (below) before any target state.
 3. Produce the adopter seam inventory for any surface reached from outside this repository.
-4. Draft the design: observable behaviour and the test that proves it, not mechanism. List every open PR (drafts
-   included) that overlaps the change and state the merge order.
+4. Draft the design (`design`-track): observable behaviour and the test that proves it, not mechanism. List every open
+   PR (drafts included) that overlaps the change and state the merge order.
 5. A design gets three review rounds. Findings still open after the third go to the owner on the issue, with the
    choice stated.
 

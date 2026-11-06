@@ -1,22 +1,26 @@
 # SemVocab Agent Profiles
 
-The files in `contracts/` are the tracked, platform-neutral behavioral authority. Platform adapters are intentionally
-thin and must point to exactly one canonical contract. Adapted from SemEngine (`C360Studio/semengine`, `.agents/`),
-which adapted SemStreams'; where a rule differs, this tree is authoritative.
+`.agents/` holds the shared behavioral authority, workflow protocol, review policy, host manifests, and canonical skills
+used across **Claude Code**, **Codex CLI**, **Gemini CLI**, and **Antigravity (`agy`)**. Platform files under
+`.claude/`, `.codex/`, `.gemini/`, and `.mcp.json` are thin adapters and tool/hook registrations verified by
+`task ateam:doctor` (`ateam doctor --check` at `v0.3.8`), `TestAgentSetupParity`, and `TestAteamTemplatesUnchanged`.
 
 ## Role and platform mapping
 
-- SemVocab architect (read-only)
+Specialist contracts under `.agents/contracts/semvocab-*.md` layer SemVocab's domain rules on top of `ateam`'s seeded
+base contracts (`.agents/contracts/{architect,developer,reviewer}.md`, which remain byte-identical to `ateam v0.3.8`):
+
+- SemVocab architect (read-only; reads `.agents/contracts/architect.md` first)
   - Canonical: `.agents/contracts/semvocab-architect.md`
   - Claude: `.claude/agents/semvocab-architect.md`
   - Codex: `.codex/agents/semvocab-architect.toml`
   - Gemini (Antigravity): `define_subagent` (`name = "semvocab-architect"`, `enable_write_tools = false`)
-- SemVocab developer
+- SemVocab developer (reads `.agents/contracts/developer.md` first)
   - Canonical: `.agents/contracts/semvocab-developer.md`
   - Claude: `.claude/agents/semvocab-developer.md`
   - Codex: `.codex/agents/semvocab-developer.toml`
   - Gemini (Antigravity): `define_subagent` (`name = "semvocab-developer"`, `enable_write_tools = true`)
-- SemVocab reviewer (independent; read-only)
+- SemVocab reviewer (independent; read-only; reads `.agents/contracts/reviewer.md` first)
   - Canonical: `.agents/contracts/semvocab-reviewer.md`
   - Claude: `.claude/agents/semvocab-reviewer.md`
   - Codex: `.codex/agents/semvocab-reviewer.toml`
@@ -27,13 +31,13 @@ which adapted SemStreams'; where a rule differs, this tree is authoritative.
   - Codex: `.codex/agents/semvocab-technical-writer.toml`
   - Gemini (Antigravity): `define_subagent` (`name = "semvocab-technical-writer"`, `enable_write_tools = true`)
 
-SemEngine's four roles are carried; SemStreams' explorer and judge contracts are not. Add one only with a recorded
-owner decision.
+SemEngine's four specialist roles are carried; add another role only with a recorded owner decision.
 
-## Model routing
+## Model routing and review policy
 
-Adapters separate **model tier** from **reasoning effort** (`low -> medium -> high`). Neither the architect nor the
-reviewer runs on a weaker model tier than the developer.
+Adapters separate **model tier** from **reasoning effort** (`low -> medium -> high`). Cross-agent review comparisons and
+automated reviewer launches read `.agents/review-policy.json` (`"cross_provider": true`, `"review_launch": "agent"`) and
+the host manifests `.agents/hosts/{enjoy,herdr}.toml`.
 
 | Role | Claude | Codex | Gemini (Antigravity) | Target effort |
 | --- | --- | --- | --- | --- |
@@ -49,105 +53,81 @@ reviewer runs on a weaker model tier than the developer.
   SemEngine/SemSPARQL boundary, designs the SHACL compiler profile, or fails a review round. Keep the reviewer at
   `high`. Run the technical writer at `low` or `medium`. The tracked `.claude/agents/` and `.codex/agents/` adapters
   pin these defaults and are checked by `TestAgentSetupParity` (`internal/harness/contract/agentsetup_test.go`).
-
-On Gemini (Antigravity), role subagents are registered with `define_subagent` pointing at the matching
-`.agents/contracts/semvocab-*.md` contract and invoked with `invoke_subagent`; `Model` defaults to `"inherit"` unless
-`"pro"` or `"flash"` is explicitly requested. Antigravity can also host Claude models; for `implemented-by:` and
-`reviewed-by:` the agent is the model family, not the tool (`.agents/protocol.md`, "Cross-agent review").
-
-The table does not rank one platform's models against another's; across agents the pairing is the owner's decision.
-For a code pull request the reviewer of record is another agent's reviewer from the table above; a documents-only pull
-request keeps this repository's reviewer (`.agents/protocol.md`, "Cross-agent review"). `scripts/merge-check.sh`
-recognizes `claude`, `codex`, and `gemini` on code pull requests.
+- **Cross-agent review launch:** for `implemented-by:` and `reviewed-by:`, the agent is the model family (`claude`,
+  `codex`, `gemini`), not the IDE or host. Under `"review_launch": "agent"`, `ateam review request <pr>` prints eligible
+  cross-provider reviewers not weaker than the implementer (`ateam review compare`) and resolves `.agents/hosts/enjoy.toml`
+  or `.agents/hosts/herdr.toml` so the session can start the reviewer and receive completion via `ateam review notify`.
 
 ## Orchestrating role agents
 
-These rules bind the session that intakes owner requests and spawns or briefs role agents. They come from SemEngine's
-account of where its orchestration cost went: every review round found something real, so the review loop is not
-where to cut; the avoidable cost was in the briefs and unclarified scope.
+These rules bind the session that intakes owner requests and spawns or briefs role agents:
 
 - **Clarify Definition of Done before starting or delegating work.** Before mutating state or spawning a role agent on
   an underspecified prompt, do a quick read-only check of any named issue, PR, or file (never asking what the tree
-  already answers), then verify four boundaries are clear: (1) **Deliverable** (answer/audit, issue, OpenSpec design,
-  docs-only PR, or code PR), (2) **Scope and non-goals**, (3) **Definition of Done and verification**, and (4) **Stop
-  boundary**. If any is missing or ambiguous, stop, propose a concise 3–4 bullet recommended Definition of Done, and
-  ask at most 1–3 targeted questions; once confirmed, run autonomously to that finish line.
+  already answers), then verify four boundaries are clear: (1) **Deliverable**, (2) **Scope and non-goals**,
+  (3) **Definition of Done and verification**, and (4) **Stop boundary**. If any is missing or ambiguous, stop, propose
+  a concise 3–4 bullet recommended Definition of Done, and ask at most 1–3 targeted questions; once confirmed, run
+  autonomously to that finish line.
 - **A brief carries the owner's intent, not only the approved document.** State what the product is for
-  (`AGENTS.md`, "What this is for") and any owner statement that bears on the question, including issue #1's
-  ownership boundary with SemEngine.
-- **An orchestrator's paraphrase is an unreviewed claim.** Hand an agent the artifact itself (a path, an issue
-  comment URL, a `file:line`), not a summary of it. Where a summary is unavoidable, mark it as the orchestrator's so
-  the reviewer checks it like any other claim.
+  (`AGENTS.md`, "What this is for") and any owner statement that bears on the question, including issue #1's ownership
+  boundary with SemEngine.
+- **An orchestrator's paraphrase is an unreviewed claim.** Hand an agent the artifact itself (a path, an issue comment
+  URL, a `file:line`), not a summary of it. Where a summary is unavoidable, mark it as the orchestrator's so the
+  reviewer checks it like any other claim.
 - **Resume for continuity, start fresh for mechanics.** A resumed agent re-reads its own transcript on every resume.
   For a mechanical follow-up, a fresh agent with a precise brief costs less.
 - **A design gets three review rounds.** Findings still open after the third go to the owner on the issue, with the
   choice stated, instead of a fourth round.
-- **Scope an inventory before it starts.** An inventory names its question and the repositories (and commits) it
-  reads first.
+- **Scope an inventory before it starts.** An inventory names its question and the repositories (and commits) it reads
+  first.
 
 ## Shared work protocol and rule index
 
-`.agents/protocol.md` is the canonical shared work protocol (state homes, rituals, worktree hygiene). `CLAUDE.md` and
-`AGENTS.md` point to it and carry the four gates (clarify, claim, merge, close) inline; edit the protocol only in
-`.agents/protocol.md`. `.agents/rules-index.md` is the enforcement audit matrix backing the domain-grouped rule
-summary in `AGENTS.md`.
+`.agents/protocol.md` is the canonical shared work protocol (hybrid state homes, lifecycle rituals, cross-agent review,
+worktree hygiene). `CLAUDE.md` and `AGENTS.md` point to it and carry the four gates (clarify, claim, merge, close)
+inline; edit the protocol only in `.agents/protocol.md`. `.agents/rules-index.md` is the enforcement audit matrix
+backing the domain-grouped rule summary in `AGENTS.md`.
 
 ## Shared skills
 
-Canonical skills live in `skills/`. Read the relevant `SKILL.md` fully; the platform adapters add discovery metadata
-and argument handling, not another rule set. Repository protocol and role contracts remain authoritative.
+Canonical skills live in `skills/<name>/SKILL.md`, with matching Claude adapters in `.claude/skills/<name>/SKILL.md` and
+Gemini commands in `.gemini/commands/<name>.toml`:
 
-- [semvocab-preflight](skills/semvocab-preflight/SKILL.md): scope existing verification gates and record their
-  evidence. Claude command `/preflight`.
-- [semvocab-handoff](skills/semvocab-handoff/SKILL.md): publish shared state and preserve unfinished work. Claude
-  command `/semvocab-handoff`.
-- [semvocab-pickup](skills/semvocab-pickup/SKILL.md): reconcile current state and verify worktree ownership. Claude
-  command `/semvocab-pickup`.
+- [pickup](skills/pickup/SKILL.md): reconcile open issues, PRs, worktrees, review records, and untracked shortcuts via
+  `ateam state pickup`.
+- [handoff](skills/handoff/SKILL.md): checkpoint shared state and record the 5-field pickup prompt via `ateam state
+  handoff`.
+- [preflight](skills/preflight/SKILL.md): select SemVocab verification gates for the current diff and record
+  reproducible evidence (`task verify`, `task test:spec`, `task mutate:check`).
+- [design](skills/design/SKILL.md): run the repository-first OpenSpec `design`-track workflow (`proposal.md`,
+  `design.md`, `specs/`, `tasks.md`).
+- [review-pr](skills/review-pr/SKILL.md): execute an independent cross-agent PR review in a detached checkout and post
+  the commit-bound `Review record` comment.
+- [ponytail](skills/ponytail/SKILL.md): apply the Ponytail 6-step decision ladder, 6-line testing block, and 1–2 line
+  exit summary.
 
-SemEngine's engine-capability skills (`entity-or-bucket`, `kv-or-stream`, `new-payload`, `query-pattern`) govern NATS
-storage and graph code SemVocab does not own, and are not carried. Add a capability skill here when a SemVocab
-capability (catalog admission, pack authoring, SHACL profile) has settled guidance worth one.
-
-Codex can invoke the canonical names with `$`, or read their paths directly. Antigravity (Gemini) automatically
-discovers `.agents/skills/<name>/SKILL.md` from the workspace root. Claude uses the command names above; its adapters
-live in `.claude/skills/<command-name>/SKILL.md`. The `preflight` adapter deliberately maps to the canonical
-`semvocab-preflight` name. A private memory reference cannot be required to interpret a shared rule.
+All skills other than `preflight` stay byte-identical to `ateam v0.3.8` (`TestAteamTemplatesUnchanged`); `preflight` is
+SemVocab-owned and carries `ateam`'s required section markers (`ateam doctor --check`).
 
 ## Read-only parity smoke
 
-Steps 1–8 are enforced automatically by `TestAgentSetupParity` and `TestAgentSetupParitySensitivity`
-(`internal/harness/contract/agentsetup_test.go`, run by `task test:unit`). Run Step 9 after changing a contract,
-adapter, or repository routing rule.
+Steps 1–8 are enforced automatically by `task ateam:doctor`, `TestAgentSetupParity`, and `TestAteamTemplatesUnchanged`
+(`internal/harness/contract/`). Run Step 9 after changing a contract, adapter, or repository routing rule.
 
-1. Confirm all four canonical contracts and all eight agent adapters exist, and that `.agents/protocol.md` and
-   `.agents/rules-index.md` exist.
-2. Confirm each adapter names-and-links only its matching `.agents/contracts/...` path and says to read it fully first.
-3. Confirm the Claude reviewer and architect tool lists contain `Read`, `Bash`, `Grep`, `Glob`, `Skill`, and that
-   write adapters add `Edit` and `Write`, with no `Task`, `LSP`, or other delegation tool (`gopls` is reached through
-   `Bash`; an unresolved tool name makes Claude Code refuse to launch the agent).
-4. Confirm the Codex reviewer and architect set `sandbox_mode = "read-only"`; the developer and the technical writer
-   have no sandbox override and inherit the parent workspace permissions.
-5. Confirm `CLAUDE.md` only imports `AGENTS.md` and carries no rules of its own, that `AGENTS.md` stays strictly under
-   24,000 bytes, and that every rule row in `AGENTS.md` has its corresponding row in `.agents/rules-index.md` (the test
-   checks numbered domain headings and per-domain row counts; semantic correspondence is review only).
+1. Confirm all four `semvocab-*` contracts, three `ateam` base contracts, and eight agent adapters exist, with the
+   architect, developer, and reviewer contracts pointing to their base contract first.
+2. Confirm each role adapter names-and-links only its matching `.agents/contracts/semvocab-*.md` path and says to read
+   it fully first.
+3. Confirm Claude read-only adapters list `Read`, `Bash`, `Grep`, `Glob`, `Skill` and write adapters add `Edit` and
+   `Write`, with no `Task` or `LSP`.
+4. Confirm Codex read-only adapters set `sandbox_mode = "read-only"` and write adapters set no sandbox override.
+5. Confirm `CLAUDE.md` only imports `@AGENTS.md`, `AGENTS.md` stays strictly under 24,000 bytes, and numbered rule
+   domains and row counts match `.agents/rules-index.md`.
 6. Confirm role adapters stay within 20 lines and contain no copied checklist (`- [ ]` or `- [x]`).
-7. For every skill in the shared-skills list, confirm the canonical file and Claude adapter exist, the adapter points
-   to that canonical file and says to read it fully, and it contains no copied checklist.
-8. Confirm the Claude and Codex model and effort settings match the table above.
-9. Validate changed skill frontmatter and relative links, then walk the applicable scenarios below without private
-   memory.
-
-Use these semantic fixtures when reading the routing text:
-
-- "Implement a nontrivial change" routes first to the SemVocab developer and then the SemVocab reviewer.
-- "Review a nontrivial SemVocab change" routes to the SemVocab reviewer in read-only mode.
-- "Design a catalog, pack, or SHACL compiler target" routes to the SemVocab architect (ownership inventory first,
-  drafts as text); binding rulings and approval stay with the owner session.
-- "Update durable docs or reconcile task truth" routes to the SemVocab technical writer.
-- "Check an isolated Go idiom" may use a generic Go agent only as a second pass.
-- "Prepare a docs-only PR" retains protocol review/CI gates and selects checks for the changed artifacts.
-- "The previous revision was green" preserves that evidence as historical, not current-head proof.
-- "Continue without private memory" resolves shared state and verifies ownership through pickup/protocol.
-
-The smoke passes only when Claude, Codex, and Gemini resolve the same logical role and canonical contract for every
-fixture.
+7. Confirm every canonical skill under `.agents/skills/` has a matching Claude adapter and Gemini `.toml` command, and
+   non-owned `ateam` templates match `v0.3.8` byte-for-byte.
+8. Confirm `.mcp.json`, `.agents/hooks.json`, `.claude/settings.json`, `.codex/{config.toml,hooks.json}`,
+   `.gemini/settings.json`, `.agents/review-policy.json`, and `.agents/hosts/{enjoy,herdr}.toml` pass `task ateam:doctor`.
+9. Validate changed skill frontmatter and relative links, then walk routing fixtures without private memory
+   (`semvocab-developer` -> `semvocab-reviewer` for code, `semvocab-architect` for designs,
+   `semvocab-technical-writer` for doc/task sync).

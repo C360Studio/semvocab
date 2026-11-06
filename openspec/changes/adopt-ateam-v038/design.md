@@ -83,5 +83,4 @@ Base: `b9ca45c`. Track: `design` (adds spec Requirements; modifies `agent-setup`
 
 ## Open Questions
 
-- **Owner ruling (`OPEN-Q`):** Approve `proposal.md` and `design.md` (`Approved-by:` in `proposal.md`) so implementation
-  proceeds as soon as `C360Studio/ateam` tags `v0.3.8`.
+- Resolved (2026-11-06): Owner approved `proposal.md` and `design.md` once `C360Studio/ateam` tagged `v0.3.8`.

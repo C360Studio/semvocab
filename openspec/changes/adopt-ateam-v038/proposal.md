@@ -2,7 +2,7 @@
 
 Track: design (adds spec Requirements and touches both `agent-setup` and `merge-gate`; `design.md`).
 
-Approved-by:
+Approved-by: Coby Leuschke (2026-11-06)
 
 ## Why
 
@@ -27,9 +27,8 @@ SemTeams (`C360Studio/semteams#391`) adopted `ateam`, and `ateam v0.3.8` (`C360S
   and `mutate:check` (`ateam mutate`) in `Taskfile.yml`; switch `spec:check` and `spec:queue` to `ateam state`; run
   `ateam:doctor` and `test:spec` in `scripts/verify.sh`.
 - Split `Merge check` into `.github/workflows/merge-check.yml` with base-commit checkout, the `Merge check probe` job
-  (`ateam review gate --awaiting`), and `scripts/merge-check.sh` calling `ateam review gate`
-  (`ATEAM_REQUIRED_CHECKS=Required,Merge check`). Update `main` ruleset `25161512` at merge time to require both
-  `Required` and `Merge check`.
+  (`ateam review gate --awaiting`), `ATEAM_REQUIRED_CHECKS=Required,Merge check`, and `scripts/merge-check.sh` calling
+  `ateam review gate`. Update `main` ruleset `25161512` at merge time to require both `Required` and `Merge check`.
 - Apply the `ateam` protocol rules (`quick`/`design` track, 60-line `proposal.md` + `Approved-by:` + `OPEN-Q` hold,
   `review_launch: "agent"`, `ateam mutate`, `ateam test-spec --base`, Close hygiene, Ponytail footer + `// shortcut:`)
   across `.agents/protocol.md`, `AGENTS.md` (< 24,000 bytes), `.agents/rules-index.md`, and `.agents/README.md`.

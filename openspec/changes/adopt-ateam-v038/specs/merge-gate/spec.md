@@ -26,12 +26,13 @@ labelled `class:flake` exists that the pull request's description does not close
 
 ### Requirement: Up-to-date rule
 
-`scripts/merge-check.sh` SHALL default `ATEAM_REQUIRED_CHECKS` to `Required,Merge check` and fail via
-`ateam review gate` unless `main`'s active ruleset requires every listed check on an up-to-date branch.
+`scripts/merge-check.sh` SHALL delegate to `ateam review gate` and `.github/workflows/merge-check.yml` SHALL set
+`ATEAM_REQUIRED_CHECKS` to `Required,Merge check`, failing unless `main`'s active ruleset requires every listed check
+(`Required` when unset locally) on an up-to-date branch.
 
 #### Scenario: Ruleset lacks the up-to-date setting
 
-- **WHEN** `main`'s active ruleset omits `Required` or `Merge check` or disables strict status checks
+- **WHEN** `main`'s active ruleset omits a required check in `ATEAM_REQUIRED_CHECKS` or disables strict status checks
 - **THEN** `scripts/merge-check.sh` fails via `ateam review gate`
 
 ### Requirement: Cross-agent review lines

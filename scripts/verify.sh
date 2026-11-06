@@ -5,9 +5,9 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-# Order is the contract: cheapest first; test:repeat is the most expensive step and
-# runs last (carried from SemEngine's merge-gate spec).
-steps=(spec:check docs:check fmt:check tidy:check build vet lint vuln test:unit test:repeat)
+# Order is the contract: cheapest first, ateam:doctor first of all; test:repeat is the most
+# expensive step and runs last (merge-gate spec, pinned by TestUnitInvocationsPinned).
+steps=(ateam:doctor spec:check test:spec docs:check fmt:check tidy:check build vet lint vuln test:unit test:repeat)
 
 # Tracked-file state before the run. Comparing before/after (not just "is dirty")
 # keeps verify usable on a working tree with edits in progress; on a clean
