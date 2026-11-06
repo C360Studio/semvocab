@@ -136,6 +136,11 @@ sml:SimpleProcessShape
         sh:pattern "^[^ \\t\\n\\r]+$"
     ] ;
     sh:property [
+        sh:path sosa:usedProcedure ;
+        sh:maxCount 1 ;
+        sh:pattern "^[^ \\t\\n\\r]+$"
+    ] ;
+    sh:property [
         sh:path sml:position ;
         sh:maxCount 0
     ] ;

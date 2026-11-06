@@ -62,6 +62,7 @@ var wantSensorMLContracts = []contract.Contract{
 				"sensorml.process.label",
 				"sensorml.process.position",
 				"sensorml.process.uid",
+				"sensorml.process.used-procedure",
 			},
 		}},
 	},
@@ -337,6 +338,21 @@ func conformantSensorMLCandidates() []struct {
 			},
 		},
 		{
+			name:     "csapi.procedure with SimpleProcess method.href used-procedure",
+			entityID: procID,
+			triples: []message.Triple{
+				{Subject: procID, Predicate: "sensorml.process.type", Object: sosa.Procedure},
+				{Subject: procID, Predicate: "sensorml.process.uid", Object: "urn:example:procedure:1"},
+				{Subject: procID, Predicate: "sensorml.process.label", Object: "Downsample"},
+				{Subject: procID, Predicate: "sensorml.process.definition", Object: "http://www.opengis.net/def/process/downsample"},
+				{Subject: procID, Predicate: "sensorml.process.used-procedure", Object: "http://example.org/methods/downsample"},
+				{Subject: procID, Predicate: "sensorml.identifier.value", Object: "PROC-01"},
+				{Subject: procID, Predicate: "sensorml.capability.value", Object: 10},
+				{Subject: procID, Predicate: "sensorml.characteristic.value", Object: "deterministic"},
+				{Subject: procID, Predicate: vocabulary.EntityIndexingProfile, Object: vocabulary.IndexingProfileControl},
+			},
+		},
+		{
 			name:     "csapi.deployment with position and parent",
 			entityID: depID,
 			triples: []message.Triple{
@@ -373,8 +389,21 @@ func conformantSensorMLCandidates() []struct {
 	}
 }
 
+func contractDeclaresPredicate(c contract.Contract, pred string) bool {
+	if slices.Contains(c.BirthPredicates, pred) {
+		return true
+	}
+	for _, g := range c.Groups {
+		if slices.Contains(g.Predicates, pred) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestSensorMLValidateCandidateStateConformant(t *testing.T) {
 	b := compileSensorML(t)
+	contracts := b.Contracts()
 	for _, tc := range conformantSensorMLCandidates() {
 		t.Run(tc.name, func(t *testing.T) {
 			rep, err := b.ValidateCandidateState(tc.entityID, tc.triples)
@@ -383,6 +412,29 @@ func TestSensorMLValidateCandidateStateConformant(t *testing.T) {
 			}
 			if !rep.Targeted || !rep.Conforms || len(rep.Results) != 0 {
 				t.Fatalf("report = %+v, want Targeted=true Conforms=true Results=[]", rep)
+			}
+
+			var matched *contract.Contract
+			for i := range contracts {
+				ok, err := semtypes.MatchEntityIDPattern(contracts[i].EntityPattern, tc.entityID)
+				if err != nil {
+					t.Fatalf("MatchEntityIDPattern(%s, %s): %v", contracts[i].EntityPattern, tc.entityID, err)
+				}
+				if ok {
+					matched = &contracts[i]
+					break
+				}
+			}
+			if matched == nil {
+				t.Fatalf("no compiled contract matched entityID %s", tc.entityID)
+			}
+			for _, tr := range tc.triples {
+				if tr.Subject != tc.entityID || !strings.HasPrefix(tr.Predicate, "sensorml.") {
+					continue
+				}
+				if !contractDeclaresPredicate(*matched, tr.Predicate) {
+					t.Errorf("contract %s omits emitted predicate %s", matched.Name, tr.Predicate)
+				}
 			}
 		})
 	}
@@ -418,6 +470,33 @@ func nonConformantSensorMLCandidates() []violationCase {
 			component: shaclNS + "MaxCountConstraintComponent",
 			predicate: "sensorml.process.position",
 			path:      sensorml.PropPosition,
+		},
+		{
+			name:     "csapi.procedure rejects whitespace in used-procedure",
+			entityID: procID,
+			triples: []message.Triple{
+				{Subject: procID, Predicate: "sensorml.process.type", Object: sosa.Procedure},
+				{Subject: procID, Predicate: "sensorml.process.uid", Object: "urn:x-ogc:procedures:001"},
+				{Subject: procID, Predicate: "sensorml.process.label", Object: "QAQC Procedure"},
+				{Subject: procID, Predicate: "sensorml.process.used-procedure", Object: "http://example.org/bad method"},
+			},
+			component: shaclNS + "PatternConstraintComponent",
+			predicate: "sensorml.process.used-procedure",
+			path:      sosa.UsedProcedure,
+		},
+		{
+			name:     "csapi.procedure rejects duplicate used-procedure exceeding maxCount 1",
+			entityID: procID,
+			triples: []message.Triple{
+				{Subject: procID, Predicate: "sensorml.process.type", Object: sosa.Procedure},
+				{Subject: procID, Predicate: "sensorml.process.uid", Object: "urn:x-ogc:procedures:001"},
+				{Subject: procID, Predicate: "sensorml.process.label", Object: "QAQC Procedure"},
+				{Subject: procID, Predicate: "sensorml.process.used-procedure", Object: "http://example.org/methods/m1"},
+				{Subject: procID, Predicate: "sensorml.process.used-procedure", Object: "http://example.org/methods/m2"},
+			},
+			component: shaclNS + "MaxCountConstraintComponent",
+			predicate: "sensorml.process.used-procedure",
+			path:      sosa.UsedProcedure,
 		},
 		{
 			name:     "csapi.system rejects malformed JSON on sml:position",

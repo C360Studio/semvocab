@@ -92,6 +92,7 @@ contracts:
           - sensorml.process.label
           - sensorml.process.position
           - sensorml.process.uid
+          - sensorml.process.used-procedure
   - domain_type: csapi.deployment
     birth: [sensorml.process.type]
     groups:

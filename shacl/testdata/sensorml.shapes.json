@@ -110,6 +110,11 @@
           "pattern": "^[^ \\t\\n\\r]+$"
         },
         {
+          "path": "http://www.w3.org/ns/sosa/usedProcedure",
+          "max_count": 1,
+          "pattern": "^[^ \\t\\n\\r]+$"
+        },
+        {
           "path": "http://www.opengis.net/spec/sensorML/3.0/position",
           "max_count": 0
         },
