@@ -41,6 +41,7 @@ external validator, and checking this repository's validator against one; none o
 | `catalog/sensorml` | The same for OGC SensorML 3.0 object classes and JSON properties (`Prop*`); its hierarchy continues into `catalog/swe` |
 | `packs` | `bfo-cco-core` (`RegisterBFOCCOCore`, `obo` and `cco` prefixes) and `swe-core` (`RegisterSWECore`, `sosa`, `ssn`, `ssn-system`, `swe`, and `sml` prefixes) |
 | `packs/diekm` | The DIEKM pack (`intel.platform`, `intel.observation`, and two predicates), its SHACL shapes, and the mapping that binds them |
+| `packs/sensorml` | The SensorML 3.0 and SOSA/SSN pack for OGC API — Connected Systems Part 1 (five `csapi.*` entity types, 20 `sensorml.*` predicates, and two projections), its SHACL shapes, and the mapping that binds them |
 | `shacl` | Parses shapes (Turtle, a text format for RDF; JSON; YAML), compiles them with a mapping, validates an entity's state |
 
 Importing any of these registers nothing. A program registers a pack only by calling its `Register…` function.
@@ -160,8 +161,9 @@ entity against the shapes.
   built over OGC's specification base URIs (`http://www.opengis.net/spec/SWE/3.0` and
   `http://www.opengis.net/spec/sensorML/3.0`) because OGC 24-014 and OGC 23-000 publish JSON Schemas rather than OWL
   ontologies; they are not registered or certified OGC ontologies and their IRIs do not resolve.
-- A SensorML domain pack (entity types, three-part predicates, and SHACL shapes over these catalogs) is not yet
-  present.
+- `packs/sensorml` covers published OGC API — Connected Systems Part 1 (`OGC 23-001`) resources over SensorML 3.0,
+  SWE Common 3.0, and W3C SOSA/SSN; Working-Draft Part 2 (`OGC 23-002`) dynamic stream, observation, command, and
+  feasibility resources and `csapi:` IRIs are not included.
 - The SHACL compiler reads a fixed part of SHACL and rejects everything else by name, so a shapes file written for
   another tool may not compile. The accepted and rejected terms are listed in
   [docs/shacl-compilation.md](docs/shacl-compilation.md).
@@ -174,7 +176,7 @@ entity against the shapes.
 
 ## Where to go next
 
-- [docs/catalogs-and-packs.md](docs/catalogs-and-packs.md): the catalogs, the packs, registering them, and DIEKM.
+- [docs/catalogs-and-packs.md](docs/catalogs-and-packs.md): the catalogs, the packs, registering them, DIEKM, and SensorML.
 - [docs/shacl-compilation.md](docs/shacl-compilation.md): the `shacl` package in full.
 - [docs/catalog-ownership.md](docs/catalog-ownership.md): which terms come from SemEngine and which from here.
 

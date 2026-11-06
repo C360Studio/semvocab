@@ -225,6 +225,54 @@ The steps are in `packs/diekm/diekm.yaml`.
 `shacl.Compile` takes all three. [shacl-compilation.md](shacl-compilation.md) covers the mapping and contracts.
 `Shapes()` and `Mapping()` return copies, so changing the returned slice does not change the embedded data.
 
+### `sensorml`
+
+`packs/sensorml` holds the vocabulary pack for the five OGC API — Connected Systems Part 1 (`OGC 23-001`) resources
+over OGC SensorML 3.0, OGC SWE Common 3.0, and W3C SOSA/SSN 2017.
+
+| Entity type | Target class IRI | Superclasses | Meaning |
+| --- | --- | --- | --- |
+| `csapi.system` | `sml:PhysicalSystem` | `sml:AbstractPhysicalProcess`, `ssn:System`, `sml:AbstractProcess`, `sml:DescribedObject` | Physical or virtual system |
+| `csapi.procedure` | `sml:SimpleProcess` | `sml:AbstractProcess`, `sosa:Procedure`, `sml:DescribedObject` | Observation, sampling, or actuation procedure |
+| `csapi.deployment` | `sml:Deployment` | `sml:DescribedObject`, `ssn:Deployment` | System deployment |
+| `csapi.samplingfeature` | `sosa:Sample` | `sosa:FeatureOfInterest`, `sosa:Result` | Sampling feature |
+| `csapi.property` | `sml:DerivedProperty` | `swe:AbstractSweIdentifiable`, `sosa:ObservableProperty`, `swe:AbstractSWE`, `ssn:Property` | Derived observable or controllable property |
+
+Entity types retain the `csapi.<type>` key so API paths map directly to domain entity types while bridging both
+SensorML 3.0 and SOSA/SSN class hierarchies through dual superclasses (recorded as `local_assertions` in
+`docs/admission-ledger.yaml`).
+
+The pack declares nine prefixes: `rdf`, `rdfs`, `dc`, `skos`, `sosa`, `ssn`, `ssn-system`, `swe`, and `sml`. It uses
+`dc` for `http://purl.org/dc/terms/` to match SemEngine's pre-registered prefix and coexist cleanly with `swe-core`.
+
+The pack defines 20 `sensorml.*` predicates, including inverse entity relationships `sensorml.system.hosts`
+(`sosa:hosts`) and `sensorml.component.is-hosted-by` (`sosa:isHostedBy`), process attachment
+`sensorml.process.attached-to` (`sml:attachedTo`), and `sensorml.process.position` (`sml:position`) with data type
+`json` (representing GeoJSON, SensorML Pose, or SWE position structures).
+
+Two predicates carry 1-step projections:
+
+- `sensorml.capability.value` projects through `ssn-system:hasSystemCapability` to intermediate node class
+  `sml:CapabilityList` and terminal value predicate `swe:value`.
+- `sensorml.characteristic.value` projects through `ssn:hasProperty` to intermediate node class
+  `sml:CharacteristicList` and terminal value predicate `swe:value`.
+
+`packs/sensorml` ships three embedded files that belong together:
+
+- the pack (`sensorml.yaml`), from `sensorml.Spec()`;
+- the SHACL shapes (`sensorml.shacl.ttl`), from `sensorml.Shapes()`: five open node shapes (omitting `sh:closed` so
+  framework predicates pass validation). It prohibits `sml:position` on `csapi.procedure` via `sh:maxCount 0` (per OGC
+  23-001 `/req/procedure/location`), and enforces `rdf:JSON` datatype on `sml:position` where position is allowed;
+- the mapping (`sensorml.mapping.yaml`), from `sensorml.Mapping()`, which binds each shape class to its entity type
+  and path to its predicate. All five entity types define `reconcile` contracts with `birth: [sensorml.process.type]`
+  and a single `representation` group covering their constrained predicates. Because all five entity types receive
+  contracts, `bundle.Unwritable()` is empty (`[]`).
+
+Both `swe` (`http://www.opengis.net/spec/SWE/3.0/`) and `sml`
+(`http://www.opengis.net/spec/sensorML/3.0/`) bind local C360 RDF conventions over OGC Clause 5 specification base
+URIs rather than certified OGC OWL ontologies. Working-Draft OGC CS API Part 2 (`OGC 23-002`) dynamic stream,
+observation, command, and feasibility resources and `csapi:` IRIs are excluded.
+
 ## Registering
 
 Each pack has a function that registers it with SemEngine's `vocabulary.RegisterPack`:
@@ -232,8 +280,9 @@ Each pack has a function that registers it with SemEngine's `vocabulary.Register
 - `packs.RegisterBFOCCOCore(opts ...vocabulary.PackOption) error`
 - `packs.RegisterSWECore(opts ...vocabulary.PackOption) error`
 - `diekm.Register(opts ...vocabulary.PackOption) error`
+- `sensorml.Register(opts ...vocabulary.PackOption) error`
 
-All three pass `vocabulary.WithPrefixRegistrar(export.RegisterPrefixes)`, so SemEngine's serializer learns the
+All four pass `vocabulary.WithPrefixRegistrar(export.RegisterPrefixes)`, so SemEngine's serializer learns the
 prefixes. Options you pass come after it; a later `WithPrefixRegistrar` replaces it. Call them from your program's
 start-up code. This program registers them and reads the result back:
 
@@ -273,6 +322,69 @@ float
 ```
 
 The registry is process-wide, so this changes it for every caller in the program.
+
+This program registers `packs/sensorml`, verifies dual inheritance against `catalog/ssn`, and compiles its shapes:
+
+```go
+package main
+
+import (
+    "bytes"
+    "fmt"
+    "log"
+    "slices"
+
+    "github.com/c360studio/semengine/vocabulary"
+    "github.com/c360studio/semvocab/catalog/ssn"
+    "github.com/c360studio/semvocab/packs/sensorml"
+    "github.com/c360studio/semvocab/shacl"
+)
+
+func main() {
+    if err := sensorml.Register(); err != nil {
+        log.Fatal(err)
+    }
+
+    meta := vocabulary.GetEntityTypeMetadata("csapi.system")
+    fmt.Println(meta.ClassIRI)
+    fmt.Println(slices.Contains(meta.Superclasses, ssn.System))
+
+    spec, err := sensorml.Spec()
+    if err != nil {
+        log.Fatal(err)
+    }
+    shapes, err := shacl.ParseTurtle(bytes.NewReader(sensorml.Shapes()))
+    if err != nil {
+        log.Fatal(err)
+    }
+    mapping, err := shacl.DecodeMappingYAML(bytes.NewReader(sensorml.Mapping()))
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    bundle, err := shacl.Compile(spec, shapes, mapping)
+    if err != nil {
+        log.Fatal(err)
+    }
+    for _, c := range bundle.Contracts() {
+        fmt.Println("contract:", c.EntityPattern)
+    }
+    fmt.Println("unwritable:", bundle.Unwritable())
+}
+```
+
+Output:
+
+```text
+http://www.opengis.net/spec/sensorML/3.0/PhysicalSystem
+true
+contract: *.*.*.csapi.deployment.*
+contract: *.*.*.csapi.procedure.*
+contract: *.*.*.csapi.property.*
+contract: *.*.*.csapi.samplingfeature.*
+contract: *.*.*.csapi.system.*
+unwritable: []
+```
 
 If a registration fails, the registry and the serializer's prefixes are left as they were: SemEngine checks the whole
 pack before it changes anything (`TestPackAtomicFailure`). Failures the tests cover are an unknown field in the YAML,
