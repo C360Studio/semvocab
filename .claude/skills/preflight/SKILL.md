@@ -8,6 +8,6 @@ argument-hint: "[optional explicit comparison base]"
 
 # SemVocab preflight
 
-Read [the canonical semvocab-preflight skill](../../../.agents/skills/semvocab-preflight/SKILL.md) fully and
+Read [the canonical preflight skill](../../../.agents/skills/preflight/SKILL.md) fully and
 follow it. Apply any explicit comparison base in `$ARGUMENTS`; otherwise establish the actual PR target as the
 canonical skill directs. This adapter preserves `/preflight` and adds no separate gate or authority.

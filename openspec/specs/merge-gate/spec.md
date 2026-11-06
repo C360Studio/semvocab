@@ -8,10 +8,10 @@ known-flake stop, an up-to-date head, and cross-agent review lines on code pull 
 
 ### Requirement: One verification entrypoint
 
-`task verify` SHALL run `spec:check`, `docs:check`, `fmt:check`, `tidy:check`, `build`, `vet`, `lint`, `vuln`,
-`test:unit`, and `test:repeat` in that order, continue past a failing step to report every broken gate, print each
-step's time, and fail if any step failed or verification changed a tracked file. CI's `verify` job SHALL run
-`task verify` on `ubuntu-24.04` with Go from `go.mod`, Node from `.nvmrc`, and Task from `.task-version`.
+`task verify` SHALL run `ateam:doctor`, `spec:check`, `test:spec`, `docs:check`, `fmt:check`, `tidy:check`, `build`,
+`vet`, `lint`, `vuln`, `test:unit`, and `test:repeat` in that order, continue past a failing step, print timings, and
+fail on step failure or tracked-file drift. CI's `verify` job SHALL run on `ubuntu-24.04` with `fetch-depth: 0`, Go from
+`go.mod`, Node from `.nvmrc`, Task from `.task-version`, and `ateam v0.3.8`, running `task doctor` then `task verify`.
 
 #### Scenario: Verification edits a tracked file
 
@@ -20,42 +20,62 @@ step's time, and fail if any step failed or verification changed a tracked file.
 
 ### Requirement: Known-flake check
 
-`scripts/merge-check.sh` SHALL fail while an open issue labelled `class:flake` exists that the pull request's
-description does not close.
+`scripts/merge-check.sh` SHALL delegate to `ateam review gate` at the pinned release, which fails while an open issue
+labelled `class:flake` exists that the pull request's description does not close.
 
 #### Scenario: An open flake blocks an unrelated pull request
 
 - **WHEN** a `class:flake` issue is open and the pull request does not declare `Closes #n` for it
-- **THEN** `merge-check` fails naming the issue (`TestMergeCheckKnownFlake`)
+- **THEN** `scripts/merge-check.sh` fails via `ateam review gate` naming the issue
 
 ### Requirement: Up-to-date rule
 
-`scripts/merge-check.sh` SHALL fail unless the rules on `main` require a branch to be up to date before merging.
+`scripts/merge-check.sh` SHALL delegate to `ateam review gate` and `.github/workflows/merge-check.yml` SHALL set
+`ATEAM_REQUIRED_CHECKS` to `Required,Merge check`, failing unless `main`'s active ruleset requires every listed check
+(`Required` when unset locally) on an up-to-date branch.
 
 #### Scenario: Ruleset lacks the up-to-date setting
 
-- **WHEN** `main`'s rules do not set strict required status checks
-- **THEN** `merge-check` fails saying so (`TestMergeCheckUpToDateRule`)
+- **WHEN** `main`'s active ruleset omits a required check in `ATEAM_REQUIRED_CHECKS` or disables strict status checks
+- **THEN** `scripts/merge-check.sh` fails via `ateam review gate`
 
 ### Requirement: Cross-agent review lines
 
-On a code pull request that is not a draft, `scripts/merge-check.sh` SHALL require exactly one `implemented-by:` line
-naming at least one of `claude`, `codex`, `gemini` and exactly one `reviewed-by:` line naming exactly one agent that
-`implemented-by:` does not name (any agent when it names more than one or the author is a bot). A pull request whose
-changed files are all Markdown or under `openspec/`, with none under `.claude/agents/` or `.agents/contracts/`, is
-exempt.
+On a non-draft code pull request, `scripts/merge-check.sh` SHALL invoke `ateam review gate` to require valid
+`implemented-by:` and `reviewed-by:` lines plus an approving commit-bound `Review record` comment from a non-weaker
+cross-provider reviewer under `.agents/review-policy.json`. Documents-only pull requests remain exempt from
+cross-provider enforcement.
 
 #### Scenario: Self-review on a code pull request
 
-- **WHEN** a non-draft pull request changes a script and both lines name `claude`
-- **THEN** `merge-check` fails (`TestMergeCheckReview`)
+- **WHEN** a non-draft code pull request names the same provider on both lines or lacks a head-bound `Review record`
+- **THEN** `scripts/merge-check.sh` fails via `ateam review gate`
 
-### Requirement: Single required check
+### Requirement: Required CI and Merge check workflows
 
-CI's `required` job SHALL depend on `verify` and `merge-check`, always run, and fail unless every needed job
-succeeded. The `main` ruleset SHALL require the `Required` check with strict (up-to-date) status checks.
+CI's `required` job (`Required`) SHALL depend on `verify`, always run, and fail unless `verify` succeeded.
+`.github/workflows/merge-check.yml` SHALL check out `github.event.pull_request.base.sha`, install `ateam v0.3.8`, run
+`ateam review gate --awaiting` in `awaiting`, skip and rename `merge-check` on drafts or when `awaiting=true`, and
+otherwise run `scripts/merge-check.sh` as `Merge check`. `TestCIWorkflowPinned` SHALL guard both workflows and pins.
 
-#### Scenario: A needed job is skipped
+#### Scenario: Ready code pull request awaits its first review record
 
-- **WHEN** `merge-check` is cancelled or skipped
-- **THEN** `Required` fails
+- **WHEN** a non-draft code pull request has no `reviewed-by:` line and no `Review record` comment
+- **THEN** `awaiting` outputs `awaiting=true` and `merge-check` is skipped under its awaiting name so no passing
+  `Merge check` status exists
+
+#### Scenario: Probe fails or pull request has a review record
+
+- **WHEN** `awaiting` outputs `awaiting=false` or exits without an output on a non-draft pull request
+- **THEN** `merge-check` runs `scripts/merge-check.sh` under the required check name `Merge check`
+
+### Requirement: OpenSpec queue and check wiring
+
+`task spec:check` SHALL run `npx --no-install openspec validate --all --strict --no-interactive` followed by
+`ateam state spec-check`, and `task spec:queue` SHALL run `ateam state spec-queue`. `TestSpecTaskWiring` SHALL fail if
+either task drops a command, swaps command order, or sets `ignore_error`.
+
+#### Scenario: Misplaced hold or broken spec wiring
+
+- **WHEN** a `Hold:` appears outside every task in `tasks.md` or `Taskfile.yml` alters `spec:check` command order
+- **THEN** `task spec:check` or `TestSpecTaskWiring` fails naming the violation

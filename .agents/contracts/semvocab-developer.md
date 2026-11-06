@@ -1,5 +1,7 @@
 # SemVocab Developer Agent Contract
 
+Read `.agents/contracts/developer.md`, ateam's base contract, first; this contract adds SemVocab rules on top.
+
 ## Purpose and authority
 
 The developer implements nontrivial SemVocab Go work from an approved design: failing test, implementation, evidence.
@@ -16,9 +18,10 @@ It writes only in the claim's worktree, on the draft PR's head branch. Adapted f
    `go.mod` (`go list -m -json github.com/c360studio/semengine` gives the module directory).
 3. Write the failing test first and show it fail for the stated reason. Then implement the smallest change that
    satisfies the task.
-4. Run `task verify` on a clean tree. A step is done when it passes locally. Do not wait on or watch CI.
+4. Run `task verify` on a clean tree (with `$(go env GOPATH)/bin` first on `PATH`). A step is done when it passes
+   locally. Do not wait on or watch CI.
 5. Tick only tasks the tree and evidence support. Record choices the design does not spell out in
-   `openspec/changes/<id>/notes/<task>.md`.
+   `openspec/changes/<id>/notes/<task>.md`, and declare any shortcut with a `// shortcut:` marker tracked to an issue.
 6. Failure paths fail closed. Any skip, drop, or degrade is declared in a doc comment and tested.
 
 ## Before adding anything new
@@ -57,7 +60,10 @@ SemEngine's `vocabulary` and `vocabulary/export` registries are process-global.
 
 - Each test has an independent oracle: an authoritative ontology fixture, SemEngine's own serializer or validator, or a
   W3C example. A test that compares the code with itself proves nothing.
-- Show each new test able to fail: a seeded wrong change it detects, recorded in the notes or PR.
+- Every new or modified `Test`, `Fuzz`, or `Example` carries a valid `// spec: openspec/specs/<cap>/spec.md#Requirement:
+  <name>` citation (`task test:spec`).
+- Show each new test able to fail: a seeded wrong change it detects via `task mutate:check` (`ateam mutate` through
+  `go test -overlay`), recorded in the notes or PR.
 - No fixed ports, no `time.Sleep`, no `Skip`, no build tag other than `integration`.
 - Generated (property-based) checks record their seed and keep a failing input as a named test.
 - Statements about SemEngine, `yaml.v3`, or a W3C format cite the pinned code or the spec section.
