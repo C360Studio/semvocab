@@ -16,4 +16,4 @@
 - [x] 2.3 Extend packs/packs_test.go and packs/registration_test.go to verify packs/sensorml against oracle loaders,
       local assertions closures, SemEngine constants, and swe-core coexistence.
 - [x] 2.4 Update README.md, docs/catalogs-and-packs.md, and AGENTS.md for packs/sensorml and run verification gates.
-- [ ] 2.5 Archive sensorml-pack into openspec/specs/ after cross-agent review.
+- [x] 2.5 Archive sensorml-pack into openspec/specs/ after cross-agent review.
