@@ -46,7 +46,7 @@ var (
 )
 
 // spec: openspec/specs/merge-gate/spec.md#Requirement: One verification entrypoint
-// spec: openspec/changes/adopt-ateam-v038/specs/agent-setup/spec.md#Requirement: Ateam bootstrap and doctor parity
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Ateam bootstrap and doctor parity
 func TestUnitInvocationsPinned(t *testing.T) {
 	root := repoRoot(t)
 	taskfile, err := os.ReadFile(filepath.Join(root, "Taskfile.yml"))
@@ -174,7 +174,7 @@ type ciStep struct {
 	ContinueOnError any            `yaml:"continue-on-error"`
 }
 
-// spec: openspec/changes/adopt-ateam-v038/specs/merge-gate/spec.md#Requirement: Required CI and Merge check workflows
+// spec: openspec/specs/merge-gate/spec.md#Requirement: Required CI and Merge check workflows
 func TestCIWorkflowPinned(t *testing.T) {
 	root := repoRoot(t)
 	ci, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "ci.yml"))
@@ -188,7 +188,7 @@ func TestCIWorkflowPinned(t *testing.T) {
 	requireNoViolations(t, "CI and Merge check workflows", workflowViolations(t, ci, mc))
 }
 
-// spec: openspec/changes/adopt-ateam-v038/specs/merge-gate/spec.md#Requirement: Required CI and Merge check workflows
+// spec: openspec/specs/merge-gate/spec.md#Requirement: Required CI and Merge check workflows
 func TestCIWorkflowPinnedSensitivity(t *testing.T) {
 	root := repoRoot(t)
 	ciBytes, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "ci.yml"))

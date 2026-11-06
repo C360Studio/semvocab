@@ -29,8 +29,8 @@ var specTasks = []struct {
 	{"mutate:check", []string{mutateCheckCmd}},
 }
 
-// spec: openspec/changes/adopt-ateam-v038/specs/merge-gate/spec.md#Requirement: OpenSpec queue and check wiring
-// spec: openspec/changes/adopt-ateam-v038/specs/agent-setup/spec.md#Requirement: Changed-test spec citations
+// spec: openspec/specs/merge-gate/spec.md#Requirement: OpenSpec queue and check wiring
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Changed-test spec citations
 func TestSpecTaskWiring(t *testing.T) {
 	t.Run("Taskfile.yml", func(t *testing.T) {
 		data, err := os.ReadFile(filepath.Join(repoRoot(t), "Taskfile.yml"))

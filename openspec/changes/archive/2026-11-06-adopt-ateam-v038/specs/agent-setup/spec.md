@@ -4,11 +4,10 @@
 
 ### Requirement: Thin role adapters
 
-Each of the four roles (`semvocab-architect`, `semvocab-developer`, `semvocab-reviewer`, `semvocab-technical-writer`)
-SHALL have a canonical contract under `.agents/contracts/`, a Claude adapter, and a Codex adapter. The architect,
-developer, and reviewer contracts SHALL instruct reading their `ateam` base contract
-(`.agents/contracts/{architect,developer,reviewer}.md`) first. Each adapter SHALL reference only its `semvocab-*`
-contract, say to read it fully first, stay within 20 lines, and contain no checklist.
+Each role (`semvocab-architect`, `semvocab-developer`, `semvocab-reviewer`, `semvocab-technical-writer`) SHALL have a
+`.agents/contracts/` contract plus Claude and Codex adapters. The architect, developer, and reviewer contracts SHALL
+instruct reading `.agents/contracts/{architect,developer,reviewer}.md` first. Each adapter SHALL link only its
+`semvocab-*` contract, say to read it fully first, stay within 20 lines, and contain no checklist.
 
 #### Scenario: Adapter drift is detected
 

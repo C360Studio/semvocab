@@ -67,13 +67,13 @@ func ateamPins(files map[string][]byte) (string, []string) {
 	return all[0], nil
 }
 
-// spec: openspec/changes/adopt-ateam-v038/specs/agent-setup/spec.md#Requirement: Ateam bootstrap and doctor parity
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Ateam bootstrap and doctor parity
 func TestAteamTemplatesUnchanged(t *testing.T) {
 	root := repoRoot(t)
 	requireNoViolations(t, "ateam templates and policy", ateamTemplateViolations(root, ateamTemplates(t, root)))
 }
 
-// spec: openspec/changes/adopt-ateam-v038/specs/agent-setup/spec.md#Requirement: Ateam bootstrap and doctor parity
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Ateam bootstrap and doctor parity
 func TestAteamTemplatesUnchangedSensitivity(t *testing.T) {
 	root := repoRoot(t)
 	templates := ateamTemplates(t, root)
