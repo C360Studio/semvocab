@@ -158,6 +158,29 @@ func (e Entry) Name() string {
 	return e.Pack
 }
 
+// Kind returns "catalog" for a catalog entry, "pack" for a pack entry, or ""
+// when neither (or both) is set.
+func (e Entry) Kind() string {
+	switch {
+	case e.Catalog != "" && e.Pack == "":
+		return "catalog"
+	case e.Pack != "" && e.Catalog == "":
+		return "pack"
+	default:
+		return ""
+	}
+}
+
+// ID returns the kind-qualified entry identifier ("catalog:<name>" or
+// "pack:<name>"), falling back to e.Name() when Kind or Name is empty.
+func (e Entry) ID() string {
+	k, n := e.Kind(), e.Name()
+	if k != "" && n != "" {
+		return k + ":" + n
+	}
+	return n
+}
+
 // Exclusion is a group of source symbols deliberately not admitted.
 type Exclusion struct {
 	Symbols []string `yaml:"symbols"`
@@ -267,14 +290,85 @@ func Decode(data []byte) (Ledger, error) {
 	return l, nil
 }
 
-// Entry returns the entry named name (catalog or pack).
+// Entry returns the unique entry named name (catalog or pack). It fails closed
+// when name is empty, an entry is malformed, or zero or multiple entries match.
 func (l Ledger) Entry(name string) (Entry, error) {
+	if name == "" {
+		return Entry{}, fmt.Errorf("ledger has no entry %q", name)
+	}
+	var found Entry
+	count := 0
 	for _, e := range l.Entries {
-		if e.Name() == name {
-			return e, nil
+		if e.Catalog == name || e.Pack == name {
+			if e.Kind() == "" {
+				return Entry{}, fmt.Errorf("ledger entry %q sets both catalog and pack", name)
+			}
+			found = e
+			count++
 		}
 	}
-	return Entry{}, fmt.Errorf("ledger has no entry %q", name)
+	switch count {
+	case 0:
+		return Entry{}, fmt.Errorf("ledger has no entry %q", name)
+	case 1:
+		return found, nil
+	default:
+		return Entry{}, fmt.Errorf("ledger has multiple entries named %q; use Catalog or Pack", name)
+	}
+}
+
+// Catalog returns the unique catalog entry named name, failing closed when name
+// is empty, an entry is malformed, or zero or multiple catalog entries match.
+func (l Ledger) Catalog(name string) (Entry, error) {
+	if name == "" {
+		return Entry{}, fmt.Errorf("ledger has no catalog %q", name)
+	}
+	var found Entry
+	count := 0
+	for _, e := range l.Entries {
+		if e.Catalog == name {
+			if e.Kind() != "catalog" {
+				return Entry{}, fmt.Errorf("ledger entry %q sets both catalog and pack", name)
+			}
+			found = e
+			count++
+		}
+	}
+	switch count {
+	case 0:
+		return Entry{}, fmt.Errorf("ledger has no catalog %q", name)
+	case 1:
+		return found, nil
+	default:
+		return Entry{}, fmt.Errorf("ledger has multiple catalog entries named %q", name)
+	}
+}
+
+// Pack returns the unique pack entry named name, failing closed when name is
+// empty, an entry is malformed, or zero or multiple pack entries match.
+func (l Ledger) Pack(name string) (Entry, error) {
+	if name == "" {
+		return Entry{}, fmt.Errorf("ledger has no pack %q", name)
+	}
+	var found Entry
+	count := 0
+	for _, e := range l.Entries {
+		if e.Pack == name {
+			if e.Kind() != "pack" {
+				return Entry{}, fmt.Errorf("ledger entry %q sets both catalog and pack", name)
+			}
+			found = e
+			count++
+		}
+	}
+	switch count {
+	case 0:
+		return Entry{}, fmt.Errorf("ledger has no pack %q", name)
+	case 1:
+		return found, nil
+	default:
+		return Entry{}, fmt.Errorf("ledger has multiple pack entries named %q", name)
+	}
 }
 
 // BFO decodes the bfo entry's source block.
@@ -314,7 +408,7 @@ func (l Ledger) SensorML() (SensorMLSource, error) {
 }
 
 func (l Ledger) decodeSource(name string, out any) error {
-	e, err := l.Entry(name)
+	e, err := l.Catalog(name)
 	if err != nil {
 		return err
 	}
