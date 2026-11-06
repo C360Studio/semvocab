@@ -10,9 +10,9 @@ host manifests, and model routing: `.agents/README.md`. Full enforcement audit m
 SemVocab is the vocabulary-extension layer for SemEngine: ontology catalogs, loadable vocabulary packs, and a SHACL
 compiler that turns shapes into SemEngine pack and projection specs ahead of time. It is Stage 2 of the
 `semengine` -> `semvocab` -> `semsparql` ontology and SPARQL architecture: SemEngine owns the generic vocabulary
-registry, `PackSpec`/`ProjectionSpec`, and RDF export; SemVocab owns domain catalogs (BFO, CCO, SOSA, SSN, SWE,
-SensorML, cyber, DIEKM) and packs built on them; SemSPARQL owns query and projection expansion. No RDF or SHACL engine
-enters SemEngine's hot ingest or query paths.
+registry, `PackSpec`/`ProjectionSpec`, and RDF export; SemVocab owns domain catalogs (candidates: BFO, CCO, cyber,
+DIEKM) and packs built on them; SemSPARQL owns query and projection expansion. No RDF or SHACL engine enters
+SemEngine's hot ingest or query paths.
 
 The bootstrap scope, phases, and acceptance criteria are issue #1 (`gh issue view 1`); read it before scoping work.
 Material ported from SemStreams comes from the frozen pin `8b99efe9c66a4faa4fa509f9f62cc6bad8392128`, the same pin
@@ -143,6 +143,9 @@ A new repo-wide or agent-conduct rule updates both this file and `.agents/rules-
 - **`.ateam/state.json`:** local gitignored coordination cache (`ateam state pickup`, `ateam state handoff`).
 - **ADRs (`docs/adr/`, when the first is written):** why; irreversible choices and cross-repo contracts.
 
+There is no `/tickets` state and no prose handoff document in the repository tree. Non-trivial work starts with an
+OpenSpec change before code.
+
 ## Working here (Claude, Codex, and Gemini)
 
 The shared protocol is `.agents/protocol.md`. Read it before filing, taking, landing, or closing work. Four gates
@@ -161,8 +164,10 @@ never become a pointer:
   approving head-bound `Review record` comment (`ateam review request <n>` launches cross-provider review under
   `review_launch: "agent"`); `Required` and `Merge check` green on a head up to date with `main`; no open `class:flake`
   issue; `task merge:check -- <n>` locally (`GITHUB_ACTIONS` unset); squash merge.
-- **Close:** run `ateam state handoff` at session boundaries; after squash merge lands (`Closes #n` authorizes issue
-  close), prune the claimed worktree and remote branch (`ateam state prune`).
+- **Close:** the squash merge of a PR that declared `Closes #n` is the authorization (`Addresses #n` closes nothing). A
+  close with no merged PR behind it takes the owner's word on the issue; a `class:flake` issue is closed, or its label
+  removed, only by a merged fix or on the owner's word. Run `ateam state handoff` at session boundaries and `ateam state
+  prune` after merge.
 
 Agents mutate only this repository. SemEngine, SemStreams, SemSPARQL, and other sister repositories are read-only;
 an upstream need becomes an issue on that repository, filed by the owner or with the owner's go-ahead.

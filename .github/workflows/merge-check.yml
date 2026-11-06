@@ -12,7 +12,11 @@ name: Merge check
 #   no cancelled Merge check sits beside a passing one at the same head.
 # - It judges from the base commit: the script and the review policy it reads
 #   come from main, never from the tree under review, so a pull request cannot
-#   loosen them. The pull request itself is read through the API.
+#   loosen them. This file is not: on pull_request (not pull_request_target, so
+#   the pull request that adds or changes this file runs it) GitHub runs the
+#   workflow from the pull request's merge ref, so its jobs and the ateam pin
+#   in its install lines are part of the tree under review. The pull request
+#   itself is read through the API.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited]
