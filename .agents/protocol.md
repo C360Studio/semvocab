@@ -8,8 +8,8 @@ inline; edit the protocol here only. Read it before taking, landing, or closing 
 ## 1. Hybrid State Architecture
 
 State that all agents must see lives in the repository's tools and forge, with local session coordination cached in
-`.ateam/state.sqlite` via `ateam state` and the `ateam` MCP server (`ateam_state_pickup`, `ateam_state_handoff`,
-`ateam_task`). There is no `/tickets` prose state.
+`.ateam/state.json` via `ateam state` and the `ateam` MCP server (`ateam_state`, `ateam_task`). There is no `/tickets`
+prose state.
 
 - **What is wanted, what kind, is it decided:** a GitHub issue with labels `type:epic`, `status:needs-decision`,
   `status:blocked`. `status:needs-decision` is the owner's docket; a ruling is posted as an issue comment and the

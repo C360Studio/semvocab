@@ -29,7 +29,7 @@ resolves to the pinned `v0.3.8` binary (`task doctor` checks it). `task --list` 
 | `task fmt:check` | Fails if any Go source needs formatting; writes nothing |
 | `task doctor` | Reports tool versions against their pins (`go`, `task`, `node`, `npm`, `ateam`, `openspec`, `markdownlint-cli2`); starts no workloads |
 | `task ateam:doctor` | Runs `ateam doctor --check` with session environment variables cleared to verify `.agents/`, `.claude/`, `.codex/`, `.gemini/`, `.mcp.json`, and `CLAUDE.md` parity without mutating the tree |
-| `task spec:check` | Validates all OpenSpec changes and specs strictly, then runs `ateam state spec-check` (`proposal.md` <= 60 lines, `Approved-by:`, `design.md` <= 120 lines warning, `Hold:` inside tasks only) |
+| `task spec:check` | Validates all OpenSpec changes and specs strictly, then runs `ateam state spec-check` (fails on missing `config.yaml`/canonical sections or a `Hold:` outside tasks; warns when `proposal.md` > 60 or `design.md` > 120 lines) |
 | `task spec:queue` | Runs `ateam state spec-queue` to show each in-flight OpenSpec change with its holds and blocking conditions |
 | `task test:spec` | Runs `ateam test-spec --base "${TEST_SPEC_BASE:-origin/main}"`, requiring valid `// spec:` citations on new or modified Go tests since the merge base and refusing broken citations anywhere |
 | `task docs:check` | Lints Markdown with `markdownlint-cli2` |

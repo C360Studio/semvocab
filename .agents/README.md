@@ -127,7 +127,8 @@ Steps 1–8 are enforced automatically by `task ateam:doctor`, `TestAgentSetupPa
 7. Confirm every canonical skill under `.agents/skills/` has a matching Claude adapter and Gemini `.toml` command, and
    non-owned `ateam` templates match `v0.3.8` byte-for-byte.
 8. Confirm `.mcp.json`, `.agents/hooks.json`, `.claude/settings.json`, `.codex/{config.toml,hooks.json}`,
-   `.gemini/settings.json`, `.agents/review-policy.json`, and `.agents/hosts/{enjoy,herdr}.toml` pass `task ateam:doctor`.
+   `.gemini/settings.json`, and `.agents/review-policy.json` pass `task ateam:doctor`, and that
+   `TestAteamTemplatesUnchanged` verifies `review_launch: "agent"` and `.agents/hosts/{enjoy,herdr}.toml`.
 9. Validate changed skill frontmatter and relative links, then walk routing fixtures without private memory
    (`semvocab-developer` -> `semvocab-reviewer` for code, `semvocab-architect` for designs,
    `semvocab-technical-writer` for doc/task sync).

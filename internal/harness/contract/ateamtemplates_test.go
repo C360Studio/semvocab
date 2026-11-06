@@ -13,15 +13,18 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/BurntSushi/toml"
 )
 
-// semvocabOwned lists the paths ateam init writes that SemVocab keeps its own text in.
+// semvocabOwned lists the paths ateam init writes (or preserves) that SemVocab keeps its own text in.
 var semvocabOwned = map[string]string{
 	".gitignore":                        "SemVocab's ignore list with ateam entries appended",
 	"AGENTS.md":                         "SemVocab's agent guidance",
 	"CLAUDE.md":                         "SemVocab's import of AGENTS.md",
 	".agents/README.md":                 "SemVocab's agent profiles",
 	".agents/protocol.md":               "SemVocab's shared work protocol",
+	".agents/review-policy.json":        "SemVocab's review policy; checked explicitly below and by ateam:doctor",
 	".agents/rules-index.md":            "SemVocab's rule index",
 	".agents/skills/preflight/SKILL.md": "SemVocab's gate table with ateam's section markers",
 	".claude/skills/preflight/SKILL.md": "adapter for SemVocab's preflight skill",
@@ -109,6 +112,9 @@ func TestAteamTemplatesUnchangedSensitivity(t *testing.T) {
 		{"host manifest deleted", func(m map[string]string) {
 			delete(m, ".agents/hosts/enjoy.toml")
 		}, []string{".agents/hosts/enjoy.toml", "missing"}},
+		{"host manifest missing notify action", func(m map[string]string) {
+			m[".agents/hosts/herdr.toml"] = "[launch]\ntool = \"split and start\"\n"
+		}, []string{".agents/hosts/herdr.toml", "notify"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := maps.Clone(base)
@@ -195,6 +201,17 @@ func ateamTemplateViolations(root string, templates map[string][]byte) []string 
 			out = append(out, fmt.Sprintf("%s: differs from what ateam init writes at the pinned release; put SemVocab rules in the matching semvocab-* file", rel))
 		}
 	}
+	out = append(out, checkReviewPolicyAndHosts(root)...)
+	return out
+}
+
+type hostActionSpec struct {
+	Tool    string   `toml:"tool"`
+	Command []string `toml:"command"`
+}
+
+func checkReviewPolicyAndHosts(root string) []string {
+	var out []string
 	policyData, err := os.ReadFile(filepath.Join(root, ".agents", "review-policy.json"))
 	if err != nil {
 		out = append(out, ".agents/review-policy.json: missing")
@@ -215,8 +232,24 @@ func ateamTemplateViolations(root string, templates map[string][]byte) []string 
 		}
 	}
 	for _, host := range []string{".agents/hosts/enjoy.toml", ".agents/hosts/herdr.toml"} {
-		if info, err := os.Stat(filepath.Join(root, filepath.FromSlash(host))); err != nil || info.IsDir() || info.Size() == 0 {
-			out = append(out, fmt.Sprintf("%s: missing or empty host manifest", host))
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(host)))
+		if err != nil {
+			out = append(out, fmt.Sprintf("%s: missing host manifest", host))
+			continue
+		}
+		var manifest struct {
+			Launch hostActionSpec `toml:"launch"`
+			Notify hostActionSpec `toml:"notify"`
+		}
+		if _, err := toml.Decode(string(data), &manifest); err != nil {
+			out = append(out, fmt.Sprintf("%s: invalid TOML: %v", host, err))
+			continue
+		}
+		if strings.TrimSpace(manifest.Launch.Tool) == "" && len(manifest.Launch.Command) == 0 {
+			out = append(out, fmt.Sprintf("%s: launch section must define tool or command", host))
+		}
+		if strings.TrimSpace(manifest.Notify.Tool) == "" && len(manifest.Notify.Command) == 0 {
+			out = append(out, fmt.Sprintf("%s: notify section must define tool or command", host))
 		}
 	}
 	return out

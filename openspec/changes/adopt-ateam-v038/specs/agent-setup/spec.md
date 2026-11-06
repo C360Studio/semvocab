@@ -32,15 +32,16 @@ checklist.
 ### Requirement: Ateam bootstrap and doctor parity
 
 `task ateam:doctor` SHALL run `ateam doctor --check` at the pinned `v0.3.8` release with session environment variables
-cleared, verifying `.mcp.json`, `.agents/hooks.json`, `.agents/review-policy.json` (`review_launch` set to `"agent"`),
-`.agents/hosts/{enjoy,herdr}.toml`, base contracts, canonical skills, and client settings without mutating the worktree.
-`TestAteamTemplatesUnchanged` SHALL fail when a seeded `ateam` template file drifts from `v0.3.8`.
+cleared, verifying `.mcp.json`, `.agents/hooks.json`, `.agents/review-policy.json`, base contracts, canonical skills,
+and client settings without mutating the worktree. `TestAteamTemplatesUnchanged` SHALL fail when a seeded `ateam`
+template drifts from `v0.3.8`, `review_launch` is not `"agent"`, or `.agents/hosts/{enjoy,herdr}.toml` is missing or
+malformed.
 
 #### Scenario: Seeded template drifts from the pin
 
 - **WHEN** `.agents/contracts/reviewer.md` or `.agents/skills/review-pr/SKILL.md` is edited away from the `v0.3.8`
   template
-- **THEN** `ateam doctor --check` and `TestAteamTemplatesUnchanged` fail naming the file
+- **THEN** `ateam doctor --check` or `TestAteamTemplatesUnchanged` fails naming the file
 
 ### Requirement: Changed-test spec citations
 

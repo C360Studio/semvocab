@@ -114,8 +114,8 @@ A new repo-wide or agent-conduct rule updates both this file and `.agents/rules-
 
 | Gate | Rule | Where |
 | --- | --- | --- |
-| `spec:check+review` | OpenSpec changes declare `quick` or `design` track, keep `proposal.md` <= 60 lines with `Approved-by:`, and stay truthful against code | `protocol`; `task spec:check`; `TestSpecTaskWiring` |
-| `spec:check+review` | Every OpenSpec task can be ticked in or before archive; unapproved proposals hold task `1.1` with `Hold: OPEN-Q proposal awaits owner approval`, and holds live inside the task they stop | `protocol`; `ateam state spec-check` |
+| `spec:check+review` | OpenSpec changes pass `openspec validate --strict`, declare `quick` or `design` track, keep `proposal.md` <= 60 lines (warned by `spec:check`) with `Approved-by:`, and stay truthful against code | `protocol`; `task spec:check`; `TestSpecTaskWiring` |
+| `spec:check+review` | Every OpenSpec task can be ticked in or before archive; holds live inside the task they stop (`spec:check` fails stray `Hold:`), and unapproved proposals hold task `1.1` with `Hold: OPEN-Q proposal awaits owner approval` | `protocol`; `ateam state spec-check`; `rev` |
 | `verify+review` | Steps end when `task verify` passes locally on a clean tree and conclude with Ponytail's 1–2 line exit summary; reviewer `APPROVE` cites commit + local `task verify`, never CI | `dev`, `rev`; `protocol` |
 | `CI required` | A merge needs `Required` and `Merge check` green on a head up to date with `main` | `protocol`; `TestCIWorkflowPinned` |
 | `merge:check` | No merge while a known flake (`class:flake` issue) is open, unless the PR closes every open one | `protocol`; `scripts/merge-check.sh` |
@@ -140,7 +140,7 @@ A new repo-wide or agent-conduct rule updates both this file and `.agents/rules-
 - **`openspec/changes/<id>/`:** target state (`proposal.md`, optional `design.md`, `specs/`, `tasks.md`, `notes/`),
   archived into `openspec/changes/archive/` before marking the PR ready.
 - **`openspec/specs/<capability>/`:** current truth, synced at archive time and cited by `// spec:` in Go tests.
-- **`.ateam/state.sqlite`:** local gitignored coordination cache (`ateam state pickup`, `ateam state handoff`).
+- **`.ateam/state.json`:** local gitignored coordination cache (`ateam state pickup`, `ateam state handoff`).
 - **ADRs (`docs/adr/`, when the first is written):** why; irreversible choices and cross-repo contracts.
 
 ## Working here (Claude, Codex, and Gemini)
