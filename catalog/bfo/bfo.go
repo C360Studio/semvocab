@@ -6,9 +6,11 @@
 // (github.com/C360Studio/semstreams, vocabulary/bfo at revision
 // 8b99efe9c66a4faa4fa509f9f62cc6bad8392128, MIT, Copyright (c) 2025 C360),
 // restricted to the terms that BFO 2020 declares with the same meaning, as
-// recorded in docs/admission-ledger.yaml (entry "bfo"). ImmaterialEntity is
-// added from BFO 2020 itself. The hierarchy follows BFO 2020, not the
-// SemStreams map: Site and SpatialRegion sit under ImmaterialEntity.
+// recorded in docs/admission-ledger.yaml (entry "bfo"). ImmaterialEntity and
+// 15 relations (BearerOf through Precedes, ruling R1 on #31) are added from
+// BFO 2020 itself; BearerOf, InheresIn, and OccupiesTemporalRegion reuse
+// SemStreams names at their BFO 2020 IRIs. The hierarchy follows BFO 2020, not
+// the SemStreams map: Site and SpatialRegion sit under ImmaterialEntity.
 //
 // BFO 2020 is BFO-ontology/BFO-2020, src/owl/bfo-core.ttl at commit
 // 5ed468765ea5655a0ff9a93877fd059f294a152d (version IRI
@@ -120,4 +122,41 @@ const (
 	TemporalPartOf = Namespace + "BFO_0000139"
 	// HasTemporalPart (BFO_0000121, "has temporal part") is the inverse of TemporalPartOf.
 	HasTemporalPart = Namespace + "BFO_0000121"
+)
+
+// Relations added from BFO 2020 (ruling R1 on #31). These are not ported from
+// SemStreams; each IRI and label is the bfo-2020 bfo-core.ttl declaration.
+const (
+	// BearerOf (BFO_0000196, "bearer of") relates an independent continuant to a specifically dependent continuant it bears.
+	BearerOf = Namespace + "BFO_0000196"
+	// InheresIn (BFO_0000197, "inheres in") is the inverse of BearerOf.
+	InheresIn = Namespace + "BFO_0000197"
+	// GenericallyDependsOn (BFO_0000084, "generically depends on") relates a generically dependent continuant to its carrier.
+	GenericallyDependsOn = Namespace + "BFO_0000084"
+	// IsCarrierOf (BFO_0000101, "is carrier of") is the inverse of GenericallyDependsOn.
+	IsCarrierOf = Namespace + "BFO_0000101"
+	// IsConcretizedBy (BFO_0000058, "is concretized by") relates a generically dependent continuant to its concretization.
+	IsConcretizedBy = Namespace + "BFO_0000058"
+	// Concretizes (BFO_0000059, "concretizes") is the inverse of IsConcretizedBy.
+	Concretizes = Namespace + "BFO_0000059"
+	// OccupiesTemporalRegion (BFO_0000199, "occupies temporal region") relates an occurrent to its temporal region.
+	// BFO 2020 declares it functional and gives it no inverse.
+	OccupiesTemporalRegion = Namespace + "BFO_0000199"
+	// HasOccurrentPart (BFO_0000117, "has occurrent part") relates an occurrent to an occurrent part of it.
+	HasOccurrentPart = Namespace + "BFO_0000117"
+	// OccurrentPartOf (BFO_0000132, "occurrent part of") is the inverse of HasOccurrentPart.
+	OccurrentPartOf = Namespace + "BFO_0000132"
+	// ContinuantPartOf (BFO_0000176, "continuant part of") relates a continuant to a continuant it is part of.
+	ContinuantPartOf = Namespace + "BFO_0000176"
+	// HasContinuantPart (BFO_0000178, "has continuant part") is the inverse of ContinuantPartOf.
+	HasContinuantPart = Namespace + "BFO_0000178"
+	// HasMemberPart (BFO_0000115, "has member part") relates an object aggregate to a member; a sub-property of
+	// HasContinuantPart.
+	HasMemberPart = Namespace + "BFO_0000115"
+	// MemberPartOf (BFO_0000129, "member part of") is the inverse of HasMemberPart; a sub-property of ContinuantPartOf.
+	MemberPartOf = Namespace + "BFO_0000129"
+	// PrecededBy (BFO_0000062, "preceded by") relates an occurrent to one that precedes it.
+	PrecededBy = Namespace + "BFO_0000062"
+	// Precedes (BFO_0000063, "precedes") is the inverse of PrecededBy.
+	Precedes = Namespace + "BFO_0000063"
 )

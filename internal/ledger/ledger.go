@@ -196,16 +196,25 @@ type PackNamespace struct {
 	Statement  string `yaml:"statement"`
 }
 
-// BFOSource is the source block of the bfo entry.
+// BFOSource is the source block of the bfo entry. ExternalAdditions.Relations
+// maps a Go name to [bfo-2020 IRI local name, rdfs:label]; RelationAxioms
+// records, by Go name, the owl:inverseOf pairs and rdfs:subPropertyOf edges
+// (sub-property to super-property) the release asserts between admitted
+// relations.
 type BFOSource struct {
 	SemStreamsFiles          []string `yaml:"semstreams_files"`
 	SymbolsAdmittedClasses   []string `yaml:"symbols_admitted_classes"`
 	SymbolsAdmittedRelations []string `yaml:"symbols_admitted_relations"`
 	Hierarchy                string   `yaml:"hierarchy"`
 	ExternalAdditions        struct {
-		Ontology string   `yaml:"ontology"`
-		Terms    []string `yaml:"terms"`
+		Ontology  string               `yaml:"ontology"`
+		Terms     []string             `yaml:"terms"`
+		Relations map[string][2]string `yaml:"relations"`
 	} `yaml:"external_additions"`
+	RelationAxioms struct {
+		InversePairs  [][2]string       `yaml:"inverse_pairs"`
+		SubPropertyOf map[string]string `yaml:"sub_property_of"`
+	} `yaml:"relation_axioms"`
 }
 
 // CCOSource is the source block of the cco entry. Admitted maps take a Go

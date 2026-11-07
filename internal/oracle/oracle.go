@@ -26,14 +26,16 @@ import (
 
 // Well-known IRIs.
 const (
-	RDFType       = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-	RDFSLabel     = "http://www.w3.org/2000/01/rdf-schema#label"
-	RDFSSubClass  = "http://www.w3.org/2000/01/rdf-schema#subClassOf"
-	OWLClass      = "http://www.w3.org/2002/07/owl#Class"
-	OWLObjectProp = "http://www.w3.org/2002/07/owl#ObjectProperty"
-	OWLDataProp   = "http://www.w3.org/2002/07/owl#DatatypeProperty"
-	OWLDeprecated = "http://www.w3.org/2002/07/owl#deprecated"
-	OWLThing      = "http://www.w3.org/2002/07/owl#Thing"
+	RDFType           = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+	RDFSLabel         = "http://www.w3.org/2000/01/rdf-schema#label"
+	RDFSSubClass      = "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+	RDFSSubPropertyOf = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
+	OWLClass          = "http://www.w3.org/2002/07/owl#Class"
+	OWLObjectProp     = "http://www.w3.org/2002/07/owl#ObjectProperty"
+	OWLDataProp       = "http://www.w3.org/2002/07/owl#DatatypeProperty"
+	OWLDeprecated     = "http://www.w3.org/2002/07/owl#deprecated"
+	OWLInverseOf      = "http://www.w3.org/2002/07/owl#inverseOf"
+	OWLThing          = "http://www.w3.org/2002/07/owl#Thing"
 )
 
 // Release names a vendored file by its ledger pin key.
@@ -166,16 +168,20 @@ func (g *Graph) SubjectsWithPrefix(prefix string) []string {
 	return out
 }
 
-// Types returns the rdf:type IRIs asserted for iri.
-func (g *Graph) Types(iri string) []string {
+// IRIObjects returns the IRI objects of (s, p, ?o) in document order;
+// literal and blank-node objects are skipped.
+func (g *Graph) IRIObjects(s, p string) []string {
 	var out []string
-	for _, o := range g.objects(iri, RDFType) {
+	for _, o := range g.objects(s, p) {
 		if o.Kind == turtle.IRI {
 			out = append(out, o.Value)
 		}
 	}
 	return out
 }
+
+// Types returns the rdf:type IRIs asserted for iri.
+func (g *Graph) Types(iri string) []string { return g.IRIObjects(iri, RDFType) }
 
 // HasType reports whether iri is declared with rdf:type typ.
 func (g *Graph) HasType(iri, typ string) bool { return slices.Contains(g.Types(iri), typ) }

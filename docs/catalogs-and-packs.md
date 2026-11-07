@@ -32,6 +32,47 @@ Three functions answer hierarchy questions for classes:
 - `Parents(iri)` returns every ancestor, nearest first, ending at `bfo.Entity`.
 - `IsA(child, parent)` is true when `child` is `parent` or below it.
 
+Relations are OWL object properties: they link two entities rather than name a kind of entity. Ten relations come from
+SemStreams (`OccursIn`, `ParticipatesIn`, `HasParticipant`, `RealizedIn`, `Realizes`, `LocatedIn`, `LocationOf`,
+`ExistsAt`, `TemporalPartOf`, `HasTemporalPart`). Fifteen more come straight from BFO 2020 (ruling R1 on #31):
+
+| Constant | IRI | BFO 2020 label |
+| --- | --- | --- |
+| `bfo.BearerOf` | `BFO_0000196` | bearer of |
+| `bfo.InheresIn` | `BFO_0000197` | inheres in |
+| `bfo.GenericallyDependsOn` | `BFO_0000084` | generically depends on |
+| `bfo.IsCarrierOf` | `BFO_0000101` | is carrier of |
+| `bfo.IsConcretizedBy` | `BFO_0000058` | is concretized by |
+| `bfo.Concretizes` | `BFO_0000059` | concretizes |
+| `bfo.OccupiesTemporalRegion` | `BFO_0000199` | occupies temporal region |
+| `bfo.HasOccurrentPart` | `BFO_0000117` | has occurrent part |
+| `bfo.OccurrentPartOf` | `BFO_0000132` | occurrent part of |
+| `bfo.ContinuantPartOf` | `BFO_0000176` | continuant part of |
+| `bfo.HasContinuantPart` | `BFO_0000178` | has continuant part |
+| `bfo.HasMemberPart` | `BFO_0000115` | has member part |
+| `bfo.MemberPartOf` | `BFO_0000129` | member part of |
+| `bfo.PrecededBy` | `BFO_0000062` | preceded by |
+| `bfo.Precedes` | `BFO_0000063` | precedes |
+
+`bfo.Precedes` means "comes before": `a precedes b`. `bfo.PrecededBy` is the reverse.
+
+BFO 2020 declares these relations to be inverses of each other (`a R b` exactly when `b R' a`):
+
+- `RealizedIn` / `Realizes`, `ParticipatesIn` / `HasParticipant`, `LocationOf` / `LocatedIn`
+- `HasTemporalPart` / `TemporalPartOf`, `HasOccurrentPart` / `OccurrentPartOf`
+- `ContinuantPartOf` / `HasContinuantPart`, `HasMemberPart` / `MemberPartOf`
+- `BearerOf` / `InheresIn`, `GenericallyDependsOn` / `IsCarrierOf`, `IsConcretizedBy` / `Concretizes`
+- `PrecededBy` / `Precedes`
+
+It also declares four sub-properties (every link of the first kind is also a link of the second):
+
+- `HasMemberPart` under `HasContinuantPart`, and `MemberPartOf` under `ContinuantPartOf`
+- `HasTemporalPart` under `HasOccurrentPart`, and `TemporalPartOf` under `OccurrentPartOf`
+
+`OccupiesTemporalRegion` has no inverse in BFO 2020. The catalog exports no function for inverses or sub-properties.
+The admission ledger (`docs/admission-ledger.yaml`, entry `bfo`, `relation_axioms`) records them, and tests check that
+record against the BFO 2020 file.
+
 ### `catalog/cco`
 
 Constants for the admitted classes and object properties of the Common Core Ontologies v2.2 (CCO), such as
