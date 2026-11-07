@@ -1,5 +1,7 @@
 # Proposal: admit-bfo-bridge-relations
 
+Approved-by: Coby Leuschke (2026-11-07)
+
 Track: design (adds two spec Requirements, modifies `catalogs-and-packs` and `catalog-provenance`; `design.md`).
 
 ## Why

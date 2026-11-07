@@ -101,6 +101,8 @@ Additive: no constant is removed or changes value. Rollback is reverting the PR.
 
 ## Open Questions
 
+Resolved by the owner on 2026-11-07: (a) for all three.
+
 1. (Owner) D3: the spec now defines an excluded symbol as a name at its source IRI, so R1's `BearerOf`, `InheresIn`,
    and `OccupiesTemporalRegion` reuse excluded names. Confirm `admitted_instead` (a) over (b).
 2. (Owner) D4: relation axioms recorded in the ledger, with no exported Go API. Confirm (a).

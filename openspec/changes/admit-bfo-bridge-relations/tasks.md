@@ -5,10 +5,9 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
 
 ## 1. Approval
 
-- [ ] 1.1 Approve `proposal.md` and `design.md` for #31 (ruling R1, 2026-11-06), answering design Open Questions
+- [x] 1.1 Approve `proposal.md` and `design.md` for #31 (ruling R1, 2026-11-06), answering design Open Questions
   1-3 (`.agents/contracts/architect.md`, `.agents/protocol.md:47-53`). Acceptance: `proposal.md` carries
   `Approved-by: <name> (<YYYY-MM-DD>)` and this hold is removed in the same edit.
-  Hold: OPEN-Q proposal awaits owner approval
 
 ## 2. Oracle and ledger
 
