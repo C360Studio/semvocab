@@ -26,3 +26,6 @@ node_modules
 .ateam/
 benchmarks/runs/
 .claude/settings.local.json
+
+# Antigravity CLI copies its built-in skills here; not repo content
+/skills/system/
