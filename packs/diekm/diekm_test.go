@@ -2,6 +2,7 @@ package diekm_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"reflect"
 	"slices"
@@ -11,6 +12,7 @@ import (
 	"github.com/c360studio/semengine/message"
 	"github.com/c360studio/semengine/vocabulary"
 	"github.com/c360studio/semengine/vocabulary/export"
+	"github.com/c360studio/semvocab/catalog/bfo"
 	"github.com/c360studio/semvocab/internal/turtle"
 	"github.com/c360studio/semvocab/packs/diekm"
 )
@@ -236,5 +238,61 @@ func TestDIEKMPackLoadsAndRegisters(t *testing.T) {
 		if !strings.Contains(out, s) {
 			t.Errorf("Turtle output lacks %q:\n%s", s, out)
 		}
+	}
+}
+
+// bfoStepProblems names every projection step predicate under the OBO
+// namespace that is not bfo.BearerOf or bfo.GenericallyDependsOn, and fails
+// when no step uses the OBO namespace at all.
+func bfoStepProblems(spec vocabulary.PackSpec) []string {
+	var bad []string
+	seen := 0
+	for _, p := range spec.Predicates {
+		if p.Projection == nil {
+			continue
+		}
+		for i, step := range p.Projection.Steps {
+			if !strings.HasPrefix(step.PredicateIRI, bfo.Namespace) {
+				continue
+			}
+			seen++
+			if step.PredicateIRI != bfo.BearerOf && step.PredicateIRI != bfo.GenericallyDependsOn {
+				bad = append(bad, fmt.Sprintf("%s step %d: predicate %s is not bfo.BearerOf or bfo.GenericallyDependsOn",
+					p.Name, i, step.PredicateIRI))
+			}
+		}
+	}
+	if seen == 0 {
+		bad = append(bad, "no projection step uses an OBO-namespace predicate")
+	}
+	return bad
+}
+
+// TestDIEKMProjectionStepsUseBFORelations binds the BFO predicates in
+// diekm.yaml's projection steps to catalog/bfo relation constants, and seeds a
+// BFO 2.0 "bearer of" (BFO_0000053) step that the check must name.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
+func TestDIEKMProjectionStepsUseBFORelations(t *testing.T) {
+	spec, err := diekm.Spec()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range bfoStepProblems(spec) {
+		t.Error(p)
+	}
+
+	seeded, err := diekm.Spec()
+	if err != nil {
+		t.Fatal(err)
+	}
+	i := slices.IndexFunc(seeded.Predicates, func(p vocabulary.PredicateSpec) bool { return p.Name == altitudePredicate })
+	if i < 0 || seeded.Predicates[i].Projection == nil {
+		t.Fatalf("diekm pack has no %s projection", altitudePredicate)
+	}
+	seeded.Predicates[i].Projection.Steps[0].PredicateIRI = bfo.Namespace + "BFO_0000053"
+	want := altitudePredicate + " step 0: predicate " + bfo.Namespace + "BFO_0000053"
+	if got := strings.Join(bfoStepProblems(seeded), "\n"); !strings.Contains(got, want) {
+		t.Errorf("seeded BFO_0000053 step not named; want %q in:\n%s", want, got)
 	}
 }
