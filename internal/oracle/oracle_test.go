@@ -315,7 +315,7 @@ func TestReadSchemaFileRefusesAlteredOrUnlisted(t *testing.T) {
 // requires literal (rdfs:label) and blank-node (rdfs:range of BFO_0000058)
 // objects to be skipped.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
 func TestIRIObjects(t *testing.T) {
 	g, err := Load(BFO2020)
 	if err != nil {

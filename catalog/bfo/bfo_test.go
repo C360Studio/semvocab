@@ -249,7 +249,7 @@ func relationProblems(in inputs) []string {
 // SemStreams fixture, and bfo-2020, and restates the reused-name and
 // precedence scenarios from ruling R1 on #31.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
 func TestCatalogPortParity(t *testing.T) {
 	in := loadInputs(t)
 	for _, p := range parityProblems(in, externalAdditions(t, in.src)) {
@@ -289,7 +289,7 @@ var compiledRelations = map[string]string{
 // ruling R1 constant to be the ledger's bfo-2020 IRI, declared in the release
 // with the ledger's label, so a mutant of bfo.go is seen.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
 func TestRelationConstantsMatchLedger(t *testing.T) {
 	in := loadInputs(t)
 	rels := in.src.ExternalAdditions.Relations
@@ -310,7 +310,7 @@ func TestRelationConstantsMatchLedger(t *testing.T) {
 // TestCatalogPortParitySensitivity seeds faults into the exported surface, the
 // ledger, and the release graph, and requires parityProblems to name each.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
 func TestCatalogPortParitySensitivity(t *testing.T) {
 	drop := func(p *gosrc.Package, name string) {
 		delete(p.Consts, name)
@@ -547,7 +547,7 @@ func axiomProblems(in inputs) []string {
 // the release's axioms between admitted relations, and restates the spec
 // scenarios from bfo-core.ttl lines 284, 308, 377, and 531.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
 func TestRelationAxiomsMatchRelease(t *testing.T) {
 	in := loadInputs(t)
 	for _, p := range axiomProblems(in) {
@@ -573,7 +573,7 @@ func TestRelationAxiomsMatchRelease(t *testing.T) {
 // ledger's relation_axioms and requires axiomProblems to name each, and a
 // pair recorded in the reverse of the release's direction to pass.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
 func TestRelationAxiomsMatchReleaseSensitivity(t *testing.T) {
 	isBearer := func(p [2]string) bool { return p[0] == "BearerOf" }
 	tests := []struct {

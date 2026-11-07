@@ -272,7 +272,7 @@ func bfoStepProblems(spec vocabulary.PackSpec) []string {
 // diekm.yaml's projection steps to catalog/bfo relation constants, and seeds a
 // BFO 2.0 "bearer of" (BFO_0000053) step that the check must name.
 //
-// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
 func TestDIEKMProjectionStepsUseBFORelations(t *testing.T) {
 	spec, err := diekm.Spec()
 	if err != nil {
