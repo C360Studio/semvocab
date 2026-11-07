@@ -81,6 +81,9 @@ Test-only and additive; rollback is reverting the PR.
 
 ## Open Questions (owner)
 
+Answered by the owner on 2026-11-07: 1 (a) strict `BearerOf`/`InheresIn`; 2 require a SHACL mapping, failing
+closed without one; 3 reject fiat boundaries; 4 leave the other OBO predicates unchecked.
+
 1. D5: is a hop from IC to SDC allowed through a CCO v2.2 sub-property of `BFO_0000196`, such as `ont00001954` "has
    capability" (one exists; three for `084`/`101`)? (a) Strict `BearerOf` only. (b) Accept sub-properties asserted
    in `cco-2.2`. Recommend (a) now, (b) when a pack needs it.

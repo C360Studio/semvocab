@@ -1,5 +1,7 @@
 # Proposal: bfo-soundness-checks
 
+Approved-by: Coby Leuschke (2026-11-07)
+
 Track: design (adds three `catalogs-and-packs` Requirements; `design.md`).
 
 ## Why
