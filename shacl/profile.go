@@ -62,7 +62,7 @@ const (
 	reasonSPARQL       = "SPARQL-based constraints and components are outside the profile"
 	reasonJS           = "JavaScript extensions are outside the profile"
 	reasonAF           = "SHACL Advanced Features are outside the profile"
-	reasonRule         = "SHACL rules are not compiled: rule translation is deferred to issue #1 Phase 4"
+	reasonRule         = "SHACL rules are not compiled: rule translation is deferred to issue #21"
 )
 
 type termSection struct{ term, section string }

@@ -566,7 +566,7 @@ Reason given in the error: SHACL Advanced Features are outside the profile.
 
 #### Rules (9)
 
-Reason given in the error: SHACL rules are not compiled: rule translation is deferred to issue #1 Phase 4.
+Reason given in the error: SHACL rules are not compiled: rule translation is deferred to issue #21.
 
 | Term | Section |
 | --- | --- |
@@ -853,7 +853,7 @@ Neither the compiler nor the validator enforces graph-wide invariants.
 
 `sh:rule` is rejected, and so are the rest of SHACL Advanced Features §8: `sh:Rule`, `sh:TripleRule`, `sh:SPARQLRule`,
 `sh:condition`, `sh:subject`, `sh:predicate`, `sh:object`, and `sh:construct`. The error says: "SHACL rules are not
-compiled: rule translation is deferred to issue #1 Phase 4". Phase 4 is not present.
+compiled: rule translation is deferred to issue #21". Rule translation is not present.
 
 ## Reproducing results
 
