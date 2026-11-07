@@ -18,22 +18,22 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
 
 ## 3. Checks, sensitivity, and mutation evidence
 
-- [ ] 3.1 In new `packs/bfo_soundness_test.go`: the selector (design D2; premise `internal/ledger/ledger.go:146`,
+- [x] 3.1 In new `packs/bfo_soundness_test.go`: the selector (design D2; premise `internal/ledger/ledger.go:146`,
   `docs/admission-ledger.yaml:1075,1104`, `packs/packs_test.go:62-67`), the bucket check, and the disjointness check
   over sets read from `bfo-core.ttl:686-1055,1185-1223` (D6), classifying through `cco.IsA`
   (`catalog/cco/hierarchy.go:78-88`). Acceptance: the "Pack selection" and "DIEKM is anchored" scenarios pass.
-- [ ] 3.2 Seeded twins for 3.1: missing bucket root; `Continuant`+`Occurrent`; `IndependentContinuant`+`Quality`
+- [x] 3.2 Seeded twins for 3.1: missing bucket root; `Continuant`+`Occurrent`; `IndependentContinuant`+`Quality`
   (via `AllDisjointClasses` at `:1185`). Acceptance: each names the entity type and the rule.
-- [ ] 3.3 The domain/range interpreter over the 17 relations (D4; premise `catalog/bfo/bfo.go:103-161`,
+- [x] 3.3 The domain/range interpreter over the 17 relations (D4; premise `catalog/bfo/bfo.go:103-161`,
   `bfo-core.ttl:102-573`), failing closed on any other class-expression shape. Acceptance: a test pins `196` domain,
   `059` domain, and `199` range as written in design D4.
-- [ ] 3.4 The hop check with step-0 subjects from `shacl.DecodeMappingYAML(diekm.Mapping())` (D3; premise
+- [x] 3.4 The hop check with step-0 subjects from `shacl.DecodeMappingYAML(diekm.Mapping())` (D3; premise
   `vocabulary/projection.go:13-15`, `packs/diekm/diekm.mapping.yaml:21-29`, `shacl/model.go:104-117`) and the D5
   anchoring rule. Acceptance: the "DIEKM chains are sound" scenario passes.
-- [ ] 3.5 Seeded twins for 3.4: unanchored quality; unanchored role; `IsCarrierOf` from a GDC; a process bearer;
+- [x] 3.5 Seeded twins for 3.4: unanchored quality; unanchored role; `IsCarrierOf` from a GDC; a process bearer;
   a `SpatialRegion` bearer; a projected BFO step with no bound subject; a node class unknown to the catalogs.
   Acceptance: each names the predicate and step.
-- [ ] 3.6 The opt-in connectivity diagnostic (D5). Acceptance: both "Process connectivity is opt-in" scenarios pass.
+- [x] 3.6 The opt-in connectivity diagnostic (D5). Acceptance: both "Process connectivity is opt-in" scenarios pass.
 - [ ] 3.7 Run `task mutate:check` on design D6 mutants 1-7 and record each command and verdict in
   `openspec/changes/bfo-soundness-checks/notes/mutate.md`. Acceptance: each mutant is killed or recorded as a
   survivor.
