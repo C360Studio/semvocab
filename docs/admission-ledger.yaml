@@ -372,8 +372,46 @@ entries:
       symbols_admitted_relations: [OccursIn, ParticipatesIn, HasParticipant, RealizedIn, Realizes, LocatedIn,
         LocationOf, ExistsAt, TemporalPartOf, HasTemporalPart]
       hierarchy: SubClassOf, Parents, IsA, with parents taken from bfo-2020, not from the SemStreams map
-      external_additions: {ontology: bfo-2020, terms: [BFO_0000141 immaterial entity]}
-    admitted_terms: the symbols above plus BFO_0000141 (all verified as declared in bfo-2020)
+      external_additions:
+        ontology: bfo-2020
+        terms: [BFO_0000141 immaterial entity]
+        relations: # Go name: [bfo-2020 IRI local name, bfo-2020 rdfs:label]; ruling R1 on #31 (2026-11-06)
+          BearerOf: [BFO_0000196, "bearer of"]
+          InheresIn: [BFO_0000197, "inheres in"]
+          GenericallyDependsOn: [BFO_0000084, "generically depends on"]
+          IsCarrierOf: [BFO_0000101, "is carrier of"]
+          IsConcretizedBy: [BFO_0000058, "is concretized by"]
+          Concretizes: [BFO_0000059, "concretizes"]
+          OccupiesTemporalRegion: [BFO_0000199, "occupies temporal region"]
+          HasOccurrentPart: [BFO_0000117, "has occurrent part"]
+          OccurrentPartOf: [BFO_0000132, "occurrent part of"]
+          ContinuantPartOf: [BFO_0000176, "continuant part of"]
+          HasContinuantPart: [BFO_0000178, "has continuant part"]
+          HasMemberPart: [BFO_0000115, "has member part"]
+          MemberPartOf: [BFO_0000129, "member part of"]
+          PrecededBy: [BFO_0000062, "preceded by"]
+          Precedes: [BFO_0000063, "precedes"]
+      relation_axioms: # by Go name; every axiom bfo-core.ttl asserts between two admitted relations, and no other
+        inverse_pairs: # owl:inverseOf, either direction
+          - [RealizedIn, Realizes]
+          - [ParticipatesIn, HasParticipant]
+          - [IsConcretizedBy, Concretizes]
+          - [PrecededBy, Precedes]
+          - [GenericallyDependsOn, IsCarrierOf]
+          - [HasMemberPart, MemberPartOf]
+          - [HasOccurrentPart, OccurrentPartOf]
+          - [HasTemporalPart, TemporalPartOf]
+          - [LocationOf, LocatedIn]
+          - [ContinuantPartOf, HasContinuantPart]
+          - [BearerOf, InheresIn]
+        sub_property_of: # rdfs:subPropertyOf, sub-property: super-property
+          HasMemberPart: HasContinuantPart
+          HasTemporalPart: HasOccurrentPart
+          MemberPartOf: ContinuantPartOf
+          TemporalPartOf: OccurrentPartOf
+    admitted_terms: >-
+      the symbols above, BFO_0000141, and the 15 external_additions.relations of ruling R1 on #31 (all verified as
+      declared in bfo-2020)
     excluded_source_symbols:
       - symbols: [PartOf BFO_0000050, HasPart BFO_0000051]
         reason: "not in bfo-2020 core (BFO 2.0/RO 'part of'); BFO 2020 uses BFO_0000176/BFO_0000178"
@@ -393,6 +431,9 @@ entries:
     test_oracle: >-
       bfo-2020 bfo-core.ttl at the recorded sha256: each admitted IRI declared with the expected rdf:type; Parents
       equals the asserted named rdfs:subClassOf closure. IRI parity with the SemStreams pin for admitted symbols.
+      Each external_additions.relations entry is an owl:ObjectProperty, not owl:deprecated, with exactly its recorded
+      rdfs:label, and every owl:inverseOf it declares is admitted; relation_axioms equal the release's owl:inverseOf
+      (unordered) and rdfs:subPropertyOf triples between admitted relations, both ways.
 
   - catalog: cco
     disposition: new-content
