@@ -29,7 +29,7 @@ issue and SHALL return no partial bundle.
 
 - **WHEN** a shapes graph contains `sh:rule`
 - **THEN** compilation fails, the issue names `sh:rule` and the shape, and the message says rule translation is
-  deferred
+  deferred to issue #21
 
 #### Scenario: Several rejected constructs
 

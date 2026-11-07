@@ -83,7 +83,9 @@ func TestW3CRejectedFamiliesFailCompile(t *testing.T) {
 // rule, an unsupported target, a non-predicate path, a logical constraint, a
 // SPARQL constraint, and an unknown sh: term in one document are all
 // reported, sorted by shape, path, and construct, with no bundle; sh:rule's
-// message names the Phase 4 deferral.
+// message names the deferral to issue #21.
+//
+// spec: openspec/specs/shacl-compilation/spec.md#Requirement: Constructs outside the profile are rejected by name
 func TestRejectedConstructsReportedTogether(t *testing.T) {
 	b, err := compileTurtle(t, `
 ex:S sh:targetClass ex:C ;
@@ -97,7 +99,7 @@ ex:S sh:targetClass ex:C ;
 	if b != nil {
 		t.Error("a partial bundle was returned")
 	}
-	rule := requireIssue(t, err, sh+"rule", "rule translation is deferred to issue #1 Phase 4")
+	rule := requireIssue(t, err, sh+"rule", "rule translation is deferred to issue #21")
 	if rule.Shape != ex+"S" {
 		t.Errorf("sh:rule issue = %+v, want shape ex:S", rule)
 	}
