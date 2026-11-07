@@ -34,7 +34,7 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
   a `SpatialRegion` bearer; a projected BFO step with no bound subject; a node class unknown to the catalogs.
   Acceptance: each names the predicate and step.
 - [x] 3.6 The opt-in connectivity diagnostic (D5). Acceptance: both "Process connectivity is opt-in" scenarios pass.
-- [ ] 3.7 Run `task mutate:check` on design D6 mutants 1-7 and record each command and verdict in
+- [x] 3.7 Run `task mutate:check` on design D6 mutants 1-7 and record each command and verdict in
   `openspec/changes/bfo-soundness-checks/notes/mutate.md`. Acceptance: each mutant is killed or recorded as a
   survivor.
 
