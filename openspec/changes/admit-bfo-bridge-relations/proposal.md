@@ -2,7 +2,7 @@
 
 Approved-by: Coby Leuschke (2026-11-07)
 
-Track: design (adds two spec Requirements, modifies `catalogs-and-packs` and `catalog-provenance`; `design.md`).
+Track: design (adds two `catalogs-and-packs` Requirements; `design.md`).
 
 ## Why
 
@@ -21,7 +21,7 @@ not deprecated, and `owl:inverseOf` / `rdfs:subPropertyOf` consistency, with pai
   `PrecededBy`, `Precedes`), each `Namespace + "BFO_…"`; the package comment names the additions.
 - `docs/admission-ledger.yaml` `bfo` entry: `external_additions.relations` (Go name to IRI local name and label),
   `relation_axioms` (the 11 inverse pairs and 4 subproperty edges `bfo-core.ttl` asserts between admitted relations),
-  and `admitted_instead` on four exclusion rows. Every exclusion stays: SemStreams' bindings remain wrong.
+  and deletion of the exclusion rows for `BearerOf`, `InheresIn`, and `OccupiesTemporalRegion` (owner, 2026-11-07).
 - `internal/ledger`: decode the new fields. `internal/oracle`: `OWLInverseOf`, `RDFSSubPropertyOf`, `IRIObjects`.
 - Tests: `catalog/bfo` parity and relation-axiom checks against the fixture, with seeded-fault twins; a
   `packs/diekm` check that its BFO projection predicates are catalog relations.
@@ -36,9 +36,7 @@ not deprecated, and `owl:inverseOf` / `rdfs:subPropertyOf` consistency, with pai
 
 ## Capabilities
 
-- Modified `catalogs-and-packs`: an excluded source symbol is its name at its source IRI; new requirements for BFO
-  relation declarations and relation axioms.
-- Modified `catalog-provenance`: an exclusion row names the release terms admitted in its place.
+- `catalogs-and-packs`: new requirements for BFO relation declarations and relation axioms.
 
 ## Impact
 

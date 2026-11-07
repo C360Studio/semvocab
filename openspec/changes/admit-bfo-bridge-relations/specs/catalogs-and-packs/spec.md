@@ -1,37 +1,5 @@
 # catalogs-and-packs
 
-## MODIFIED Requirements
-
-### Requirement: Catalogs admit only ledger terms
-
-`catalog/bfo`, `catalog/cco`, `catalog/sosa`, `catalog/ssn`, `catalog/swe`, and `catalog/sensorml` SHALL export
-exactly the terms the admission ledger admits for them, with IRIs equal to the pinned release or schema-bundle
-declaration, and SHALL NOT export any excluded source symbol. An excluded symbol is its name bound to its source IRI;
-the name SHALL be exported only when its exclusion row lists it under `admitted_instead`, at that IRI.
-
-#### Scenario: An excluded SemStreams symbol
-
-- **WHEN** a reader looks for `PrecedesTemporally` in `catalog/bfo`
-- **THEN** no such symbol exists
-
-#### Scenario: Excluded consumer symbols in SOSA and SWE
-
-- **WHEN** a reader looks for `SamplingFeature` or `HasLocation` in `catalog/sosa`, or `NilValue` / `PropNilValue` in
-  `catalog/swe`
-- **THEN** no such symbol exists
-
-#### Scenario: Collision-free JSON Schema property constants
-
-- **WHEN** a caller reads `swe.PropNamespace` and `sensorml.PropLink`
-- **THEN** they equal `http://www.opengis.net/spec/SWE/3.0/namespace` and
-  `http://www.opengis.net/spec/sensorML/3.0/link` without colliding with `swe.Namespace` or `sensorml.Link`
-
-#### Scenario: A SemStreams name admitted at its BFO 2020 IRI
-
-- **WHEN** a caller reads `bfo.BearerOf`, `bfo.InheresIn`, and `bfo.OccupiesTemporalRegion`
-- **THEN** they end in `BFO_0000196`, `BFO_0000197`, and `BFO_0000199`, not SemStreams' `BFO_0000053`, `BFO_0000052`,
-  and `BFO_0000132`
-
 ## ADDED Requirements
 
 ### Requirement: BFO relations are declared in the release
@@ -46,6 +14,13 @@ through a BFO relation SHALL use an admitted `catalog/bfo` relation IRI.
 - **WHEN** a reader lists the relations in `external_additions.relations` of the `bfo` entry
 - **THEN** they are the 15 object properties of ruling R1 on #31, each exported by `catalog/bfo` with its `bfo-2020`
   label
+
+#### Scenario: A SemStreams name at its BFO 2020 IRI
+
+- **WHEN** a caller reads `bfo.BearerOf`, `bfo.InheresIn`, and `bfo.OccupiesTemporalRegion`
+- **THEN** they end in `BFO_0000196` ("bearer of"), `BFO_0000197` ("inheres in"), and `BFO_0000199` ("occupies
+  temporal region"), not SemStreams' `BFO_0000053`, `BFO_0000052`, and `BFO_0000132`, which `bfo-2020` does not declare
+  with those labels
 
 #### Scenario: Direction of temporal precedence
 

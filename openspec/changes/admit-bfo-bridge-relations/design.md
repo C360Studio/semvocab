@@ -13,7 +13,8 @@ Ruling R1 on #31 (2026-11-06) admits 15 BFO 2020 object properties into `catalog
 - The exclusion check (`catalog/bfo/bfo_test.go:144-148`) fails if any excluded name is exported. R1 reuses three
   excluded names at new IRIs (`BearerOf` `BFO_0000053`→`196`, `InheresIn` `052`→`197`, `OccupiesTemporalRegion`
   `132`→`199`; rows at `docs/admission-ledger.yaml:380-389`) and admits two excluded IRIs under new names (`PrecededBy`
-  = `BFO_0000062`, `OccurrentPartOf` = `BFO_0000132`). Exclusion by name alone or by IRI alone breaks R1.
+  = `BFO_0000062`, `OccurrentPartOf` = `BFO_0000132`). Keeping those rows, exclusion by name alone or by IRI alone
+  breaks R1 (resolved by D3).
 - `internal/oracle/oracle.go:144-153` reads objects only through unexported `objects`; no exported accessor returns
   IRI objects, so `owl:inverseOf` and `rdfs:subPropertyOf` are unreadable from tests today.
 - SemEngine `v0.1.0-alpha.2` (`go.mod:12`) has no BFO IRI in any non-test Go file (grep of the module
@@ -63,14 +64,14 @@ shape (`docs/admission-ledger.yaml:407-408`), checked as `owl:ObjectProperty` + 
 them in `symbols_admitted_relations` and skip SemStreams parity for absent names: silently drops parity for the
 three reused names. Choose (a).
 
-**D3. Exclusions.** Rows stay: SemStreams' bindings remain wrong. (a) Optional `admitted_instead: ["<GoName>
-<BFO_x>"]` per row; test rule: an excluded name is exported only if its row's `admitted_instead` names it, at that
-IRI, and that entry is in `external_additions.relations`; no exported name carries its excluded IRI. Rows:
-`PartOf`/`HasPart` → `ContinuantPartOf BFO_0000176`, `HasContinuantPart BFO_0000178`; `BearerOf`/`InheresIn` →
-`BearerOf BFO_0000196`, `InheresIn BFO_0000197`; `PrecedesTemporally` → `Precedes BFO_0000063`, `PrecededBy
-BFO_0000062`; `OccupiesTemporalRegion` → `OccupiesTemporalRegion BFO_0000199`. (b) Implicit: allow any excluded
-name the ledger admits elsewhere: cheaper, but a typo silently re-admits a name. (c) Delete rows: loses the defect
-record. Choose (a). `Entry.Excluded()` is unchanged, so the five other catalogs are untouched.
+**D3. Exclusions.** (a) Optional `admitted_instead: ["<GoName> <BFO_x>"]` per row, keeping every row. (b) Implicit:
+allow any excluded name the ledger admits elsewhere: a typo silently re-admits a name. (c) Delete the conflicting
+rows. Chosen by the owner (2026-11-07): (c). The `bfo` entry loses exactly the rows for `BearerOf`/`InheresIn`
+(`BFO_0000053`/`052`) and `OccupiesTemporalRegion` (`BFO_0000132`); the `PartOf`/`HasPart` and `PrecedesTemporally`
+rows stay. Reason: SemStreams is retiring and nobody ports from it, so a record of its wrong bindings buys nothing.
+`ledger.Exclusion` is unchanged and the exclusion check stays name-based. The old wrong IRIs are rejected by the
+release-declaration check (D2: `owl:ObjectProperty`, exact label, not deprecated), proved by a seeded `BearerOf` at
+`BFO_0000053`.
 
 **D4. Inverse and subproperty consistency.** (a) Ledger `relation_axioms` (`inverse_pairs`, `sub_property_of`)
 must equal, both ways, the fixture's axioms between admitted relations; plus each R1 relation's declared inverse
@@ -93,7 +94,7 @@ packs' predicates.
 ## Risks / Trade-offs
 
 - `relation_axioms` must be edited whenever a relation is admitted; the both-ways check makes a missed edit fail.
-- Declared cost: `admitted_instead` adds one optional field to the shared `Exclusion` type.
+- The deleted exclusion rows no longer record SemStreams' wrong `BFO_0000053`/`052`/`132` bindings (D3).
 
 ## Migration Plan
 
@@ -101,11 +102,10 @@ Additive: no constant is removed or changes value. Rollback is reverting the PR.
 
 ## Open Questions
 
-Resolved by the owner on 2026-11-07: (a) for all three.
+Resolved by the owner on 2026-11-07:
 
-1. (Owner) D3: the spec now defines an excluded symbol as a name at its source IRI, so R1's `BearerOf`, `InheresIn`,
-   and `OccupiesTemporalRegion` reuse excluded names. Confirm `admitted_instead` (a) over (b).
-2. (Owner) D4: relation axioms recorded in the ledger, with no exported Go API. Confirm (a).
-3. (Owner) D6: the `diekm` binding test is in scope. Confirm (a), or drop task 3.4 and its scenario.
+1. D3: changed to (c), deleting the three conflicting exclusion rows (`admitted_instead` dropped).
+2. D4: (a), relation axioms recorded in the ledger, with no exported Go API.
+3. D6: (a), the `diekm` binding test is in scope.
 
 Architect: claude (claude-opus-5-5, high).

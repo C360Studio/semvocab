@@ -415,16 +415,10 @@ entries:
     excluded_source_symbols:
       - symbols: [PartOf BFO_0000050, HasPart BFO_0000051]
         reason: "not in bfo-2020 core (BFO 2.0/RO 'part of'); BFO 2020 uses BFO_0000176/BFO_0000178"
-      - symbols: [BearerOf BFO_0000053, InheresIn BFO_0000052]
-        reason: >-
-          not found in bfo-2020 core, the CCO 1.4 BFO import, or the CCO 1.4 RO import; BFO 2020 uses
-          BFO_0000196/BFO_0000197
       - symbols: [OccupiesSpatialRegion BFO_0000083, ContainedIn BFO_0000170, Contains BFO_0000169, AdjacentTo BFO_0000068]
         reason: "not in bfo-2020 core"
       - symbols: [PrecedesTemporally BFO_0000062]
         reason: "BFO_0000062 is 'preceded by' in bfo-2020 (the inverse); 'precedes' is BFO_0000063; source defect"
-      - symbols: [OccupiesTemporalRegion BFO_0000132]
-        reason: "BFO_0000132 is 'occurrent part of' in bfo-2020; 'occupies temporal region' is BFO_0000199; source defect"
     hierarchy_divergence_from_source: >-
       SemStreams maps Site and SpatialRegion directly to IndependentContinuant; bfo-2020 places them under BFO_0000141
     license: "SemStreams MIT (C360); BFO CC-BY-4.0, attribute BFO-2020"

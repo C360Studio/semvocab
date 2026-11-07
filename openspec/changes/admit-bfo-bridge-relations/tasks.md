@@ -17,12 +17,13 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
   `internal/oracle` test shows `IRIObjects(BFO_0000196, OWLInverseOf)` is `[BFO_0000197]` and
   `IRIObjects(BFO_0000196, RDFSLabel)` is empty.
 - [ ] 2.2 Extend `ledger.BFOSource` with `ExternalAdditions.Relations map[string][2]string` and `RelationAxioms`
-  (`InversePairs [][2]string`, `SubPropertyOf map[string]string`), and `ledger.Exclusion` with
-  `AdmittedInstead []string` (premise: `internal/ledger/ledger.go:184-188,199-209`; strict decoding at `:410-429`).
-  Acceptance: `TestAdmissionLedgerShape` decodes the updated ledger; `Entry.Excluded()` output is unchanged.
+  (`InversePairs [][2]string`, `SubPropertyOf map[string]string`); `ledger.Exclusion` is unchanged (`design.md` D3;
+  premise: `internal/ledger/ledger.go:184-188,199-209`; strict decoding at `:410-429`). Acceptance:
+  `TestAdmissionLedgerShape` decodes the updated ledger.
 - [ ] 2.3 Update the `bfo` entry of `docs/admission-ledger.yaml` (premise: `:360-395`) as `design.md` D2-D3 state:
-  15 `external_additions.relations`, 11 `relation_axioms.inverse_pairs`, 4 `sub_property_of` edges, `admitted_instead`
-  on the four rows at `:378-389`, and `admitted_terms` / `test_oracle` text naming them. Acceptance: task 3.2 and 3.3
+  15 `external_additions.relations`, 11 `relation_axioms.inverse_pairs`, 4 `sub_property_of` edges, deletion of the
+  exclusion rows for `BearerOf`/`InheresIn` and `OccupiesTemporalRegion` (the `PartOf`/`HasPart` and
+  `PrecedesTemporally` rows stay), and `admitted_terms` / `test_oracle` text naming them. Acceptance: task 3.2 and 3.3
   tests pass against it.
 
 ## 3. Catalog, pack test, and mutation evidence
@@ -32,10 +33,10 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
   Acceptance: `task build` and `task lint` pass; the constants equal the ledger rows (task 3.2).
 - [ ] 3.2 Extend `parityProblems` in `catalog/bfo/bfo_test.go` (premise: `:119-183`, exclusion check `:144-148`): each
   external relation is exported, an `owl:ObjectProperty`, not deprecated, with exactly its recorded label; each R1
-  relation's declared inverse is admitted; an excluded name is exported only via its row's `admitted_instead`, never
-  at the excluded IRI. Add seeded cases to `TestCatalogPortParitySensitivity` (`:194-217`): `BearerOf` at
-  `BFO_0000053`; `Precedes`/`PrecededBy` swapped; a wrong label; a deprecated term via
-  `oracle.LoadMerged(BFO2020, CCO22)`; `InheresIn` dropped. Acceptance: each seeded case is named.
+  relation's declared inverse is admitted; the exclusion check stays name-based (`design.md` D3). Add seeded cases to
+  `TestCatalogPortParitySensitivity` (`:194-217`): `BearerOf` at `BFO_0000053`, the proof that the old wrong IRIs are
+  rejected; `Precedes`/`PrecededBy` swapped; a wrong label; a deprecated term via `oracle.LoadMerged(BFO2020, CCO22)`;
+  `InheresIn` dropped. Acceptance: each seeded case is named.
 - [ ] 3.3 Add `TestRelationAxiomsMatchRelease` and its sensitivity twin to `catalog/bfo/bfo_test.go`: ledger
   `relation_axioms` equal the fixture's `owl:inverseOf` (unordered) and `rdfs:subPropertyOf` triples between admitted
   relations. Seeded: a dropped pair, an invented pair, a reversed subproperty edge. Acceptance: each is named.
