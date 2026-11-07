@@ -10,12 +10,18 @@ import (
 	"testing"
 )
 
-// candidates is the closed list the catalog-provenance spec ("One disposition
-// per candidate") requires, written here independently of the ledger.
-var candidates = []string{
-	"actr", "agnt", "bfo", "cco", "cyber", "dublincore", "foaf", "geosparql", "iana", "owl", "prov", "rdf",
-	"rdfs", "schema", "skos", "sosa", "ssn", "swe", "sensorml", "diekm", "bfo-cco-core", "swe-core",
-}
+// catalogCandidates and packCandidates are the closed lists the
+// catalog-provenance spec ("One disposition per candidate") requires, written
+// here independently of the ledger.
+var (
+	catalogCandidates = []string{
+		"actr", "agnt", "bfo", "cco", "cyber", "dublincore", "foaf", "geosparql", "iana", "owl", "prov", "rdf",
+		"rdfs", "schema", "skos", "sosa", "ssn", "swe", "sensorml",
+	}
+	packCandidates = []string{
+		"diekm", "bfo-cco-core", "swe-core", "sensorml",
+	}
+)
 
 // typedSourceCatalogs name the catalogs whose admitted terms live in typed maps
 // under Entry.Source rather than a prose Entry.AdmittedTerms string.
@@ -45,9 +51,15 @@ func checkShape(l Ledger) []string {
 }
 
 func checkEntries(l Ledger, add func(string, ...any)) {
-	seen := map[string]int{}
+	seenCatalogs := map[string]int{}
+	seenPacks := map[string]int{}
 	for _, e := range l.Entries {
-		seen[e.Name()]++
+		if e.Catalog != "" {
+			seenCatalogs[e.Catalog]++
+		}
+		if e.Pack != "" {
+			seenPacks[e.Pack]++
+		}
 		if (e.Catalog == "") == (e.Pack == "") {
 			add("entry %q: exactly one of catalog or pack must be set", e.Name())
 		}
@@ -64,7 +76,8 @@ func checkEntries(l Ledger, add func(string, ...any)) {
 			if !hasSource {
 				add("entry %q: %s without source", e.Name(), e.Disposition)
 			}
-			hasTerms := e.AdmittedTerms != "" || e.Contents != "" || slices.Contains(typedSourceCatalogs, e.Name())
+			hasTerms := strings.TrimSpace(e.AdmittedTerms) != "" || strings.TrimSpace(e.Contents) != "" ||
+				(e.Catalog != "" && slices.Contains(typedSourceCatalogs, e.Catalog))
 			if !hasTerms {
 				add("entry %q: %s without admitted terms", e.Name(), e.Disposition)
 			}
@@ -87,18 +100,28 @@ func checkEntries(l Ledger, add func(string, ...any)) {
 			}
 		}
 	}
-	for _, c := range candidates {
-		if seen[c] != 1 {
-			add("candidate %q has %d entries, want 1", c, seen[c])
+	for _, c := range catalogCandidates {
+		if seenCatalogs[c] != 1 {
+			add("catalog candidate %q has %d entries, want 1", c, seenCatalogs[c])
 		}
 	}
-	for _, name := range slices.Sorted(maps.Keys(seen)) {
-		if !slices.Contains(candidates, name) {
-			add("entry %q is not a candidate", name)
+	for _, c := range packCandidates {
+		if seenPacks[c] != 1 {
+			add("pack candidate %q has %d entries, want 1", c, seenPacks[c])
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(seenCatalogs)) {
+		if !slices.Contains(catalogCandidates, name) {
+			add("catalog entry %q is not a candidate", name)
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(seenPacks)) {
+		if !slices.Contains(packCandidates, name) {
+			add("pack entry %q is not a candidate", name)
 		}
 	}
 	for _, name := range []string{"swe", "sensorml"} {
-		e, err := l.Entry(name)
+		e, err := l.Catalog(name)
 		if err != nil {
 			continue
 		}
@@ -289,15 +312,19 @@ func TestAdmissionLedgerShape(t *testing.T) {
 	if actr, err := l.Entry("actr"); err != nil || actr.Disposition != "deferred" {
 		t.Errorf("actr entry = %+v, %v; want deferred", actr, err)
 	}
-	if bfo, err := l.Entry("bfo"); err != nil || !slices.Contains(bfo.Excluded(), "PrecedesTemporally") {
-		t.Errorf("bfo entry does not exclude PrecedesTemporally (err %v)", err)
+	if actr, err := l.Catalog("actr"); err != nil || actr.Disposition != "deferred" {
+		t.Errorf("actr catalog = %+v, %v; want deferred", actr, err)
 	}
-	if diekm, err := l.Entry("diekm"); err != nil || diekm.Namespace.Registered ||
+	if bfo, err := l.Catalog("bfo"); err != nil || !slices.Contains(bfo.Excluded(), "PrecedesTemporally") {
+		t.Errorf("bfo catalog does not exclude PrecedesTemporally (err %v)", err)
+	}
+	if diekm, err := l.Pack("diekm"); err != nil || diekm.Namespace.Registered ||
 		!strings.Contains(diekm.Namespace.Statement, "C360-local") {
 		t.Errorf("diekm namespace = %+v, %v; want registered false and a C360-local statement", diekm.Namespace, err)
 	}
 
 	assertSWEAndSOSAScenarios(t, l)
+	assertSensorMLPackScenarios(t, l)
 }
 
 func assertSWEAndSOSAScenarios(t *testing.T, l Ledger) {
@@ -330,11 +357,15 @@ func assertSWEAndSOSAScenarios(t *testing.T, l Ledger) {
 		t.Errorf("pins.schemas.swe-3.0 Quantity.json = %+v (listed %v), want pinned sha256", f, ok)
 	}
 
-	for _, name := range []string{"sosa", "ssn", "swe", "sensorml", "swe-core"} {
-		e, err := l.Entry(name)
+	for _, name := range []string{"sosa", "ssn", "swe", "sensorml"} {
+		e, err := l.Catalog(name)
 		if err != nil || e.Disposition != "new-content" || e.Phase == nil || *e.Phase != 1 {
-			t.Errorf("%s entry = %+v (err %v), want new-content in phase 1", name, e, err)
+			t.Errorf("%s catalog = %+v (err %v), want new-content in phase 1", name, e, err)
 		}
+	}
+	if sweCore, err := l.Pack("swe-core"); err != nil || sweCore.Disposition != "new-content" ||
+		sweCore.Phase == nil || *sweCore.Phase != 1 {
+		t.Errorf("swe-core pack = %+v (err %v), want new-content in phase 1", sweCore, err)
 	}
 
 	for _, tc := range []struct {
@@ -343,7 +374,7 @@ func assertSWEAndSOSAScenarios(t *testing.T, l Ledger) {
 		{"swe", "http://www.opengis.net/spec/SWE/3.0/", "http://www.opengis.net/spec/SWE/3.0"},
 		{"sensorml", "http://www.opengis.net/spec/sensorML/3.0/", "http://www.opengis.net/spec/sensorML/3.0"},
 	} {
-		e, err := l.Entry(tc.name)
+		e, err := l.Catalog(tc.name)
 		if err != nil || e.Namespace.IRI != tc.iri || e.Namespace.Registered ||
 			!strings.Contains(e.Namespace.Statement, "C360 RDF convention") ||
 			!strings.Contains(e.Namespace.Statement, tc.baseURI) {
@@ -352,13 +383,65 @@ func assertSWEAndSOSAScenarios(t *testing.T, l Ledger) {
 		}
 	}
 
-	if sosa, err := l.Entry("sosa"); err != nil ||
+	if sosa, err := l.Catalog("sosa"); err != nil ||
 		!slices.Contains(sosa.Excluded(), "SamplingFeature") ||
 		!slices.Contains(sosa.Excluded(), "HasLocation") {
 		t.Errorf("sosa exclusions = %v (err %v), want SamplingFeature and HasLocation excluded", sosa.Excluded(), err)
 	}
-	if swe, err := l.Entry("swe"); err != nil || !slices.Contains(swe.Excluded(), "NilValue") {
+	if swe, err := l.Catalog("swe"); err != nil || !slices.Contains(swe.Excluded(), "NilValue") {
 		t.Errorf("swe exclusions = %v (err %v), want NilValue excluded", swe.Excluded(), err)
+	}
+}
+
+func assertSensorMLPackScenarios(t *testing.T, l Ledger) {
+	t.Helper()
+
+	cat, err := l.Catalog("sensorml")
+	if err != nil || cat.Kind() != "catalog" || cat.ID() != "catalog:sensorml" ||
+		cat.Phase == nil || *cat.Phase != 1 {
+		t.Errorf("Catalog(sensorml) = %+v (kind=%q id=%q, err=%v), want catalog:sensorml in phase 1",
+			cat, cat.Kind(), cat.ID(), err)
+	}
+
+	p, err := l.Pack("sensorml")
+	if err != nil {
+		t.Errorf("Pack(sensorml) error = %v, want nil", err)
+	} else {
+		if p.Kind() != "pack" || p.ID() != "pack:sensorml" {
+			t.Errorf("Pack(sensorml) kind=%q id=%q, want pack and pack:sensorml", p.Kind(), p.ID())
+		}
+		if p.Disposition != "new-content" || p.Phase == nil || *p.Phase != 2 {
+			t.Errorf("Pack(sensorml) disposition=%q phase=%v, want new-content in phase 2", p.Disposition, p.Phase)
+		}
+		if len(p.LocalAssertions) != 4 {
+			t.Errorf("Pack(sensorml) len(local_assertions) = %d, want 4", len(p.LocalAssertions))
+		}
+		if len(p.ReferencedTermsVerified) != 40 {
+			t.Errorf("Pack(sensorml) len(referenced_terms_verified) = %d, want 40", len(p.ReferencedTermsVerified))
+		}
+		if !slices.Contains(p.Excluded(), "csapi:*") {
+			t.Errorf("Pack(sensorml) exclusions = %v, want csapi:* excluded", p.Excluded())
+		}
+		for _, r := range []string{"R4", "R5", "R6"} {
+			if strings.TrimSpace(p.Rulings[r]) == "" {
+				t.Errorf("Pack(sensorml) rulings[%q] is empty", r)
+			}
+		}
+		if !strings.Contains(p.License, "MIT") {
+			t.Errorf("Pack(sensorml) license = %q, want MIT attribution", p.License)
+		}
+	}
+
+	if _, err := l.Entry("sensorml"); err == nil ||
+		!strings.Contains(err.Error(), "sensorml") ||
+		!strings.Contains(err.Error(), "Catalog or Pack") {
+		t.Errorf("Entry(sensorml) err = %v, want error naming sensorml and Catalog or Pack", err)
+	}
+	if _, err := l.Catalog("swe-core"); err == nil {
+		t.Error("Catalog(swe-core) succeeded, want error")
+	}
+	if _, err := l.Pack("sosa"); err == nil {
+		t.Error("Pack(sosa) succeeded, want error")
 	}
 }
 
@@ -494,6 +577,16 @@ func TestAdmissionLedgerShapeSensitivity(t *testing.T) {
 		{"drop a phase gate", func(s string) string {
 			return strings.Replace(s, "  phase-4: {", "  phase-9: {", 1)
 		}, "phase_gates.phase-4"},
+		{"remove pack sensorml", func(s string) string {
+			return strings.Replace(s, "  - pack: sensorml\n", "  - pack: sensorml-removed\n", 1)
+		}, `pack candidate "sensorml" has 0 entries`},
+		{"duplicate pack entry", func(s string) string {
+			return strings.Replace(s, "  - pack: sensorml\n", "  - pack: swe-core\n", 1)
+		}, `pack candidate "swe-core" has 2 entries`},
+		{"blank pack sensorml contents", func(s string) string {
+			return regexp.MustCompile(`(?s)(  - pack: sensorml\n.*?)    contents: >-\n.*?\n    references:`).
+				ReplaceAllString(s, "${1}    contents: \"\"\n    references:")
+		}, `entry "sensorml": new-content without admitted terms`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -512,5 +605,39 @@ func TestAdmissionLedgerShapeSensitivity(t *testing.T) {
 				t.Fatalf("seeded violation not named; want %q in:\n%s", tt.wantText, got)
 			}
 		})
+	}
+}
+
+func TestLedgerLookupFailsClosed(t *testing.T) {
+	onePack := Ledger{Entries: []Entry{{Pack: "diekm"}}}
+	if got, err := onePack.Catalog(""); err == nil || !strings.Contains(err.Error(), `no catalog ""`) {
+		t.Errorf("Catalog(\"\") on 1-pack ledger = %+v, %v; want no catalog \"\" error", got, err)
+	}
+
+	oneCatalog := Ledger{Entries: []Entry{{Catalog: "sosa"}}}
+	if got, err := oneCatalog.Pack(""); err == nil || !strings.Contains(err.Error(), `no pack ""`) {
+		t.Errorf("Pack(\"\") on 1-catalog ledger = %+v, %v; want no pack \"\" error", got, err)
+	}
+
+	unnamed := Ledger{Entries: []Entry{{}}}
+	if got, err := unnamed.Entry(""); err == nil || !strings.Contains(err.Error(), `no entry ""`) {
+		t.Errorf("Entry(\"\") on unnamed-entry ledger = %+v, %v; want no entry \"\" error", got, err)
+	}
+	if got, err := unnamed.Catalog(""); err == nil || !strings.Contains(err.Error(), `no catalog ""`) {
+		t.Errorf("Catalog(\"\") on unnamed-entry ledger = %+v, %v; want no catalog \"\" error", got, err)
+	}
+	if got, err := unnamed.Pack(""); err == nil || !strings.Contains(err.Error(), `no pack ""`) {
+		t.Errorf("Pack(\"\") on unnamed-entry ledger = %+v, %v; want no pack \"\" error", got, err)
+	}
+
+	bothKinds := Ledger{Entries: []Entry{{Catalog: "both", Pack: "both"}}}
+	if got, err := bothKinds.Catalog("both"); err == nil {
+		t.Errorf("Catalog(\"both\") on dual-set entry = %+v, nil; want error", got)
+	}
+	if got, err := bothKinds.Pack("both"); err == nil {
+		t.Errorf("Pack(\"both\") on dual-set entry = %+v, nil; want error", got)
+	}
+	if got, err := bothKinds.Entry("both"); err == nil {
+		t.Errorf("Entry(\"both\") on dual-set entry = %+v, nil; want error", got)
 	}
 }

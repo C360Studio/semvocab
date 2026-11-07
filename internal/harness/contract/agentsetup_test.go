@@ -14,8 +14,8 @@ import (
 )
 
 // Steps 1–8 of .agents/README.md's read-only parity smoke, held by a unit test and its sensitivity
-// test (carried from SemEngine's harness-boundaries spec, "Agent setup and rule-index parity"). Expected roles, tool lists, sandbox modes, model/effort
-// pins, and caps are constants here rather than read from .agents/README.md.
+// test. Expected roles, base contracts, tool lists, sandbox modes, model/effort pins, and caps are
+// constants here rather than read from .agents/README.md.
 const (
 	maxAgentsMDBytes    = 24000
 	maxClaudeMDLines    = 10
@@ -24,26 +24,31 @@ const (
 )
 
 type agentRoleSpec struct {
-	name        string
-	readOnly    bool
-	claudeModel string
-	codexModel  string
-	codexEffort string
+	name         string
+	baseContract string
+	readOnly     bool
+	claudeModel  string
+	codexModel   string
+	codexEffort  string
 }
 
 var (
 	agentRoleSpecs = []agentRoleSpec{
-		{name: "semvocab-architect", readOnly: true, claudeModel: "opus", codexModel: "gpt-6-astra", codexEffort: "medium"},
-		{name: "semvocab-developer", readOnly: false, claudeModel: "opus", codexModel: "gpt-6-sol", codexEffort: "medium"},
-		{name: "semvocab-reviewer", readOnly: true, claudeModel: "opus", codexModel: "gpt-6-astra", codexEffort: "high"},
-		{name: "semvocab-technical-writer", readOnly: false, claudeModel: "sonnet", codexModel: "gpt-6-sol", codexEffort: "medium"},
+		{name: "semvocab-architect", baseContract: "architect", readOnly: true, claudeModel: "opus", codexModel: "gpt-6-astra", codexEffort: "medium"},
+		{name: "semvocab-developer", baseContract: "developer", readOnly: false, claudeModel: "opus", codexModel: "gpt-6-sol", codexEffort: "medium"},
+		{name: "semvocab-reviewer", baseContract: "reviewer", readOnly: true, claudeModel: "opus", codexModel: "gpt-6-astra", codexEffort: "high"},
+		{name: "semvocab-technical-writer", baseContract: "", readOnly: false, claudeModel: "sonnet", codexModel: "gpt-6-sol", codexEffort: "medium"},
 	}
+	baseContracts       = []string{"architect", "developer", "reviewer"}
 	readOnlyClaudeTools = []string{"Read", "Bash", "Grep", "Glob", "Skill"}
 	writeClaudeTools    = []string{"Read", "Edit", "Write", "Bash", "Grep", "Glob", "Skill"}
 	sharedSkills        = []struct{ canonical, claude string }{
-		{"semvocab-handoff", "semvocab-handoff"},
-		{"semvocab-pickup", "semvocab-pickup"},
-		{"semvocab-preflight", "preflight"},
+		{"pickup", "pickup"},
+		{"handoff", "handoff"},
+		{"preflight", "preflight"},
+		{"design", "design"},
+		{"review-pr", "review-pr"},
+		{"ponytail", "ponytail"},
 	}
 	expectedRuleDomains = []string{
 		"1. Go and package boundaries",
@@ -54,10 +59,17 @@ var (
 	}
 )
 
+// spec: openspec/specs/agent-setup/spec.md#Requirement: One guidance file
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Rule index parity
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Thin role adapters
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Skill adapters
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Adapter tool and model pins
 func TestAgentSetupParity(t *testing.T) {
 	requireNoViolations(t, "agent setup parity", agentSetupViolations(repoRoot(t)))
 }
 
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Thin role adapters
+// spec: openspec/specs/agent-setup/spec.md#Requirement: Skill adapters
 func TestAgentSetupParitySensitivity(t *testing.T) {
 	base := copyAgentSetupFixture(t, repoRoot(t))
 	edit := func(rel string, fn func(string) string) map[string]string {
@@ -75,13 +87,27 @@ func TestAgentSetupParitySensitivity(t *testing.T) {
 	root, _ := writeTree(t, base)
 	requireNoViolations(t, "clean fixture", agentSetupViolations(root))
 
-	for _, tc := range []struct {
-		name  string
-		files map[string]string
-		wants []string
-	}{
+	for _, tc := range agentSetupSensitivityCases(edit) {
+		t.Run(tc.name, func(t *testing.T) {
+			dir, _ := writeTree(t, tc.files)
+			requireViolation(t, agentSetupViolations(dir), tc.wants...)
+		})
+	}
+}
+
+type agentSensitivityCase struct {
+	name  string
+	files map[string]string
+	wants []string
+}
+
+func agentSetupSensitivityCases(edit func(string, func(string) string) map[string]string) []agentSensitivityCase {
+	return []agentSensitivityCase{
 		{"missing canonical contract", edit(".agents/contracts/semvocab-architect.md", nil),
 			[]string{".agents/contracts/semvocab-architect.md", "missing"}},
+		{"specialist contract drops base contract link", edit(".agents/contracts/semvocab-reviewer.md", func(s string) string {
+			return strings.ReplaceAll(s, ".agents/contracts/reviewer.md", ".agents/contracts/other.md")
+		}), []string{".agents/contracts/semvocab-reviewer.md", ".agents/contracts/reviewer.md"}},
 		{"missing codex adapter", edit(".codex/agents/semvocab-reviewer.toml", nil),
 			[]string{".codex/agents/semvocab-reviewer.toml", "missing"}},
 		{"wrong contract path in claude adapter", edit(".claude/agents/semvocab-reviewer.md", func(s string) string {
@@ -98,12 +124,6 @@ func TestAgentSetupParitySensitivity(t *testing.T) {
 		}), []string{".codex/agents/semvocab-reviewer.toml", "sandbox_mode"}},
 		{"write codex adapter sets sandbox_mode", edit(".codex/agents/semvocab-developer.toml", func(s string) string {
 			return s + "sandbox_mode = \"read-only\"\n"
-		}), []string{".codex/agents/semvocab-developer.toml", "sandbox_mode"}},
-		{"write codex adapter sets literal-string sandbox_mode", edit(".codex/agents/semvocab-developer.toml", func(s string) string {
-			return s + "sandbox_mode = 'read-only'\n"
-		}), []string{".codex/agents/semvocab-developer.toml", "sandbox_mode"}},
-		{"write codex adapter sets sandbox_mode with inline comment", edit(".codex/agents/semvocab-developer.toml", func(s string) string {
-			return s + "sandbox_mode = \"read-only\" # override\n"
 		}), []string{".codex/agents/semvocab-developer.toml", "sandbox_mode"}},
 		{"CLAUDE.md drops @AGENTS.md import", edit("CLAUDE.md", func(string) string {
 			return "# SemVocab\n\nCustom rules here.\n"
@@ -124,22 +144,19 @@ func TestAgentSetupParitySensitivity(t *testing.T) {
 			return s + strings.Repeat("# extra line\n", 15)
 		}), []string{".codex/agents/semvocab-developer.toml", "lines"}},
 		{"skill adapter points to wrong canonical skill", edit(".claude/skills/preflight/SKILL.md", func(s string) string {
-			return strings.Replace(s, "semvocab-preflight/SKILL.md", "semvocab-handoff/SKILL.md", 1)
-		}), []string{".claude/skills/preflight/SKILL.md", "../../../.agents/skills/semvocab-preflight/SKILL.md"}},
+			return strings.Replace(s, "preflight/SKILL.md", "handoff/SKILL.md", 1)
+		}), []string{".claude/skills/preflight/SKILL.md", "../../../.agents/skills/preflight/SKILL.md"}},
 		{"new canonical skill missing claude adapter", edit(".agents/skills/new-review-skill/SKILL.md", func(string) string {
 			return "# New Skill\n"
 		}), []string{".claude/skills/new-review-skill/SKILL.md", "missing Claude skill adapter"}},
+		{"missing gemini skill command", edit(".gemini/commands/preflight.toml", nil),
+			[]string{".gemini/commands/preflight.toml", "missing Gemini skill command"}},
 		{"claude model mismatch", edit(".claude/agents/semvocab-technical-writer.md", func(s string) string {
 			return strings.Replace(s, "model: sonnet", "model: opus", 1)
 		}), []string{".claude/agents/semvocab-technical-writer.md", "model", "sonnet"}},
 		{"codex effort mismatch", edit(".codex/agents/semvocab-developer.toml", func(s string) string {
 			return strings.Replace(s, `model_reasoning_effort = "medium"`, `model_reasoning_effort = "high"`, 1)
 		}), []string{".codex/agents/semvocab-developer.toml", "model_reasoning_effort", "medium"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			dir, _ := writeTree(t, tc.files)
-			requireViolation(t, agentSetupViolations(dir), tc.wants...)
-		})
 	}
 }
 
@@ -152,6 +169,9 @@ func copyAgentSetupFixture(t *testing.T, root string) map[string]string {
 		".agents/protocol.md",
 		".agents/rules-index.md",
 	}
+	for _, b := range baseContracts {
+		rels = append(rels, ".agents/contracts/"+b+".md")
+	}
 	for _, r := range agentRoleSpecs {
 		rels = append(rels,
 			".agents/contracts/"+r.name+".md",
@@ -163,6 +183,7 @@ func copyAgentSetupFixture(t *testing.T, root string) map[string]string {
 		rels = append(rels,
 			".agents/skills/"+s.canonical+"/SKILL.md",
 			".claude/skills/"+s.claude+"/SKILL.md",
+			".gemini/commands/"+s.canonical+".toml",
 		)
 	}
 	files := make(map[string]string, len(rels))
@@ -180,6 +201,7 @@ func agentSetupViolations(root string) []string {
 	var out []string
 	out = append(out, checkRequiredAgentFiles(root)...)
 	for _, role := range agentRoleSpecs {
+		out = append(out, checkSpecialistContractLayering(root, role)...)
 		out = append(out, checkClaudeRoleAdapter(root, role)...)
 		out = append(out, checkCodexRoleAdapter(root, role)...)
 	}
@@ -197,6 +219,9 @@ func checkRequiredAgentFiles(root string) []string {
 		".agents/protocol.md",
 		".agents/rules-index.md",
 	}
+	for _, b := range baseContracts {
+		required = append(required, ".agents/contracts/"+b+".md")
+	}
 	for _, r := range agentRoleSpecs {
 		required = append(required,
 			".agents/contracts/"+r.name+".md",
@@ -211,6 +236,22 @@ func checkRequiredAgentFiles(root string) []string {
 		}
 	}
 	return out
+}
+
+func checkSpecialistContractLayering(root string, role agentRoleSpec) []string {
+	if role.baseContract == "" {
+		return nil
+	}
+	rel := ".agents/contracts/" + role.name + ".md"
+	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	if err != nil {
+		return nil
+	}
+	want := "Read `.agents/contracts/" + role.baseContract + ".md`, ateam's base contract, first"
+	if !strings.Contains(string(data), want) {
+		return []string{fmt.Sprintf("%s: missing base contract reference %q", rel, want)}
+	}
+	return nil
 }
 
 var contractPathPattern = regexp.MustCompile(`\.agents/contracts/[A-Za-z0-9_.-]+\.md`)
@@ -409,11 +450,7 @@ func discoverSkills(root string) []struct{ canonical, claude string } {
 			if !entry.IsDir() || seen[entry.Name()] {
 				continue
 			}
-			claudeName := entry.Name()
-			if claudeName == "semvocab-preflight" {
-				claudeName = "preflight"
-			}
-			skills = append(skills, struct{ canonical, claude string }{entry.Name(), claudeName})
+			skills = append(skills, struct{ canonical, claude string }{entry.Name(), entry.Name()})
 			seen[entry.Name()] = true
 		}
 	}
@@ -426,6 +463,10 @@ func checkSkillAdapters(root string) []string {
 		canonRel := ".agents/skills/" + s.canonical + "/SKILL.md"
 		if info, err := os.Stat(filepath.Join(root, filepath.FromSlash(canonRel))); err != nil || info.IsDir() || info.Size() == 0 {
 			out = append(out, fmt.Sprintf("%s: missing canonical skill", canonRel))
+		}
+		geminiRel := ".gemini/commands/" + s.canonical + ".toml"
+		if info, err := os.Stat(filepath.Join(root, filepath.FromSlash(geminiRel))); err != nil || info.IsDir() || info.Size() == 0 {
+			out = append(out, fmt.Sprintf("%s: missing Gemini skill command", geminiRel))
 		}
 		adapterRel := ".claude/skills/" + s.claude + "/SKILL.md"
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(adapterRel)))

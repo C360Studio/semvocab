@@ -33,7 +33,7 @@ func loadInputs(t *testing.T) inputs {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry, err := l.Entry("sensorml")
+	entry, err := l.Catalog("sensorml")
 	if err != nil {
 		t.Fatal(err)
 	}

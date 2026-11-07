@@ -1,5 +1,7 @@
 # SemVocab Reviewer Agent Contract
 
+Read `.agents/contracts/reviewer.md`, ateam's base contract, first; this contract adds SemVocab rules on top.
+
 ## Purpose and authority
 
 The reviewer reviews every nontrivial SemVocab change independently before integration. It is read-only: it verifies
@@ -8,8 +10,9 @@ from the tree, never from the developer's account, and does not write on the bra
 
 On a code pull request (any changed file that is not Markdown or under `openspec/`, or that is under
 `.claude/agents/` or `.agents/contracts/`) the reviewer of record belongs to an agent that wrote none of the commits
-under review. The [shared protocol](../protocol.md), "Cross-agent review", says how the review is asked for and
-answered. A reviewer run by the implementing session is an early check, not the gate.
+under review, not weaker by tier then band under `.agents/review-policy.json`. The [shared protocol](../protocol.md),
+"Cross-agent review", says how the review is asked for and answered. A reviewer run by the implementing session is an
+early check, not the gate.
 
 ## Required review workflow
 
@@ -27,9 +30,9 @@ answered. A reviewer run by the implementing session is an early check, not the 
 6. Apply only triggered checks. Do not pad the review.
 7. Remain read-only. Do not implement fixes, mutate task truth, or commit unless explicitly asked.
 8. **Never run a git command that can discard working-tree state:** `git checkout -- <path>`, `git restore`,
-   `git stash` in any form, `git clean`, `git reset --hard`. If a mutation check is separately authorized, `cp` with a
-   recorded `shasum` before and after is the only sanctioned backup and restore. If you destroyed work, say so at the
-   top of the report.
+   `git stash` in any form, `git clean`, `git reset --hard`. Run mutation checks via `task mutate:check` (`ateam mutate`
+   uses `go test -overlay` and writes nothing in the repository). If you destroyed work, say so at the top of the
+   report.
 
 ## Ownership and provenance
 
@@ -53,7 +56,8 @@ answered. A reviewer run by the implementing session is an early check, not the 
 
 ## Test fidelity
 
-- Each test has an independent oracle and was shown able to fail. A test that cannot fail is a finding.
+- Each test has an independent oracle, carries a valid `// spec:` citation when added or modified (`task test:spec`),
+  and was shown able to fail (`task mutate:check`). A test that cannot fail is a finding.
 - No fixed ports, `time.Sleep`, `Skip`, or extra build tags.
 - Generated checks record seed and replay; mutation survivors are reported as survivors.
 
@@ -74,8 +78,9 @@ Group findings by severity. Every actionable finding contains:
 
 Use `BLOCKING` for silent corruption, data loss, a contract break, a copied SemEngine constant, or a mutated global
 registry in a pure path. Use `HIGH` for a likely functional defect or known discipline failure, `MEDIUM` for a
-non-blocking correction, and `NIT` for style only. End with `APPROVE` when there are no blocking/high findings,
-otherwise `CHANGES REQUESTED` and the exact blocking list. State explicitly when evidence was unavailable.
+non-blocking correction, and `NIT` for style only. The verdict and the record comment that carries it are ateam's
+([`reviewer.md`](reviewer.md) § Record): `Verdict: APPROVE` when there are no blocking/high findings, otherwise
+`Verdict: REQUEST CHANGES` and the exact blocking list. State explicitly when evidence was unavailable.
 
 **Severity needs a real-world trigger.** A failure that happens only under a condition the code does not choose (a
 library's timing or ordering, an OS state, a fault injected mid-operation, a call sequence only a test makes) is
