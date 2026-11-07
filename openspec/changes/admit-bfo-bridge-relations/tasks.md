@@ -11,7 +11,7 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
 
 ## 2. Oracle and ledger
 
-- [ ] 2.1 Add `OWLInverseOf`, `RDFSSubPropertyOf`, and `(*Graph).IRIObjects(s, p string) []string` (IRI objects in
+- [x] 2.1 Add `OWLInverseOf`, `RDFSSubPropertyOf`, and `(*Graph).IRIObjects(s, p string) []string` (IRI objects in
   document order, literals and blank nodes skipped) to `internal/oracle/oracle.go` (premise: only unexported
   `objects` exists, `internal/oracle/oracle.go:144-153`; well-known IRIs at `:27-37`). Acceptance: a new
   `internal/oracle` test shows `IRIObjects(BFO_0000196, OWLInverseOf)` is `[BFO_0000197]` and

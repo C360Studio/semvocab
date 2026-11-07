@@ -308,3 +308,37 @@ func TestReadSchemaFileRefusesAlteredOrUnlisted(t *testing.T) {
 		t.Fatalf("unknown bundle: err = %v, want no schema bundle", err)
 	}
 }
+
+// TestIRIObjects reads owl:inverseOf and rdfs:subPropertyOf objects from the
+// pinned bfo-2020 file, whose lines 529-541 declare "bearer of" (BFO_0000196)
+// with owl:inverseOf BFO_0000197 and rdfs:subPropertyOf BFO_0000194, and
+// requires literal (rdfs:label) and blank-node (rdfs:range of BFO_0000058)
+// objects to be skipped.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
+func TestIRIObjects(t *testing.T) {
+	g, err := Load(BFO2020)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const (
+		obo       = "http://purl.obolibrary.org/obo/"
+		rdfsRange = "http://www.w3.org/2000/01/rdf-schema#range"
+	)
+	tests := []struct {
+		s, p string
+		want []string
+	}{
+		{obo + "BFO_0000196", OWLInverseOf, []string{obo + "BFO_0000197"}},
+		{obo + "BFO_0000196", RDFSSubPropertyOf, []string{obo + "BFO_0000194"}},
+		{obo + "BFO_0000197", OWLInverseOf, nil},
+		{obo + "BFO_0000196", RDFSLabel, nil},
+		{obo + "BFO_0000058", rdfsRange, nil},
+		{obo + "BFO_0000063", RDFType, []string{OWLObjectProp, "http://www.w3.org/2002/07/owl#TransitiveProperty"}},
+	}
+	for _, tt := range tests {
+		if got := g.IRIObjects(tt.s, tt.p); !slices.Equal(got, tt.want) {
+			t.Errorf("IRIObjects(%s, %s) = %q, want %q", tt.s, tt.p, got, tt.want)
+		}
+	}
+}
