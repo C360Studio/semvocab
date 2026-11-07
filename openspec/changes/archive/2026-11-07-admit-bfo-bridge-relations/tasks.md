@@ -53,5 +53,5 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
   (premise: `:21-33` names relations only by `bfo.LocatedIn`). Acceptance: `task docs:check` passes.
 - [x] 4.2 Run `task verify` on a clean tree at the branch head. Acceptance: it exits 0 with no tracked-file change.
 - [x] 4.3 Archive this change into `openspec/changes/archive/` with `npx --no-install openspec archive
-  admit-bfo-bridge-relations --yes` before the PR is marked ready. Acceptance: `openspec/specs/catalogs-and-packs` and
-  `openspec/specs/catalog-provenance` carry the requirements and `task spec:check` passes.
+  admit-bfo-bridge-relations --yes` before the PR is marked ready. Acceptance: `openspec/specs/catalogs-and-packs` carries
+  the requirements and `task spec:check` passes.
