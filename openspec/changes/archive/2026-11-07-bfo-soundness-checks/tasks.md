@@ -31,12 +31,13 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
   `vocabulary/projection.go:13-15`, `packs/diekm/diekm.mapping.yaml:21-29`, `shacl/model.go:104-117`) and the D5
   anchoring rule. Acceptance: the "DIEKM chains are sound" scenario passes.
 - [x] 3.5 Seeded twins for 3.4: unanchored quality; unanchored role; `IsCarrierOf` from a GDC; a process bearer;
-  a `SpatialRegion` bearer; a projected BFO step with no bound subject; a node class unknown to the catalogs.
-  Acceptance: each names the predicate and step.
+  a `SpatialRegion` bearer; a projected BFO step with no bound subject; a node class unknown to the catalogs; and,
+  added on review of PR #39, `bearer of` to a `Process` (range rejection) and a Role to IC hop without `inheres in`
+  (reverse anchoring, paired with the passing `inheres in` hop). Acceptance: each names the predicate and step.
 - [x] 3.6 The opt-in connectivity diagnostic (D5). Acceptance: both "Process connectivity is opt-in" scenarios pass.
 - [x] 3.7 Run `task mutate:check` on design D6 mutants 1-7 and record each command and verdict in
-  `openspec/changes/bfo-soundness-checks/notes/mutate.md`. Acceptance: each mutant is killed or recorded as a
-  survivor.
+  `openspec/changes/bfo-soundness-checks/notes/mutate.md` (mutants 8-9 added on review of PR #39). Acceptance: each
+  mutant is killed or recorded as a survivor.
 
 ## 4. Docs and archive
 

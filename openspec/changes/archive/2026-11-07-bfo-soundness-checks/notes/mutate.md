@@ -39,6 +39,22 @@ So each was run by hand with the same mechanism ateam uses:
 | 5 | anchoring accepts any OBO predicate (`!strings.HasPrefix(step.PredicateIRI, bfo.Namespace)` on both rules) | detection: `TestBFOProjectionHopsSensitivity/unanchored_role` |
 | 6 | selector takes every pack (`out = append(out, p); continue` before the test) | detection: `TestBFOPackSelection` (`selected packs = [bfo-cco-core swe-core diekm sensorml]`), `TestBFOPacksAnchorEveryEntityType`, `TestBFOProjectionHops` |
 
-No mutant survived every test. Per-test survivors worth naming: mutant 5 passes the `unanchored quality` twin (its
-seeded predicate, `cco:ont00001904`, is outside the OBO namespace, so the mutant still rejects it); only the
-`unanchored role` twin (`bfo.ParticipatesIn`) kills it. Mutant 3 is killed by one twin only.
+## Mutants 8-9 (review of PR #39 at `46e2f8e`)
+
+Codex's review found that the range diagnostic and the SDC to IC anchoring rule had no twin. Both disabled-check
+mutants were run by hand the same way, over the whole `./packs` package
+(`go test -overlay $M/mN/overlay.json ./packs -count=1`):
+
+| # | Mutant (edit in the copy) | At `46e2f8e` | With the new twins |
+| --- | --- | --- | --- |
+| 8 | range check disabled (`if false && !r.holds(node) {`) | **survivor** (`ok github.com/c360studio/semvocab/packs`) | detection: `TestBFOProjectionHopsSensitivity/bearer_of_a_process` |
+| 9 | SDC to IC rule disabled (`if false && classSetIsA(prev, bfo.SpecificallyDependentContinuant) && …`) | **survivor** (`ok`) | detection: `TestBFOProjectionHopsSensitivity/SDC_to_IC_without_inheres_in` |
+
+The after-run without the overlay passes.
+
+## Summary
+
+With the twins added, no mutant survives every test. Per-test survivors worth naming: mutant 5 passes the
+`unanchored quality` twin (its seeded predicate, `cco:ont00001904`, is outside the OBO namespace, so the mutant still
+rejects it); only the `unanchored role` twin (`bfo.ParticipatesIn`) kills it. Mutants 3, 8, and 9 are each killed by
+one twin only.

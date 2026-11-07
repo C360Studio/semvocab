@@ -809,6 +809,14 @@ func TestBFOProjectionHopsSensitivity(t *testing.T) {
 		{"node class unknown to the catalogs", func(t *testing.T, s *vocabulary.PackSpec, _ *shacl.Mapping) {
 			s.Predicates[predicateIndex(t, *s, altitude)].Projection.Steps[1].NodeClassIRI = bfo.Namespace + "BFO_0000140"
 		}, []string{altitude + " step 1", "unknown to catalog/bfo and catalog/cco"}},
+		{"bearer of a process", func(t *testing.T, s *vocabulary.PackSpec, _ *shacl.Mapping) {
+			// An IC subject (inside the domain) bearer of a known Process: only
+			// the range is wrong, and no SDC is reached, so no anchoring rule fires.
+			s.Predicates[predicateIndex(t, *s, role)].Projection.Steps[0].NodeClassIRI = cco.Act
+		}, []string{role + " step 0", "node class " + cco.Act + " is outside the rdfs:range of " + bfo.BearerOf}},
+		{"SDC to IC without inheres in", func(t *testing.T, s *vocabulary.PackSpec, _ *shacl.Mapping) {
+			roleBackToBearer(t, s, bfo.ParticipatesIn)
+		}, []string{role + " step 1", "without bfo.InheresIn"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -819,8 +827,16 @@ func TestBFOProjectionHopsSensitivity(t *testing.T) {
 		})
 	}
 
-	// A carrier hop names the domain only: the node is inside the range.
+	// The reverse hop through bfo.InheresIn is sound: Role is inside its
+	// domain and Vehicle inside its range.
 	spec, m := diekmSpecAndMapping(t)
+	roleBackToBearer(t, &spec, bfo.InheresIn)
+	if problems, _ := hopProblems("diekm", spec, m, rel); len(problems) != 0 {
+		t.Errorf("Role inheres in a Vehicle: hop problems %v", problems)
+	}
+
+	// A carrier hop names the domain only: the node is inside the range.
+	spec, m = diekmSpecAndMapping(t)
 	st := &spec.Predicates[predicateIndex(t, spec, altitude)].Projection.Steps[2]
 	st.PredicateIRI, st.NodeClassIRI = bfo.IsCarrierOf, cco.InformationContentEntity
 	problems, _ := hopProblems("diekm", spec, m, rel)
@@ -832,6 +848,19 @@ func TestBFOProjectionHopsSensitivity(t *testing.T) {
 	if _, err := packMapping("bfo-cco-core", spec); err == nil || !strings.Contains(err.Error(), "no SHACL mapping") {
 		t.Errorf("packMapping with projections and no mapping: err = %v, want a no-SHACL-mapping error", err)
 	}
+}
+
+// roleBackToBearer extends intel.role.assigned's chain (bearer of a Role)
+// with a hop from the Role to a cco.Vehicle through pred, moving the terminal
+// value predicate to the new last step.
+func roleBackToBearer(t *testing.T, s *vocabulary.PackSpec, pred string) {
+	t.Helper()
+	proj := s.Predicates[predicateIndex(t, *s, "intel.role.assigned")].Projection
+	value := proj.Steps[0].ValuePredicateIRI
+	proj.Steps[0].ValuePredicateIRI = ""
+	proj.Steps = append(proj.Steps, vocabulary.ProjectionStep{
+		PredicateIRI: pred, NodeClassIRI: cco.Vehicle, ValuePredicateIRI: value,
+	})
 }
 
 // TestBFOProcessConnectivity runs the opt-in diagnostic on diekm unchanged

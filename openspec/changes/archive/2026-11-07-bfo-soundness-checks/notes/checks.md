@@ -50,3 +50,11 @@ nested union, two named classes in an intersection, a bare complement, a literal
 Beyond tasks 3.2 and 3.5: a fiat-boundary entity type (`BFO_0000142` closure) is named as having no bucket root (owner
 answer 3); the carrier-hop twin also asserts the range is not named; and the seeded realization step of the
 connectivity scenario passes the hop check.
+
+## Twins added on review (PR #39)
+
+The first cut had no twin for the range diagnostic or for the SDC to IC rule (mutants 8 and 9 in `mutate.md` survived).
+`TestBFOProjectionHopsSensitivity` now seeds `intel.role.assigned` as `bearer of` a `cco.Act`: the subject is inside
+the domain and no SDC is reached, so only the range is named. It also extends the role chain with a Role to
+`cco.Vehicle` hop (moving the terminal value predicate to the new last step): through `bfo.ParticipatesIn` it is named
+"without bfo.InheresIn"; through `bfo.InheresIn` the chain has no problem.
