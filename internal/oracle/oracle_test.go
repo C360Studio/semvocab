@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/c360studio/semvocab/internal/ledger"
+	"github.com/c360studio/semvocab/internal/turtle"
 	"pgregory.net/rapid"
 )
 
@@ -340,5 +341,58 @@ func TestIRIObjects(t *testing.T) {
 		if got := g.IRIObjects(tt.s, tt.p); !slices.Equal(got, tt.want) {
 			t.Errorf("IRIObjects(%s, %s) = %q, want %q", tt.s, tt.p, got, tt.want)
 		}
+	}
+}
+
+// TestObjects reads BFO_0000196's rdfs:domain from the pinned bfo-2020 file,
+// where lines 532-538 write it as a blank node whose owl:intersectionOf list
+// holds BFO_0000004 and a blank node with owl:complementOf BFO_0000006, and
+// walks the list through rdf:first and rdf:rest.
+//
+// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
+func TestObjects(t *testing.T) {
+	g, err := Load(BFO2020)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const (
+		obo          = "http://purl.obolibrary.org/obo/"
+		rdfsDomain   = "http://www.w3.org/2000/01/rdf-schema#domain"
+		owlIntersect = "http://www.w3.org/2002/07/owl#intersectionOf"
+		owlComplem   = "http://www.w3.org/2002/07/owl#complementOf"
+		rdfFirst     = "http://www.w3.org/1999/02/22-rdf-syntax-ns#first"
+		rdfRest      = "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest"
+		rdfNil       = "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"
+	)
+	one := func(s, p string) turtle.Term {
+		t.Helper()
+		got := g.Objects(s, p)
+		if len(got) != 1 {
+			t.Fatalf("Objects(%s, %s) = %v, want one term", s, p, got)
+		}
+		return got[0]
+	}
+	domain := one(obo+"BFO_0000196", rdfsDomain)
+	if domain.Kind != turtle.Blank {
+		t.Fatalf("BFO_0000196 rdfs:domain = %v, want a blank node", domain)
+	}
+	var items []turtle.Term
+	for node := one(domain.Value, owlIntersect); node.Value != rdfNil; node = one(node.Value, rdfRest) {
+		items = append(items, one(node.Value, rdfFirst))
+	}
+	if len(items) != 2 {
+		t.Fatalf("owl:intersectionOf list = %v, want two members", items)
+	}
+	if items[0].Kind != turtle.IRI || items[0].Value != obo+"BFO_0000004" {
+		t.Errorf("first member = %v, want IRI %sBFO_0000004", items[0], obo)
+	}
+	if items[1].Kind != turtle.Blank {
+		t.Fatalf("second member = %v, want a blank node", items[1])
+	}
+	if c := one(items[1].Value, owlComplem); c.Kind != turtle.IRI || c.Value != obo+"BFO_0000006" {
+		t.Errorf("owl:complementOf = %v, want IRI %sBFO_0000006", c, obo)
+	}
+	if got := g.Objects(obo+"BFO_0000196", RDFSLabel); len(got) != 1 || got[0].Kind != turtle.Literal || got[0].Value != "bearer of" {
+		t.Errorf("Objects(BFO_0000196, rdfs:label) = %v, want the literal \"bearer of\"", got)
 	}
 }

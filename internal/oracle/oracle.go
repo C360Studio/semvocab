@@ -143,8 +143,11 @@ func VerifySHA256(data []byte, want string) error {
 	return nil
 }
 
-// objects returns the objects of (s, p, ?o) in document order.
-func (g *Graph) objects(s, p string) []turtle.Term {
+// Objects returns every object of (s, p, ?o) in document order: IRIs,
+// literals, and blank nodes. A blank node's Value (such as "_:b3") is itself a
+// subject of g, so class expressions and rdf:first/rdf:rest collections can be
+// walked with further Objects calls.
+func (g *Graph) Objects(s, p string) []turtle.Term {
 	var out []turtle.Term
 	for _, t := range g.bySubject[s] {
 		if t.P.Value == p {
@@ -172,7 +175,7 @@ func (g *Graph) SubjectsWithPrefix(prefix string) []string {
 // literal and blank-node objects are skipped.
 func (g *Graph) IRIObjects(s, p string) []string {
 	var out []string
-	for _, o := range g.objects(s, p) {
+	for _, o := range g.Objects(s, p) {
 		if o.Kind == turtle.IRI {
 			out = append(out, o.Value)
 		}
@@ -190,7 +193,7 @@ func (g *Graph) HasType(iri, typ string) bool { return slices.Contains(g.Types(i
 // in document order.
 func (g *Graph) LiteralObjects(s, p string) []string {
 	var out []string
-	for _, o := range g.objects(s, p) {
+	for _, o := range g.Objects(s, p) {
 		if o.Kind == turtle.Literal {
 			out = append(out, o.Value)
 		}
@@ -205,7 +208,7 @@ func (g *Graph) Labels(iri string) []string {
 
 // Deprecated reports whether iri carries owl:deprecated true.
 func (g *Graph) Deprecated(iri string) bool {
-	for _, o := range g.objects(iri, OWLDeprecated) {
+	for _, o := range g.Objects(iri, OWLDeprecated) {
 		if o.Kind == turtle.Literal && o.Value == "true" {
 			return true
 		}
@@ -217,7 +220,7 @@ func (g *Graph) Deprecated(iri string) bool {
 // rdfs:subClassOf objects of iri, without owl:Thing, in document order.
 func (g *Graph) DirectSuperclasses(iri string) []string {
 	var out []string
-	for _, o := range g.objects(iri, RDFSSubClass) {
+	for _, o := range g.Objects(iri, RDFSSubClass) {
 		if o.Kind == turtle.IRI && o.Value != OWLThing && !slices.Contains(out, o.Value) {
 			out = append(out, o.Value)
 		}

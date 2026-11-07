@@ -11,7 +11,7 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
 
 ## 2. Oracle
 
-- [ ] 2.1 Export `(*Graph).Objects(s, p string) []turtle.Term` (premise: unexported `objects`,
+- [x] 2.1 Export `(*Graph).Objects(s, p string) []turtle.Term` (premise: unexported `objects`,
   `internal/oracle/oracle.go:146-155`; `IRIObjects` skips blank nodes at `:171-181`). Acceptance: an
   `internal/oracle` test reads `BFO_0000196`'s `rdfs:domain` as one blank node whose `owl:intersectionOf` list
   holds `BFO_0000004` and a blank node with `owl:complementOf BFO_0000006` (`bfo-core.ttl:532-538`).
