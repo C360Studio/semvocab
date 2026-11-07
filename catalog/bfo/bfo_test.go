@@ -3,6 +3,7 @@ package bfo_test
 import (
 	"bufio"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"sort"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/c360studio/semvocab/catalog/bfo"
+	"github.com/c360studio/semvocab/catalog/cco"
 	"github.com/c360studio/semvocab/internal/gosrc"
 	"github.com/c360studio/semvocab/internal/ledger"
 	"github.com/c360studio/semvocab/internal/oracle"
@@ -130,6 +132,9 @@ func parityProblems(in inputs, additions map[string]string) []string {
 		byValue[v] = append(byValue[v], name)
 	}
 	want := append(slices.Clone(admitted), hierarchyAPI...)
+	for name := range in.src.ExternalAdditions.Relations {
+		want = append(want, name)
+	}
 	for iri := range additions {
 		if names := byValue[iri]; len(names) == 1 {
 			want = append(want, names[0])
@@ -179,35 +184,177 @@ func parityProblems(in inputs, additions map[string]string) []string {
 			add("external addition %s is not an owl:Class labelled %q in bfo-core.ttl", iri, label)
 		}
 	}
+	return append(bad, relationProblems(in)...)
+}
+
+// relationIRIs maps every admitted relation (SemStreams-ported and external
+// addition) to its exported constant value; names with no exported constant
+// are left out.
+func relationIRIs(in inputs) map[string]string {
+	out := map[string]string{}
+	names := slices.Clone(in.src.SymbolsAdmittedRelations)
+	for name := range in.src.ExternalAdditions.Relations {
+		names = append(names, name)
+	}
+	for _, name := range names {
+		if iri, ok := in.pkg.Consts[name]; ok {
+			out[name] = iri
+		}
+	}
+	return out
+}
+
+// relationProblems checks each ledger external relation against the exported
+// constant and the release, every relation constant for owl:deprecated, and
+// every owl:inverseOf an external relation declares for admission.
+func relationProblems(in inputs) []string {
+	var bad []string
+	add := func(format string, args ...any) { bad = append(bad, fmt.Sprintf(format, args...)) }
+	admitted := map[string]bool{}
+	byName := relationIRIs(in)
+	for _, iri := range byName {
+		admitted[iri] = true
+	}
+	for _, name := range slices.Sorted(maps.Keys(byName)) {
+		if iri := byName[name]; in.release.Deprecated(iri) {
+			add("%s (%s) is owl:deprecated in bfo-core.ttl", name, iri)
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(in.src.ExternalAdditions.Relations)) {
+		rec := in.src.ExternalAdditions.Relations[name]
+		iri, ok := in.pkg.Consts[name]
+		if !ok {
+			add("external relation %s is not an exported string constant", name)
+			continue
+		}
+		if iri != bfo.Namespace+rec[0] {
+			add("%s = %q, ledger records %s", name, iri, rec[0])
+		}
+		if !in.release.HasType(iri, oracle.OWLObjectProp) {
+			add("%s (%s) is not declared as %s in bfo-core.ttl", name, iri, oracle.OWLObjectProp)
+		}
+		if labels := in.release.Labels(iri); !slices.Equal(labels, []string{rec[1]}) {
+			add("%s (%s) has rdfs:label %q in bfo-core.ttl, ledger records %q", name, iri, labels, rec[1])
+		}
+		for _, inv := range in.release.IRIObjects(iri, oracle.OWLInverseOf) {
+			if !admitted[inv] {
+				add("%s (%s) declares owl:inverseOf %s, which is not admitted", name, iri, inv)
+			}
+		}
+	}
 	return bad
 }
 
+// TestCatalogPortParity checks the exported surface against the ledger, the
+// SemStreams fixture, and bfo-2020, and restates the reused-name and
+// precedence scenarios from ruling R1 on #31.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
 func TestCatalogPortParity(t *testing.T) {
 	in := loadInputs(t)
 	for _, p := range parityProblems(in, externalAdditions(t, in.src)) {
 		t.Error(p)
 	}
+	if n := len(in.src.ExternalAdditions.Relations); n != 15 {
+		t.Errorf("ledger records %d external relations, ruling R1 admits 15", n)
+	}
+	// Spec scenarios: SemStreams names at their BFO 2020 IRIs, and the
+	// direction of temporal precedence.
+	for _, c := range []struct{ name, got, local, label string }{
+		{"BearerOf", bfo.BearerOf, "BFO_0000196", "bearer of"},
+		{"InheresIn", bfo.InheresIn, "BFO_0000197", "inheres in"},
+		{"OccupiesTemporalRegion", bfo.OccupiesTemporalRegion, "BFO_0000199", "occupies temporal region"},
+		{"Precedes", bfo.Precedes, "BFO_0000063", "precedes"},
+		{"PrecededBy", bfo.PrecededBy, "BFO_0000062", "preceded by"},
+	} {
+		if labels := in.release.Labels(c.got); c.got != bfo.Namespace+c.local || !slices.Equal(labels, []string{c.label}) {
+			t.Errorf("bfo.%s = %s labelled %q, want %s labelled %q", c.name, c.got, labels, c.local, c.label)
+		}
+	}
 }
 
-// TestCatalogPortParitySensitivity seeds one wrong IRI, one excluded symbol,
-// and one undeclared term, and requires parityProblems to name each.
+// compiledRelations is the compiled value of each ruling R1 constant. gosrc
+// reads bfo.go from disk, so only these values reflect a go test -overlay
+// mutant of bfo.go (task mutate:check).
+var compiledRelations = map[string]string{
+	"BearerOf": bfo.BearerOf, "InheresIn": bfo.InheresIn, "GenericallyDependsOn": bfo.GenericallyDependsOn,
+	"IsCarrierOf": bfo.IsCarrierOf, "IsConcretizedBy": bfo.IsConcretizedBy, "Concretizes": bfo.Concretizes,
+	"OccupiesTemporalRegion": bfo.OccupiesTemporalRegion, "HasOccurrentPart": bfo.HasOccurrentPart,
+	"OccurrentPartOf": bfo.OccurrentPartOf, "ContinuantPartOf": bfo.ContinuantPartOf,
+	"HasContinuantPart": bfo.HasContinuantPart, "HasMemberPart": bfo.HasMemberPart, "MemberPartOf": bfo.MemberPartOf,
+	"PrecededBy": bfo.PrecededBy, "Precedes": bfo.Precedes,
+}
+
+// TestRelationConstantsMatchLedger requires the compiled value of every
+// ruling R1 constant to be the ledger's bfo-2020 IRI, declared in the release
+// with the ledger's label, so a mutant of bfo.go is seen.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
+func TestRelationConstantsMatchLedger(t *testing.T) {
+	in := loadInputs(t)
+	rels := in.src.ExternalAdditions.Relations
+	if got, want := slices.Sorted(maps.Keys(compiledRelations)), slices.Sorted(maps.Keys(rels)); !slices.Equal(got, want) {
+		t.Fatalf("compiled R1 constants %v, ledger external relations %v", got, want)
+	}
+	for _, name := range slices.Sorted(maps.Keys(rels)) {
+		iri, rec := compiledRelations[name], rels[name]
+		if iri != bfo.Namespace+rec[0] {
+			t.Errorf("bfo.%s = %s, ledger records %s", name, iri, rec[0])
+		}
+		if !in.release.HasType(iri, oracle.OWLObjectProp) || !slices.Equal(in.release.Labels(iri), []string{rec[1]}) {
+			t.Errorf("bfo.%s (%s) is not an owl:ObjectProperty labelled %q in bfo-core.ttl", name, iri, rec[1])
+		}
+	}
+}
+
+// TestCatalogPortParitySensitivity seeds faults into the exported surface, the
+// ledger, and the release graph, and requires parityProblems to name each.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relations are declared in the release
 func TestCatalogPortParitySensitivity(t *testing.T) {
+	drop := func(p *gosrc.Package, name string) {
+		delete(p.Consts, name)
+		p.Exported = slices.DeleteFunc(p.Exported, func(s string) bool { return s == name })
+	}
 	tests := []struct {
 		name   string
-		mutate func(*gosrc.Package)
+		mutate func(*testing.T, *inputs)
 		want   string
 	}{
-		{"altered IRI", func(p *gosrc.Package) { p.Consts["Site"] = bfo.Namespace + "BFO_0000030" }, "Site = "},
-		{"excluded symbol exported", func(p *gosrc.Package) {
-			p.Exported = append(p.Exported, "PrecedesTemporally")
-			sort.Strings(p.Exported)
+		{"altered IRI", func(_ *testing.T, in *inputs) { in.pkg.Consts["Site"] = bfo.Namespace + "BFO_0000030" }, "Site = "},
+		{"excluded symbol exported", func(_ *testing.T, in *inputs) {
+			in.pkg.Exported = append(in.pkg.Exported, "PrecedesTemporally")
+			sort.Strings(in.pkg.Exported)
 		}, "excluded source symbol PrecedesTemporally"},
-		{"relation typed as class", func(p *gosrc.Package) { p.Consts["OccursIn"] = bfo.Process }, "OccursIn ("},
+		{"relation typed as class", func(_ *testing.T, in *inputs) { in.pkg.Consts["OccursIn"] = bfo.Process }, "OccursIn ("},
+		{"BearerOf at BFO 2.0 IRI", func(_ *testing.T, in *inputs) {
+			in.pkg.Consts["BearerOf"] = bfo.Namespace + "BFO_0000053"
+		}, `BearerOf = "` + bfo.Namespace + `BFO_0000053", ledger records BFO_0000196`},
+		{"Precedes and PrecededBy swapped", func(_ *testing.T, in *inputs) {
+			in.pkg.Consts["Precedes"], in.pkg.Consts["PrecededBy"] = in.pkg.Consts["PrecededBy"], in.pkg.Consts["Precedes"]
+		}, `Precedes = "` + bfo.Namespace + `BFO_0000062", ledger records BFO_0000063`},
+		{"wrong label", func(_ *testing.T, in *inputs) {
+			in.src.ExternalAdditions.Relations["IsCarrierOf"] = [2]string{"BFO_0000101", "carrier of"}
+		}, `ledger records "carrier of"`},
+		{"deprecated term", func(t *testing.T, in *inputs) {
+			merged, err := oracle.LoadMerged(oracle.BFO2020, oracle.CCO22)
+			if err != nil {
+				t.Fatal(err)
+			}
+			in.release = merged
+			// ont00001769 carries owl:deprecated true in CCO v2.2.
+			in.pkg.Consts["Concretizes"] = cco.Namespace + "ont00001769"
+		}, "Concretizes (" + cco.Namespace + "ont00001769) is owl:deprecated"},
+		{"InheresIn dropped", func(_ *testing.T, in *inputs) {
+			drop(&in.pkg, "InheresIn")
+			delete(in.src.ExternalAdditions.Relations, "InheresIn")
+		}, "BearerOf (" + bfo.Namespace + "BFO_0000196) declares owl:inverseOf " + bfo.Namespace + "BFO_0000197, which is not admitted"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			in := loadInputs(t)
-			tt.mutate(&in.pkg)
+			in.src.ExternalAdditions.Relations = maps.Clone(in.src.ExternalAdditions.Relations)
+			tt.mutate(t, &in)
 			got := strings.Join(parityProblems(in, externalAdditions(t, in.src)), "\n")
 			if !strings.Contains(got, tt.want) {
 				t.Fatalf("seeded fault not named; want %q in:\n%s", tt.want, got)
@@ -322,5 +469,150 @@ func TestCatalogHierarchySensitivity(t *testing.T) {
 	got := strings.Join(hierarchyProblems(classIRIs(t, in), in.release, parents, isA), "\n")
 	if !strings.Contains(got, "Parents("+bfo.Site+")") {
 		t.Fatalf("SemStreams hierarchy not flagged for Site:\n%s", got)
+	}
+}
+
+// inverseKey names an owl:inverseOf pair independently of its direction.
+func inverseKey(a, b string) string {
+	if b < a {
+		a, b = b, a
+	}
+	return a + " " + b
+}
+
+// axiomProblems compares the ledger's relation_axioms, both ways, with the
+// owl:inverseOf and rdfs:subPropertyOf triples bfo-core.ttl asserts between
+// two admitted relations. Axioms reaching outside the admitted set are not
+// expected in the ledger.
+func axiomProblems(in inputs) []string {
+	var bad []string
+	add := func(format string, args ...any) { bad = append(bad, fmt.Sprintf(format, args...)) }
+	byName := relationIRIs(in)
+	byIRI := map[string]string{}
+	for name, iri := range byName {
+		byIRI[iri] = name
+	}
+
+	releaseInv := map[string]bool{}
+	releaseSub := map[string]string{}
+	for _, name := range slices.Sorted(maps.Keys(byName)) {
+		for _, o := range in.release.IRIObjects(byName[name], oracle.OWLInverseOf) {
+			if other, ok := byIRI[o]; ok {
+				releaseInv[inverseKey(name, other)] = true
+			}
+		}
+		for _, o := range in.release.IRIObjects(byName[name], oracle.RDFSSubPropertyOf) {
+			if super, ok := byIRI[o]; ok {
+				releaseSub[name] = super
+			}
+		}
+	}
+
+	ledgerInv := map[string]bool{}
+	for _, p := range in.src.RelationAxioms.InversePairs {
+		for _, n := range p {
+			if _, ok := byName[n]; !ok {
+				add("ledger inverse pair %v names %s, which is not an admitted relation", p, n)
+			}
+		}
+		ledgerInv[inverseKey(p[0], p[1])] = true
+	}
+	for _, k := range slices.Sorted(maps.Keys(ledgerInv)) {
+		if !releaseInv[k] {
+			add("ledger inverse pair %s is not asserted by owl:inverseOf in bfo-core.ttl", k)
+		}
+	}
+	for _, k := range slices.Sorted(maps.Keys(releaseInv)) {
+		if !ledgerInv[k] {
+			add("bfo-core.ttl asserts owl:inverseOf between %s; ledger relation_axioms.inverse_pairs omits it", k)
+		}
+	}
+
+	ledgerSub := in.src.RelationAxioms.SubPropertyOf
+	for _, sub := range slices.Sorted(maps.Keys(ledgerSub)) {
+		if got, ok := releaseSub[sub]; !ok || got != ledgerSub[sub] {
+			add("ledger records %s rdfs:subPropertyOf %s; bfo-core.ttl does not assert it", sub, ledgerSub[sub])
+		}
+	}
+	for _, sub := range slices.Sorted(maps.Keys(releaseSub)) {
+		if got, ok := ledgerSub[sub]; !ok || got != releaseSub[sub] {
+			add("bfo-core.ttl asserts %s rdfs:subPropertyOf %s; ledger relation_axioms.sub_property_of omits it",
+				sub, releaseSub[sub])
+		}
+	}
+	return bad
+}
+
+// TestRelationAxiomsMatchRelease requires the ledger's relation_axioms to equal
+// the release's axioms between admitted relations, and restates the spec
+// scenarios from bfo-core.ttl lines 284, 308, 377, and 531.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
+func TestRelationAxiomsMatchRelease(t *testing.T) {
+	in := loadInputs(t)
+	for _, p := range axiomProblems(in) {
+		t.Error(p)
+	}
+	ax := in.src.RelationAxioms
+	for sub, super := range map[string]string{
+		"HasMemberPart": "HasContinuantPart", "HasTemporalPart": "HasOccurrentPart", "TemporalPartOf": "OccurrentPartOf",
+	} {
+		if ax.SubPropertyOf[sub] != super {
+			t.Errorf("relation_axioms.sub_property_of[%s] = %q, want %s", sub, ax.SubPropertyOf[sub], super)
+		}
+	}
+	if !slices.ContainsFunc(ax.InversePairs, func(p [2]string) bool { return inverseKey(p[0], p[1]) == "BearerOf InheresIn" }) {
+		t.Errorf("relation_axioms.inverse_pairs = %v, want BearerOf paired with InheresIn", ax.InversePairs)
+	}
+	if got := in.release.IRIObjects(bfo.InheresIn, oracle.OWLInverseOf); len(got) != 0 {
+		t.Errorf("bfo-core.ttl declares owl:inverseOf %v on InheresIn; the scenario assumes one side only", got)
+	}
+}
+
+// TestRelationAxiomsMatchReleaseSensitivity seeds faults into a copy of the
+// ledger's relation_axioms and requires axiomProblems to name each, and a
+// pair recorded in the reverse of the release's direction to pass.
+//
+// spec: openspec/changes/admit-bfo-bridge-relations/specs/catalogs-and-packs/spec.md#Requirement: BFO relation axioms follow the release
+func TestRelationAxiomsMatchReleaseSensitivity(t *testing.T) {
+	isBearer := func(p [2]string) bool { return p[0] == "BearerOf" }
+	tests := []struct {
+		name   string
+		mutate func(*inputs)
+		want   string // "" requires no problem
+	}{
+		{"dropped pair", func(in *inputs) {
+			in.src.RelationAxioms.InversePairs = slices.DeleteFunc(in.src.RelationAxioms.InversePairs, isBearer)
+		}, "asserts owl:inverseOf between BearerOf InheresIn; ledger relation_axioms.inverse_pairs omits it"},
+		{"invented pair", func(in *inputs) {
+			in.src.RelationAxioms.InversePairs = append(in.src.RelationAxioms.InversePairs, [2]string{"Precedes", "OccursIn"})
+		}, "ledger inverse pair OccursIn Precedes is not asserted"},
+		{"reversed subproperty edge", func(in *inputs) {
+			delete(in.src.RelationAxioms.SubPropertyOf, "HasMemberPart")
+			in.src.RelationAxioms.SubPropertyOf["HasContinuantPart"] = "HasMemberPart"
+		}, "ledger records HasContinuantPart rdfs:subPropertyOf HasMemberPart; bfo-core.ttl does not assert it"},
+		{"pair recorded in reverse direction", func(in *inputs) {
+			i := slices.IndexFunc(in.src.RelationAxioms.InversePairs, isBearer)
+			in.src.RelationAxioms.InversePairs[i] = [2]string{"InheresIn", "BearerOf"}
+		}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := loadInputs(t)
+			in.src.RelationAxioms.InversePairs = slices.Clone(in.src.RelationAxioms.InversePairs)
+			in.src.RelationAxioms.SubPropertyOf = maps.Clone(in.src.RelationAxioms.SubPropertyOf)
+			tt.mutate(&in)
+			problems := axiomProblems(in)
+			got := strings.Join(problems, "\n")
+			if tt.want == "" {
+				if len(problems) != 0 {
+					t.Fatalf("want no problem, got:\n%s", got)
+				}
+				return
+			}
+			if !strings.Contains(got, tt.want) {
+				t.Fatalf("seeded fault not named; want %q in:\n%s", tt.want, got)
+			}
+		})
 	}
 }
