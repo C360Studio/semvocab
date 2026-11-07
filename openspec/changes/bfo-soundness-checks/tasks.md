@@ -40,7 +40,7 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
 
 ## 4. Docs and archive
 
-- [ ] 4.1 Add "BFO alignment" to `docs/catalogs-and-packs.md` after the `diekm` section (premise `:241-268`;
+- [x] 4.1 Add "BFO alignment" to `docs/catalogs-and-packs.md` after the `diekm` section (premise `:241-268`;
   "Using your own pack" at `:440-445`): the seven buckets (issue #32's grouping, not a BFO term), the disjointness
   rule, the hop table, and the bearer-less metric convention (a score with no material bearer is a
   `cco.InformationContentEntity`, not an unanchored `bfo.Quality`). Correct the `HasMemberPart` and

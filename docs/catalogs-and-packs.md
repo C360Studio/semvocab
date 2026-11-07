@@ -266,6 +266,72 @@ The steps are in `packs/diekm/diekm.yaml`.
 `shacl.Compile` takes all three. [shacl-compilation.md](shacl-compilation.md) covers the mapping and contracts.
 `Shapes()` and `Mapping()` return copies, so changing the returned slice does not change the embedded data.
 
+### BFO alignment
+
+Packs over BFO 2020 and CCO v2.2 write their superclass lists and projection chains by hand. Tests in
+`packs/bfo_soundness_test.go` check them against the pinned `bfo-core.ttl` ahead of time. They run on every embedded
+pack whose ledger entry references `bfo-2020` or `cco-2.2` (today `bfo-cco-core` and `diekm`); `swe-core` and
+`sensorml` are not checked. No exported function runs these checks (ruling R1 on #32). Classes are classified with
+`cco.IsA`, which falls back to `bfo.IsA`, so a class neither catalog knows fails the check.
+
+**Buckets.** Every entity type's class or superclasses must reach one of seven buckets. The buckets are issue #32's
+grouping, not a BFO 2020 term:
+
+| Bucket | BFO classes |
+| --- | --- |
+| What happens | `Process`, `ProcessBoundary` |
+| When | `TemporalRegion`, `SpatiotemporalRegion` |
+| Who or what | `MaterialEntity` |
+| Where | `Site`, `SpatialRegion` |
+| How we know | `GenericallyDependentContinuant` (information content) |
+| How it is | `Quality` |
+| Why | `RealizableEntity` (roles, dispositions, functions) |
+
+A continuant fiat boundary (`BFO_0000140`, `142`, `146`, `147`) reaches no bucket and is rejected.
+
+**Disjointness.** No entity type's class and superclasses may fall under two classes that BFO 2020 declares disjoint:
+the `owl:disjointWith` axioms and the `owl:AllDisjointClasses` lists in `bfo-core.ttl` (26 pairs, such as `Continuant`
+and `Occurrent`, or `IndependentContinuant` and `SpecificallyDependentContinuant`).
+
+**Projection hops.** A hop is one projection step: from the entity (step 0) or the previous step's node class, through
+the step's predicate, to its node class. Step 0 starts at each entity type the pack's SHACL mapping binds the predicate
+to, so a BFO pack with projections must ship a mapping. A hop through one of these 17 relations must start inside the
+relation's `rdfs:domain` and end inside its `rdfs:range`, read from `bfo-core.ttl` ("IC" is independent continuant,
+"SDC" specifically dependent continuant, "GDC" generically dependent continuant):
+
+| Relation | From | To |
+| --- | --- | --- |
+| `BearerOf` (`196`) | IC, not a `SpatialRegion` | SDC |
+| `InheresIn` (`197`) | SDC | IC, not a `SpatialRegion` |
+| `GenericallyDependsOn` (`084`) | GDC | IC, not a `SpatialRegion` |
+| `IsCarrierOf` (`101`) | IC, not a `SpatialRegion` | GDC |
+| `Realizes` (`055`) | `Process` | `RealizableEntity` |
+| `RealizedIn` (`054`, "has realization") | `RealizableEntity` | `Process` |
+| `Concretizes` (`059`) | `Process` or SDC | GDC |
+| `IsConcretizedBy` (`058`) | GDC | `Process` or SDC |
+| `HasMemberPart` (`115`), `MemberPartOf` (`129`) | `MaterialEntity` | `MaterialEntity` |
+| `ContinuantPartOf` (`176`), `HasContinuantPart` (`178`) | `Continuant` | `Continuant` |
+| `HasOccurrentPart` (`117`), `OccurrentPartOf` (`132`) | `Occurrent` | `Occurrent` |
+| `OccupiesTemporalRegion` (`199`) | `Process` or `ProcessBoundary` | `TemporalRegion` |
+| `Precedes` (`063`), `PrecededBy` (`062`) | `Occurrent` | `Occurrent` |
+
+"Not a `SpatialRegion`" is decided over the declared superclasses: a class passes when none of them is under
+`SpatialRegion`. Other predicates, such as `cco:ont00001904` (is measured by) or `bfo.ParticipatesIn`, are not checked
+against a domain or range.
+
+**Anchoring.** Whatever the predicate, a hop from an IC to an SDC must use `bfo.BearerOf`, and a hop from an SDC to an
+IC must use `bfo.InheresIn`. CCO sub-properties of these, such as `ont00001954` (has capability), are rejected. In
+`diekm`, `intel.role.assigned` is the platform bearer of a role, and `intel.measurement.altitude-m` starts with the
+platform bearer of an Altitude.
+
+**Bearer-less metrics.** A score, confidence, or status with no identified material bearer is modeled as a
+`cco.InformationContentEntity` (a GDC), not as a `bfo.Quality`: a quality needs a bearer, and the anchoring rule
+rejects a quality reached from an IC without `bearer of`.
+
+**Process connectivity.** An opt-in diagnostic names each continuant entity type that is the subject of no projection
+reaching a `bfo.Process`. No embedded pack is opted in: `diekm` would fail it, since neither of `intel.platform`'s
+predicates reaches a process.
+
 ### `sensorml`
 
 `packs/sensorml` holds the vocabulary pack for the five OGC API — Connected Systems Part 1 (`OGC 23-001`) resources
@@ -443,3 +509,5 @@ The functions above are the pattern. Write a pack YAML, decode it with `vocabula
 `vocabulary.RegisterPack(spec, vocabulary.WithPrefixRegistrar(export.RegisterPrefixes))`. The pack format belongs to
 SemEngine. To build a pack and validator from SHACL shapes instead of writing the pack by hand, see
 [shacl-compilation.md](shacl-compilation.md).
+A pack built over BFO 2020 or CCO v2.2 that is embedded here is added to the `embedded` list in
+`packs/packs_test.go` and to the ledger, and the [BFO alignment](#bfo-alignment) checks then apply to it.

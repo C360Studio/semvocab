@@ -139,7 +139,8 @@ const (
 	IsConcretizedBy = Namespace + "BFO_0000058"
 	// Concretizes (BFO_0000059, "concretizes") is the inverse of IsConcretizedBy.
 	Concretizes = Namespace + "BFO_0000059"
-	// OccupiesTemporalRegion (BFO_0000199, "occupies temporal region") relates an occurrent to its temporal region.
+	// OccupiesTemporalRegion (BFO_0000199, "occupies temporal region") relates a process or process boundary to its
+	// temporal region.
 	// BFO 2020 declares it functional and gives it no inverse.
 	OccupiesTemporalRegion = Namespace + "BFO_0000199"
 	// HasOccurrentPart (BFO_0000117, "has occurrent part") relates an occurrent to an occurrent part of it.
@@ -150,8 +151,8 @@ const (
 	ContinuantPartOf = Namespace + "BFO_0000176"
 	// HasContinuantPart (BFO_0000178, "has continuant part") is the inverse of ContinuantPartOf.
 	HasContinuantPart = Namespace + "BFO_0000178"
-	// HasMemberPart (BFO_0000115, "has member part") relates an object aggregate to a member; a sub-property of
-	// HasContinuantPart.
+	// HasMemberPart (BFO_0000115, "has member part") relates a material entity to a material entity that is a member
+	// part of it, such as an object aggregate to a member; a sub-property of HasContinuantPart.
 	HasMemberPart = Namespace + "BFO_0000115"
 	// MemberPartOf (BFO_0000129, "member part of") is the inverse of HasMemberPart; a sub-property of ContinuantPartOf.
 	MemberPartOf = Namespace + "BFO_0000129"
