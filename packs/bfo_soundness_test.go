@@ -21,7 +21,7 @@ import (
 // exported API). They run over every embedded pack whose ledger entry
 // references bfo-2020 or cco-2.2, classify classes through cco.IsA (which
 // falls back to bfo.IsA), and read disjointness, domains, and ranges from the
-// pinned bfo-core.ttl. Design: openspec/changes/bfo-soundness-checks/design.md.
+// pinned bfo-core.ttl. Design: openspec/changes/archive/2026-11-07-bfo-soundness-checks/design.md.
 
 const (
 	rdfsDomain            = "http://www.w3.org/2000/01/rdf-schema#domain"
@@ -517,7 +517,7 @@ func wantProblem(t *testing.T, problems []string, parts ...string) {
 // TestBFOPackSelection pins the selected set, so a selector that selects
 // nothing or everything fails.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
 func TestBFOPackSelection(t *testing.T) {
 	l, err := ledger.Load()
 	if err != nil {
@@ -541,7 +541,7 @@ func TestBFOPackSelection(t *testing.T) {
 // owl:AllDisjointClasses lists of 3, 3, 4, 4, and 3 members (lines
 // 1185-1223), 26 pairs in all, counted by hand from the file.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
 func TestBFODisjointPairsFromRelease(t *testing.T) {
 	pairs := loadDisjointPairs(t)
 	if len(pairs) != 26 {
@@ -563,7 +563,7 @@ func TestBFODisjointPairsFromRelease(t *testing.T) {
 // TestBFOPacksAnchorEveryEntityType runs the bucket and disjointness checks
 // over every selected pack, and pins diekm's anchors.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
 func TestBFOPacksAnchorEveryEntityType(t *testing.T) {
 	l, err := ledger.Load()
 	if err != nil {
@@ -599,7 +599,7 @@ func TestBFOPacksAnchorEveryEntityType(t *testing.T) {
 // TestBFOPackAnchoringSensitivity seeds faults into diekm's intel.platform
 // and requires the checks to name the entity type and the rule.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO-aligned packs anchor every entity type
 func TestBFOPackAnchoringSensitivity(t *testing.T) {
 	pairs := loadDisjointPairs(t)
 	tests := []struct {
@@ -635,7 +635,7 @@ func TestBFOPackAnchoringSensitivity(t *testing.T) {
 // BFO_0000196 domain IC and not SpatialRegion (:532-538), BFO_0000059 domain
 // Process or SDC (:182-186), BFO_0000199 range TemporalRegion (:571).
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
 func TestBFORelationBounds(t *testing.T) {
 	rel := loadRelationBounds(t)
 	if len(rel) != 17 {
@@ -676,7 +676,7 @@ func (r turtleReader) Objects(s, p string) []turtle.Term {
 // shapes outside its three, and a relation with no domain, and requires each
 // to be refused.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
 func TestBFORelationBoundsFailClosed(t *testing.T) {
 	const head = `@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -717,7 +717,7 @@ func TestBFORelationBoundsFailClosed(t *testing.T) {
 // TestBFOProjectionHops runs the hop check over every selected pack and pins
 // the hops it checks in diekm.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
 func TestBFOProjectionHops(t *testing.T) {
 	l, err := ledger.Load()
 	if err != nil {
@@ -768,7 +768,7 @@ func TestBFOProjectionHops(t *testing.T) {
 // TestBFOProjectionHopsSensitivity seeds faults into diekm's projections and
 // mapping and requires the hop check to name the predicate and step.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
 func TestBFOProjectionHopsSensitivity(t *testing.T) {
 	rel := loadRelationBounds(t)
 	const (
@@ -837,7 +837,7 @@ func TestBFOProjectionHopsSensitivity(t *testing.T) {
 // TestBFOProcessConnectivity runs the opt-in diagnostic on diekm unchanged
 // and with a realization step.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: Process connectivity is opt-in
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: Process connectivity is opt-in
 func TestBFOProcessConnectivity(t *testing.T) {
 	// Spec scenario: DIEKM opted in.
 	spec, m := diekmSpecAndMapping(t)

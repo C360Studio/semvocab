@@ -349,7 +349,7 @@ func TestIRIObjects(t *testing.T) {
 // holds BFO_0000004 and a blank node with owl:complementOf BFO_0000006, and
 // walks the list through rdf:first and rdf:rest.
 //
-// spec: openspec/changes/bfo-soundness-checks/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
+// spec: openspec/specs/catalogs-and-packs/spec.md#Requirement: BFO projection hops follow the release
 func TestObjects(t *testing.T) {
 	g, err := Load(BFO2020)
 	if err != nil {

@@ -47,5 +47,5 @@ modified Go test carries a `// spec:` citation to a requirement in this change's
   `OccupiesTemporalRegion` comments at `catalog/bfo/bfo.go:142,153` to the fixture's domains. Acceptance:
   `task docs:check` passes.
 - [x] 4.2 Run `task verify` on a clean tree at the branch head. Acceptance: it exits 0 with no tracked-file change.
-- [ ] 4.3 Archive with `npx --no-install openspec archive bfo-soundness-checks --yes` before marking PR #39 ready.
+- [x] 4.3 Archive with `npx --no-install openspec archive bfo-soundness-checks --yes` before marking PR #39 ready.
   Acceptance: `openspec/specs/catalogs-and-packs` carries the three requirements and `task spec:check` passes.
