@@ -1,6 +1,6 @@
 module github.com/c360studio/semvocab
 
-go 1.26.9
+go 1.26.11
 
 tool (
 	github.com/mgechev/revive
@@ -9,7 +9,7 @@ tool (
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/c360studio/semengine v0.1.0-alpha.2
+	github.com/c360studio/semengine v0.1.0-alpha.5
 	gopkg.in/yaml.v3 v3.0.1
 	pgregory.net/rapid v1.3.0
 )
@@ -25,11 +25,11 @@ require (
 	github.com/mgechev/dots v1.0.0 // indirect
 	github.com/mgechev/revive v1.15.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
-	golang.org/x/text v0.42.0 // indirect
-	golang.org/x/tools v0.51.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261009151841-97e8ea77aa2a // indirect
+	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	golang.org/x/vuln v1.8.0 // indirect
 )
